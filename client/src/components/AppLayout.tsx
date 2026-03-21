@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from './Sidebar';
 
@@ -86,7 +86,7 @@ function SiteHeader() {
   const { user, logout } = useAuth();
   return (
     <header className="usa-header" role="banner">
-      <div className="usa-header__title">
+      <NavLink to="/dashboard" className="usa-header__title" style={{ textDecoration: 'none' }}>
         <img
           src="/treasury-seal-white-simple.svg"
           alt="U.S. Department of the Treasury seal"
@@ -96,7 +96,7 @@ function SiteHeader() {
           <span className="usa-header__agency">U.S. Department of the Treasury</span>
           <span className="usa-header__app-name">Capacity Management</span>
         </div>
-      </div>
+      </NavLink>
       {user && (
         <div className="usa-header__user">
           <span className="usa-header__user-name">{user.displayName}</span>

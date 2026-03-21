@@ -1,29 +1,26 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resourcesApi } from '../api/resources';
 import { adminApi } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/Icon';
+import { SortIcon, SortDir } from '../components/SortIcon';
+import { formatDivision } from '../utils/format';
 
-type SortField = 'lastName' | 'firstName' | 'division' | 'functionalArea' | 'primaryRole' | 'resourceType' | 'supervisor';
-type SortDir = 'asc' | 'desc';
-
-function SortIcon({ field, active, dir }: { field: string; active: boolean; dir: SortDir }) {
-  if (!active) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
-  return <span style={{ marginLeft: 4 }}>{dir === 'asc' ? '↑' : '↓'}</span>;
-}
+type SortField = 'lastName' | 'firstName' | 'division' | 'functionalArea' | 'primaryRole' | 'resourceType' | 'supervisor' | 'totalPercentUtilized' | 'availableCapacity';
 
 export function Resources() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [division, setDivision] = useState('');
   const [resourceType, setResourceType] = useState('');
   const [roleId, setRoleId] = useState('');
   const [functionalAreaId, setFunctionalAreaId] = useState('');
-  const [sortBy, setSortBy] = useState<SortField>('lastName');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const sortBy = (searchParams.get('sortBy') as SortField) || 'lastName';
+  const sortDir = (searchParams.get('sortDir') as SortDir) || 'asc';
   const [page, setPage] = useState(1);
 
   const params: Record<string, string> = { page: String(page), limit: '50', sortBy, sortDir };
@@ -45,12 +42,8 @@ export function Resources() {
   const filteredFuncAreas = funcAreas?.filter((fa: any) => !division || fa.division === division) ?? [];
 
   function handleSort(field: SortField) {
-    if (sortBy === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortDir('asc');
-    }
+    const newDir = sortBy === field && sortDir === 'asc' ? 'desc' : 'asc';
+    setSearchParams({ sortBy: field, sortDir: newDir });
     setPage(1);
   }
 
@@ -62,9 +55,9 @@ export function Resources() {
 
   const utilizationColor = (pct: number) => {
     if (pct > 1) return 'var(--usa-error)';
-    if (pct >= 0.8) return 'var(--usa-warning-dark)';
-    if (pct >= 0.5) return 'var(--usa-primary)';
-    return 'var(--usa-success)';
+    if (pct >= 0.8) return 'var(--usa-success)';
+    if (pct >= 0.5) return 'var(--usa-warning-dark)';
+    return 'var(--usa-error)';
   };
 
   const thStyle: React.CSSProperties = { cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' };
@@ -112,7 +105,7 @@ export function Resources() {
           {roles?.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         {(user?.role === 'editor' || user?.role === 'admin') && (
-          <button className="usa-button" onClick={() => navigate('/resources/new')}>
+          <button className="usa-button usa-button--primary" onClick={() => navigate('/resources/new')}>
             <Icon name="add" color="white" /> Add Resource
           </button>
         )}
@@ -143,8 +136,12 @@ export function Resources() {
                 <th style={thStyle} onClick={() => handleSort('supervisor')}>
                   Supervisor <SortIcon field="supervisor" active={sortBy === 'supervisor'} dir={sortDir} />
                 </th>
-                <th>Utilization</th>
-                <th>Available</th>
+                <th style={thStyle} onClick={() => handleSort('totalPercentUtilized')}>
+                  Utilization <SortIcon field="totalPercentUtilized" active={sortBy === 'totalPercentUtilized'} dir={sortDir} />
+                </th>
+                <th style={thStyle} onClick={() => handleSort('availableCapacity')}>
+                  Available <SortIcon field="availableCapacity" active={sortBy === 'availableCapacity'} dir={sortDir} />
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -156,7 +153,7 @@ export function Resources() {
                       {r.resourceType === 'federal' ? 'FED' : 'CTR'}
                     </span>
                   </td>
-                  <td style={{ textTransform: 'capitalize' }}>{r.division}</td>
+                  <td>{formatDivision(r.division)}</td>
                   <td>{r.functionalArea?.name || '-'}</td>
                   <td>{r.primaryRole?.name || '-'}</td>
                   <td>{r.supervisor ? `${r.supervisor.lastName}, ${r.supervisor.firstName}` : '-'}</td>

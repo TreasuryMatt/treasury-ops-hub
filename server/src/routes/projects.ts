@@ -18,7 +18,7 @@ const PROJECT_INCLUDE = {
 
 // GET /api/projects
 projectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
-  const { page = '1', limit = '50', search, status, priority, productId } = req.query as Record<string, string>;
+  const { page = '1', limit = '50', search, status, priority, productId, sortBy = 'name', sortDir = 'asc' } = req.query as Record<string, string>;
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
   const skip = (pageNum - 1) * limitNum;
@@ -29,8 +29,17 @@ projectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   if (priority) where.priority = priority;
   if (productId) where.productId = productId;
 
+  const SORTABLE_FIELDS: Record<string, any> = {
+    name: { name: sortDir },
+    status: { status: sortDir },
+    priority: { priority: sortDir },
+    startDate: { startDate: sortDir },
+    endDate: { endDate: sortDir },
+  };
+  const orderBy = SORTABLE_FIELDS[sortBy] ?? { name: 'asc' };
+
   const [data, total] = await Promise.all([
-    prisma.project.findMany({ where, include: PROJECT_INCLUDE, skip, take: limitNum, orderBy: { name: 'asc' } }),
+    prisma.project.findMany({ where, include: PROJECT_INCLUDE, skip, take: limitNum, orderBy }),
     prisma.project.count({ where }),
   ]);
 

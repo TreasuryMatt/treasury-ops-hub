@@ -1,5 +1,45 @@
 /* ─── Staffing App Styles ───────────────────────────────────────────────── */
 
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--usa-white);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: var(--space-4);
+  max-width: 480px;
+  width: 90%;
+}
+
+.modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--usa-base-darkest);
+  margin-bottom: 12px;
+}
+
+.modal__body {
+  font-size: 14px;
+  color: var(--usa-base-dark);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 /* ── Stat Cards ─────────────────────────────────────────────────────────── */
 .stat-grid {
   display: grid;
@@ -13,6 +53,23 @@
   padding: var(--space-3);
   box-shadow: var(--shadow-1);
   border-top: 4px solid var(--usa-primary);
+  transition: box-shadow .15s, transform .15s;
+}
+
+.stat-card--link {
+  cursor: pointer !important;
+  text-decoration: none;
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.stat-card--link:hover .stat-card {
+  box-shadow: 0 4px 16px rgba(0,0,0,.13);
+  transform: translateY(-2px);
 }
 
 .stat-card__value {
@@ -96,6 +153,7 @@
   border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge--in_progress {

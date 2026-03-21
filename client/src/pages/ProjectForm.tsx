@@ -128,7 +128,7 @@ export function ProjectForm() {
         )}
 
         <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-          <button className="usa-button" type="submit" disabled={mutation.isPending}>
+          <button className="usa-button usa-button--primary" type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? 'Saving...' : isEdit ? 'Update Project' : 'Create Project'}
           </button>
           <button className="usa-button usa-button--outline" type="button" onClick={() => navigate(-1)}>Cancel</button>

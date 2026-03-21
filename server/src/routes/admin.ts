@@ -79,6 +79,43 @@ adminRouter.post('/roles', requireAdmin, async (req: AuthenticatedRequest, res: 
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
 
+adminRouter.get('/roles/:id/usage', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const [primary, secondary, assignments] = await Promise.all([
+      prisma.resource.count({ where: { primaryRoleId: id } }),
+      prisma.resource.count({ where: { secondaryRoleId: id } }),
+      prisma.assignment.count({ where: { roleId: id } }),
+    ]);
+    const items = [
+      { label: 'resources (primary role)', count: primary },
+      { label: 'resources (secondary role)', count: secondary },
+      { label: 'assignments', count: assignments },
+    ].filter((i) => i.count > 0);
+    res.json({ data: items });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.put('/roles/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const role = await prisma.role.update({ where: { id: req.params.id as string }, data: req.body });
+    res.json({ data: role });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/roles/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.$transaction([
+      prisma.resource.updateMany({ where: { primaryRoleId: id }, data: { primaryRoleId: null } }),
+      prisma.resource.updateMany({ where: { secondaryRoleId: id }, data: { secondaryRoleId: null } }),
+      prisma.assignment.updateMany({ where: { roleId: id }, data: { roleId: null } }),
+      prisma.role.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Deleted' });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
 // ─── Reference data: Functional Areas ────────────────────────────────────────
 adminRouter.get('/functional-areas', async (_req: AuthenticatedRequest, res: Response) => {
   const areas = await prisma.functionalArea.findMany({ orderBy: { sortOrder: 'asc' } });
@@ -92,6 +129,31 @@ adminRouter.post('/functional-areas', requireAdmin, async (req: AuthenticatedReq
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
 
+adminRouter.get('/functional-areas/:id/usage', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const count = await prisma.resource.count({ where: { functionalAreaId: req.params.id as string } });
+    res.json({ data: count > 0 ? [{ label: 'resources', count }] : [] });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.put('/functional-areas/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const area = await prisma.functionalArea.update({ where: { id: req.params.id as string }, data: req.body });
+    res.json({ data: area });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/functional-areas/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.$transaction([
+      prisma.resource.updateMany({ where: { functionalAreaId: id }, data: { functionalAreaId: null } }),
+      prisma.functionalArea.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Deleted' });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
 // ─── Reference data: Products ────────────────────────────────────────────────
 adminRouter.get('/products', async (_req: AuthenticatedRequest, res: Response) => {
   const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
@@ -102,6 +164,31 @@ adminRouter.post('/products', requireAdmin, async (req: AuthenticatedRequest, re
   try {
     const product = await prisma.product.create({ data: req.body });
     res.status(201).json({ data: product });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.get('/products/:id/usage', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const count = await prisma.project.count({ where: { productId: req.params.id as string } });
+    res.json({ data: count > 0 ? [{ label: 'projects', count }] : [] });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.put('/products/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const product = await prisma.product.update({ where: { id: req.params.id as string }, data: req.body });
+    res.json({ data: product });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.$transaction([
+      prisma.project.updateMany({ where: { productId: id }, data: { productId: null } }),
+      prisma.product.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Deleted' });
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
 

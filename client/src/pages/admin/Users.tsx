@@ -2,11 +2,25 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
 import { Icon } from '../../components/Icon';
+import { SortIcon, SortDir } from '../../components/SortIcon';
 
 export function Users() {
   const qc = useQueryClient();
   const { data: users, isLoading } = useQuery({ queryKey: ['admin-users'], queryFn: () => adminApi.users() });
   const [showAdd, setShowAdd] = useState(false);
+  const [sortBy, setSortBy] = useState('displayName');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(field: string) {
+    if (sortBy === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(field); setSortDir('asc'); }
+  }
+
+  const sortedUsers = [...(users ?? [])].sort((a: any, b: any) => {
+    const av = a[sortBy] ?? '';
+    const bv = b[sortBy] ?? '';
+    return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
   const [newUser, setNewUser] = useState({ caiaId: '', email: '', displayName: '', role: 'viewer' });
 
   const createMutation = useMutation({
@@ -30,7 +44,7 @@ export function Users() {
         <p className="usa-page-subtitle">Manage application users and roles</p>
       </div>
 
-      <button className="usa-button" onClick={() => setShowAdd(!showAdd)} style={{ marginBottom: 16 }}>
+      <button className="usa-button usa-button--primary" onClick={() => setShowAdd(!showAdd)} style={{ marginBottom: 16 }}>
         <Icon name="person_add" color="white" size={16} /> Add User
       </button>
 
@@ -57,7 +71,7 @@ export function Users() {
                 <option value="admin">Admin</option>
               </select>
             </div>
-            <button className="usa-button" onClick={() => createMutation.mutate(newUser)}>Create</button>
+            <button className="usa-button usa-button--primary" onClick={() => createMutation.mutate(newUser)}>Create</button>
             <button className="usa-button usa-button--outline" onClick={() => setShowAdd(false)}>Cancel</button>
           </div>
         </div>
@@ -67,15 +81,15 @@ export function Users() {
         <table className="usa-table">
           <thead>
             <tr>
-              <th>Display Name</th>
-              <th>CAIA ID</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Active</th>
+              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
+                <th key={field} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(field)}>
+                  {label} <SortIcon field={field} active={sortBy === field} dir={sortDir} />
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {users?.map((u: any) => (
+            {sortedUsers.map((u: any) => (
               <tr key={u.id}>
                 <td style={{ fontWeight: 600 }}>{u.displayName}</td>
                 <td>{u.caiaId}</td>

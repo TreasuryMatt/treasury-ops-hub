@@ -5,6 +5,7 @@ import { projectsApi } from '../api/projects';
 import { adminApi } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/Icon';
+import { SortIcon, SortDir } from '../components/SortIcon';
 
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'In Progress',
@@ -19,9 +20,21 @@ export function Projects() {
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [productId, setProductId] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [page, setPage] = useState(1);
 
-  const params: Record<string, string> = { page: String(page), limit: '50' };
+  function handleSort(field: string) {
+    if (sortBy === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+    setPage(1);
+  }
+
+  const params: Record<string, string> = { page: String(page), limit: '50', sortBy, sortDir };
   if (search) params.search = search;
   if (status) params.status = status;
   if (priority) params.priority = priority;
@@ -68,7 +81,7 @@ export function Projects() {
           {products?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {(user?.role === 'editor' || user?.role === 'admin') && (
-          <button className="usa-button" onClick={() => navigate('/projects/new')}>
+          <button className="usa-button usa-button--primary" onClick={() => navigate('/projects/new')}>
             <Icon name="add" color="white" /> Add Project
           </button>
         )}
@@ -81,12 +94,18 @@ export function Projects() {
           <table className="usa-table">
             <thead>
               <tr>
-                <th>Project Name</th>
-                <th>Product</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Start Date</th>
-                <th>End Date</th>
+                {([
+                  ['name', 'Project Name'],
+                  ['product', 'Product'],
+                  ['status', 'Status'],
+                  ['priority', 'Priority'],
+                  ['startDate', 'Start Date'],
+                  ['endDate', 'End Date'],
+                ] as [string, string][]).map(([field, label]) => (
+                  <th key={field} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(field)}>
+                    {label} <SortIcon field={field} active={sortBy === field} dir={sortDir} />
+                  </th>
+                ))}
                 <th>Team Size</th>
               </tr>
             </thead>

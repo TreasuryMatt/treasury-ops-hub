@@ -60,6 +60,22 @@ resourcesRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
     supervisor: [{ supervisor: { lastName: sortDir } }, { lastName: 'asc' }],
     resourceType: [{ resourceType: sortDir }, { lastName: 'asc' }],
   };
+
+  // Utilization/capacity are computed fields — sort in memory after fetching all matches
+  if (sortBy === 'totalPercentUtilized' || sortBy === 'availableCapacity') {
+    const allData = await prisma.resource.findMany({ where, include: RESOURCE_INCLUDE });
+    const enriched = allData.map((r) => {
+      const totalUtilized = r.assignments.reduce((sum, a) => sum + a.percentUtilized, 0);
+      return { ...r, totalPercentUtilized: totalUtilized, availableCapacity: 1 - totalUtilized };
+    });
+    enriched.sort((a, b) => {
+      const field = sortBy === 'availableCapacity' ? 'availableCapacity' : 'totalPercentUtilized';
+      return sortDir === 'asc' ? a[field] - b[field] : b[field] - a[field];
+    });
+    const paginated = enriched.slice(skip, skip + limitNum);
+    return res.json({ data: paginated, meta: { total: allData.length, page: pageNum, limit: limitNum, pages: Math.ceil(allData.length / limitNum) } });
+  }
+
   const orderBy = validSortFields[sortBy] ?? validSortFields.lastName;
 
   const [data, total] = await Promise.all([

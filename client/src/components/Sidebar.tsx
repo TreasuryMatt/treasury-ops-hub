@@ -36,25 +36,6 @@ export function Sidebar() {
           </ul>
         </div>
 
-        {(user?.role === 'editor' || user?.role === 'admin') && (
-          <div className="sidenav-section">
-            <div className="sidenav-section-label">Manage</div>
-            <ul className="usa-sidenav">
-              <li>
-                <NavLink to="/resources/new">
-                  <Icon name="person_add" color={COLOR_MAIN} />
-                  Add Resource
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/projects/new">
-                  <Icon name="add" color={COLOR_MAIN} />
-                  Add Project
-                </NavLink>
-              </li>
-            </ul>
-          </div>
-        )}
 
         {user?.role === 'admin' && (
           <div className="sidenav-section">

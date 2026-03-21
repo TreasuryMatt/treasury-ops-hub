@@ -6,6 +6,7 @@ import { assignmentsApi } from '../api/assignments';
 import { adminApi } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/Icon';
+import { formatDivision } from '../utils/format';
 
 export function ResourceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +44,7 @@ export function ResourceDetail() {
         <button className="usa-button usa-button--unstyled" onClick={() => navigate('/resources')} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
           <Icon name="arrow_back" size={16} /> Back to Resources
         </button>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <h1 className="usa-page-title">{resource.lastName}, {resource.firstName}</h1>
             <p className="usa-page-subtitle">
@@ -52,8 +53,8 @@ export function ResourceDetail() {
             </p>
           </div>
           {canEdit && (
-            <button className="usa-button" onClick={() => navigate(`/resources/${id}/edit`)}>
-              <Icon name="edit" color="white" size={16} /> Edit
+            <button className="usa-button usa-button--outline" onClick={() => navigate(`/resources/${id}/edit`)}>
+              <Icon name="edit" size={16} /> Edit
             </button>
           )}
         </div>
@@ -63,7 +64,7 @@ export function ResourceDetail() {
         <div className="detail-card">
           <h3>Details</h3>
           <dl className="detail-list">
-            <dt>Division</dt><dd style={{ textTransform: 'capitalize' }}>{resource.division}</dd>
+            <dt>Division</dt><dd>{formatDivision(resource.division)}</dd>
             <dt>Functional Area</dt><dd>{resource.functionalArea?.name || '-'}</dd>
             {resource.resourceType === 'federal' && (<><dt>GS Level</dt><dd>{resource.gsLevel || '-'}</dd></>)}
             {resource.resourceType === 'federal' && (<><dt>Matrixed</dt><dd>{resource.isMatrixed ? 'Yes' : 'No'}</dd></>)}
@@ -127,7 +128,7 @@ export function ResourceDetail() {
                 <label className="usa-label">% Utilized</label>
                 <input className="usa-input" type="number" min="0" max="100" step="5" placeholder="50" value={newAssignment.percentUtilized} onChange={(e) => setNewAssignment({ ...newAssignment, percentUtilized: e.target.value })} style={{ width: 80 }} />
               </div>
-              <button className="usa-button" onClick={async () => {
+              <button className="usa-button usa-button--primary" onClick={async () => {
                 await assignmentsApi.create({
                   resourceId: id,
                   projectId: newAssignment.projectId,

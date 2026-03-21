@@ -7,21 +7,36 @@ export const adminApi = {
 
   roles: () =>
     api.get('/admin/roles').then((r) => r.data.data as Role[]),
-
   createRole: (data: Partial<Role>) =>
     api.post('/admin/roles', data).then((r) => r.data.data as Role),
+  updateRole: (id: string, data: Partial<Role>) =>
+    api.put(`/admin/roles/${id}`, data).then((r) => r.data.data as Role),
+  deleteRole: (id: string) =>
+    api.delete(`/admin/roles/${id}`).then((r) => r.data),
+  roleUsage: (id: string) =>
+    api.get(`/admin/roles/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
 
   functionalAreas: () =>
     api.get('/admin/functional-areas').then((r) => r.data.data as FunctionalArea[]),
-
   createFunctionalArea: (data: Partial<FunctionalArea>) =>
     api.post('/admin/functional-areas', data).then((r) => r.data.data as FunctionalArea),
+  updateFunctionalArea: (id: string, data: Partial<FunctionalArea>) =>
+    api.put(`/admin/functional-areas/${id}`, data).then((r) => r.data.data as FunctionalArea),
+  deleteFunctionalArea: (id: string) =>
+    api.delete(`/admin/functional-areas/${id}`).then((r) => r.data),
+  functionalAreaUsage: (id: string) =>
+    api.get(`/admin/functional-areas/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
 
   products: () =>
     api.get('/admin/products').then((r) => r.data.data as Product[]),
-
   createProduct: (data: Partial<Product>) =>
     api.post('/admin/products', data).then((r) => r.data.data as Product),
+  updateProduct: (id: string, data: Partial<Product>) =>
+    api.put(`/admin/products/${id}`, data).then((r) => r.data.data as Product),
+  deleteProduct: (id: string) =>
+    api.delete(`/admin/products/${id}`).then((r) => r.data),
+  productUsage: (id: string) =>
+    api.get(`/admin/products/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
 
   users: () =>
     api.get('/admin/users').then((r) => r.data.data),

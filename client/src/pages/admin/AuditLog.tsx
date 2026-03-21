@@ -1,13 +1,33 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
+import { SortIcon, SortDir } from '../../components/SortIcon';
+
+function getField(row: any, key: string) {
+  if (key === 'createdAt') return row.createdAt;
+  if (key === 'actor') return row.actor?.displayName ?? '';
+  return row[key] ?? '';
+}
 
 export function AuditLog() {
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const { data, isLoading } = useQuery({
     queryKey: ['audit-log', page],
     queryFn: () => adminApi.auditLog({ page: String(page), limit: '50' }),
+  });
+
+  function handleSort(field: string) {
+    if (sortBy === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(field); setSortDir('asc'); }
+  }
+
+  const sortedData = [...(data?.data ?? [])].sort((a: any, b: any) => {
+    const av = getField(a, sortBy) ?? '';
+    const bv = getField(b, sortBy) ?? '';
+    return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
   });
 
   return (
@@ -22,15 +42,15 @@ export function AuditLog() {
           <table className="usa-table">
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Entity Type</th>
-                <th>Entity ID</th>
+                {([['createdAt', 'Timestamp'], ['actor', 'User'], ['action', 'Action'], ['entityType', 'Entity Type'], ['entityId', 'Entity ID']] as [string, string][]).map(([f, label]) => (
+                  <th key={f} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(f)}>
+                    {label} <SortIcon field={f} active={sortBy === f} dir={sortDir} />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {data?.data?.map((log: any) => (
+              {sortedData.map((log: any) => (
                 <tr key={log.id}>
                   <td>{new Date(log.createdAt).toLocaleString()}</td>
                   <td>{log.actor?.displayName || 'System'}</td>

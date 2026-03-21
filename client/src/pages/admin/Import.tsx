@@ -54,7 +54,7 @@ export function Import() {
             className="usa-file-input"
           />
           <button
-            className="usa-button"
+            className="usa-button usa-button--primary"
             onClick={handleUpload}
             disabled={!file || status === 'uploading'}
           >

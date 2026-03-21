@@ -2,25 +2,34 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../api/admin';
+import { formatDivision } from '../utils/format';
 
-function StatCard({ label, value, detail, color }: { label: string; value: string | number; detail?: string; color?: string }) {
-  return (
+function StatCard({ label, value, detail, color, onClick }: { label: string; value: string | number; detail?: string; color?: string; onClick?: () => void }) {
+  const card = (
     <div className="stat-card" style={{ borderTopColor: color || 'var(--usa-primary)' }}>
       <div className="stat-card__value">{value}</div>
       <div className="stat-card__label">{label}</div>
       {detail && <div className="stat-card__detail">{detail}</div>}
     </div>
   );
+  if (onClick) {
+    return (
+      <button className="stat-card--link" onClick={onClick}>
+        {card}
+      </button>
+    );
+  }
+  return card;
 }
 
 function UtilizationBar({ label, value, count }: { label: string; value: number; count: number }) {
   const pct = Math.round(value * 100);
-  const barColor = pct > 100 ? 'var(--usa-error)' : pct > 80 ? 'var(--usa-warning)' : 'var(--usa-success)';
+  const barColor = pct > 100 ? 'var(--usa-error)' : pct >= 80 ? 'var(--usa-success)' : pct >= 50 ? 'var(--usa-warning)' : 'var(--usa-error)';
 
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 14 }}>
-        <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{label}</span>
+        <span style={{ fontWeight: 600 }}>{formatDivision(label)}</span>
         <span>{pct}% avg ({count} resources)</span>
       </div>
       <div style={{ background: 'var(--usa-base-lightest)', borderRadius: 4, height: 12, overflow: 'hidden' }}>
@@ -54,10 +63,16 @@ export function Dashboard() {
       </div>
 
       <div className="stat-grid">
-        <StatCard label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} />
-        <StatCard label="Active Projects" value={stats.totalProjects} color="var(--usa-accent-cool-dark)" />
-        <StatCard label="Avg Utilization" value={`${Math.round(stats.avgUtilization * 100)}%`} color={stats.avgUtilization > 0.8 ? 'var(--usa-warning)' : 'var(--usa-success)'} />
-        <StatCard label="Available Resources" value={stats.availableResources} detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined} color="var(--usa-success)" />
+        <StatCard label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} onClick={() => navigate('/resources')} />
+        <StatCard label="Active Projects" value={stats.totalProjects} color="var(--usa-accent-cool-dark)" onClick={() => navigate('/projects')} />
+        <StatCard
+          label="Avg Utilization"
+          value={`${Math.round(stats.avgUtilization * 100)}%`}
+          detail={stats.avgUtilization >= 0.8 ? 'Healthy — above 80%' : stats.avgUtilization >= 0.5 ? 'Underutilized — below 80%' : '⚠ Critical — below 50%'}
+          color={stats.avgUtilization >= 0.8 ? 'var(--usa-success)' : stats.avgUtilization >= 0.5 ? 'var(--usa-warning)' : 'var(--usa-error)'}
+          onClick={() => navigate('/resources?sortBy=totalPercentUtilized&sortDir=desc')}
+        />
+        <StatCard label="Available Resources" value={stats.availableResources} detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined} color="var(--usa-success)" onClick={() => navigate('/resources?sortBy=availableCapacity&sortDir=desc')} />
       </div>
 
       <div style={{ marginTop: 32 }}>
@@ -68,7 +83,7 @@ export function Dashboard() {
       </div>
 
       <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-        <button className="usa-button" onClick={() => navigate('/resources')}>View All Resources</button>
+        <button className="usa-button usa-button--outline" onClick={() => navigate('/resources')}>View All Resources</button>
         <button className="usa-button usa-button--outline" onClick={() => navigate('/projects')}>View All Projects</button>
       </div>
     </div>
