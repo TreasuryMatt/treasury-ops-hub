@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Division {
+  operations
+  engineering
+  pmso
+}
+
+enum ResourceType {
+  federal
+  contractor
+}
+
+enum ProjectStatus {
+  in_progress
+  on_hold
+  completed
+}
+
+enum ProjectPriority {
+  high
+  medium
+  low
+}
+
+enum AppRole {
+  viewer
+  editor
+  admin
+}
+
+// ─── Users (app login) ──────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(uuid())
+  caiaId      String   @unique @map("caia_id")
+  email       String   @unique
+  displayName String   @map("display_name")
+  role        AppRole  @default(viewer)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+// ─── Roles (reference data) ─────────────────────────────────────────────────
+
+model Role {
+  id        String @id @default(uuid())
+  name      String @unique
+  sortOrder Int    @default(0) @map("sort_order")
+
+  primaryResources   Resource[] @relation("PrimaryRole")
+  secondaryResources Resource[] @relation("SecondaryRole")
+  assignments        Assignment[]
+
+  @@map("roles")
+}
+
+// ─── Functional Areas ───────────────────────────────────────────────────────
+
+model FunctionalArea {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  division  Division?
+  sortOrder Int       @default(0) @map("sort_order")
+
+  resources Resource[]
+
+  @@map("functional_areas")
+}
+
+// ─── Products ───────────────────────────────────────────────────────────────
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true) @map("is_active")
+
+  projects Project[]
+
+  @@map("products")
+}
+
+// ─── Resources (people) ─────────────────────────────────────────────────────
+
+model Resource {
+  id           String       @id @default(uuid())
+  resourceType ResourceType @map("resource_type")
+  firstName    String       @map("first_name")
+  lastName     String       @map("last_name")
+  division     Division
+
+  functionalAreaId String?        @map("functional_area_id")
+  functionalArea   FunctionalArea? @relation(fields: [functionalAreaId], references: [id])
+
+  // Supervisory chain
+  isSupervisor         Boolean  @default(false) @map("is_supervisor")
+  opsEngLead           String?  @map("ops_eng_lead")
+
+  supervisorId         String?   @map("supervisor_id")
+  supervisor           Resource? @relation("Supervisor", fields: [supervisorId], references: [id])
+  supervisedResources  Resource[] @relation("Supervisor")
+
+  secondLineSupervisorId String?   @map("second_line_supervisor_id")
+  secondLineSupervisor   Resource? @relation("SecondLineSupervisor", fields: [secondLineSupervisorId], references: [id])
+  secondLineReports      Resource[] @relation("SecondLineSupervisor")
+
+  // Federal-specific
+  gsLevel    String?  @map("gs_level")
+  isMatrixed Boolean? @map("is_matrixed")
+
+  // Contractor-specific
+  popStartDate DateTime? @map("pop_start_date")
+  popEndDate   DateTime? @map("pop_end_date")
+
+  // Roles
+  primaryRoleId   String? @map("primary_role_id")
+  primaryRole     Role?   @relation("PrimaryRole", fields: [primaryRoleId], references: [id])
+  secondaryRoleId String? @map("secondary_role_id")
+  secondaryRole   Role?   @relation("SecondaryRole", fields: [secondaryRoleId], references: [id])
+
+  availableForWork Boolean @default(false) @map("available_for_work")
+  notes            String?
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  assignments Assignment[]
+
+  @@map("resources")
+}
+
+// ─── Projects ───────────────────────────────────────────────────────────────
+
+model Project {
+  id          String         @id @default(uuid())
+  name        String
+  productId   String?        @map("product_id")
+  product     Product?       @relation(fields: [productId], references: [id])
+  priority    ProjectPriority?
+  status      ProjectStatus  @default(in_progress)
+  startDate   DateTime?      @map("start_date")
+  endDate     DateTime?      @map("end_date")
+  description String?
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  assignments Assignment[]
+
+  @@unique([name, productId])
+  @@map("projects")
+}
+
+// ─── Assignments (Resource ↔ Project link with utilization) ─────────────────
+
+model Assignment {
+  id              String   @id @default(uuid())
+  resourceId      String   @map("resource_id")
+  resource        Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  projectId       String   @map("project_id")
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roleId          String?  @map("role_id")
+  role            Role?    @relation(fields: [roleId], references: [id])
+  percentUtilized Float    @default(0) @map("percent_utilized")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  notes           String?
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([resourceId, projectId, roleId])
+  @@map("assignments")
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}

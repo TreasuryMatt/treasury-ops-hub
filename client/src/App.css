@@ -1,0 +1,206 @@
+/* ─── Staffing App Styles ───────────────────────────────────────────────── */
+
+/* ── Stat Cards ─────────────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.stat-card {
+  background: var(--usa-white);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-1);
+  border-top: 4px solid var(--usa-primary);
+}
+
+.stat-card__value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--usa-base-darkest);
+  line-height: 1.2;
+}
+
+.stat-card__label {
+  font-size: 14px;
+  color: var(--usa-base);
+  margin-top: 4px;
+}
+
+.stat-card__detail {
+  font-size: 12px;
+  color: var(--usa-base-dark);
+  margin-top: 8px;
+}
+
+/* ── Filter Bar ─────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+  align-items: flex-end;
+}
+
+.filter-bar .usa-select,
+.filter-bar .usa-input {
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.filter-bar__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.filter-bar__search .usa-input {
+  flex: 1;
+  max-width: none;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge--federal {
+  background: var(--usa-primary-lighter);
+  color: var(--usa-primary-dark);
+}
+
+.badge--contractor {
+  background: var(--usa-accent-warm-light);
+  color: #6b3a00;
+}
+
+.badge--available {
+  background: var(--usa-success-lighter);
+  color: var(--usa-success-dark);
+}
+
+/* ── Status Badges ──────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge--in_progress {
+  background: var(--usa-accent-cool-lighter);
+  color: var(--usa-accent-cool-darker);
+}
+
+.status-badge--on_hold {
+  background: var(--usa-warning-lighter);
+  color: var(--usa-warning-darker);
+}
+
+.status-badge--completed {
+  background: var(--usa-success-lighter);
+  color: var(--usa-success-dark);
+}
+
+/* ── Detail Layout ──────────────────────────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-2);
+}
+
+.detail-card {
+  background: var(--usa-white);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-1);
+}
+
+.detail-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--usa-base-darkest);
+  border-bottom: 1px solid var(--usa-base-lighter);
+  padding-bottom: 8px;
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+
+.detail-list dt {
+  color: var(--usa-base);
+  font-weight: 600;
+}
+
+.detail-list dd {
+  color: var(--usa-base-darkest);
+}
+
+/* ── Form Grid ──────────────────────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 14px;
+}
+
+/* ── Table Enhancements ─────────────────────────────────────────────────── */
+.usa-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--usa-white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+
+.usa-table thead th {
+  background: var(--usa-primary-darker);
+  color: var(--usa-white);
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.usa-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--usa-base-lighter);
+  font-size: 14px;
+}
+
+.usa-table tbody tr:hover {
+  background: var(--usa-primary-lighter);
+}
+
+.usa-table tbody tr:last-child td {
+  border-bottom: none;
+}

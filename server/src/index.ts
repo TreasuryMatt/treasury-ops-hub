@@ -1,0 +1,50 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+import { authRouter } from './routes/auth';
+import { resourcesRouter } from './routes/resources';
+import { projectsRouter } from './routes/projects';
+import { assignmentsRouter } from './routes/assignments';
+import { adminRouter } from './routes/admin';
+import { errorHandler } from './middleware/errorHandler';
+
+const app = express();
+const PORT = process.env.PORT || 3021;
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3020',
+  credentials: true,
+}));
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// ─── Health check ─────────────────────────────────────────────────────────────
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ─── API Routes ───────────────────────────────────────────────────────────────
+app.use('/api/auth', authRouter);
+app.use('/api/resources', resourcesRouter);
+app.use('/api/projects', projectsRouter);
+app.use('/api/assignments', assignmentsRouter);
+app.use('/api/admin', adminRouter);
+
+// ─── Error handler (must be last) ─────────────────────────────────────────────
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`Staffing server running on http://localhost:${PORT}`);
+});
+
+export default app;
