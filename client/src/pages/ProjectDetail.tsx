@@ -245,7 +245,7 @@ export function ProjectDetail() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
-                  className="usa-button usa-button--primary"
+                  className="usa-button usa-button--success"
                   onClick={submitAdd}
                   disabled={!newForm.resourceId || addAssignment.isPending}
                 >
@@ -325,7 +325,7 @@ export function ProjectDetail() {
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button
-                            className="usa-button usa-button--primary"
+                            className="usa-button usa-button--success"
                             style={{ padding: '4px 10px', fontSize: 13 }}
                             onClick={() => saveEdit(a.id)}
                             disabled={updateAssignment.isPending}

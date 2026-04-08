@@ -15,7 +15,7 @@ export function Login() {
     setLoading(true);
     try {
       await login(caiaId.trim());
-      navigate('/dashboard');
+      navigate('/staffing/dashboard');
     } catch {
       setError('User not found or inactive. Check your CAIA ID.');
     } finally {

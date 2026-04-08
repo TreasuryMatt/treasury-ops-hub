@@ -9,13 +9,21 @@ import { Dashboard } from './pages/Dashboard';
 import { Resources } from './pages/Resources';
 import { ResourceDetail } from './pages/ResourceDetail';
 import { ResourceForm } from './pages/ResourceForm';
-import { Projects } from './pages/Projects';
-import { ProjectDetail } from './pages/ProjectDetail';
-import { ProjectForm } from './pages/ProjectForm';
+import { ResourceRequests } from './pages/ResourceRequests';
+import { ResourceRequestForm } from './pages/ResourceRequestForm';
 import { Import } from './pages/admin/Import';
 import { ReferenceData } from './pages/admin/ReferenceData';
 import { Users } from './pages/admin/Users';
 import { AuditLog } from './pages/admin/AuditLog';
+import { StatusDashboard } from './pages/status/StatusDashboard';
+import { StatusProjects } from './pages/status/StatusProjects';
+import { StatusProjectDetail } from './pages/status/StatusProjectDetail';
+import { StatusProjectForm } from './pages/status/StatusProjectForm';
+import { Programs } from './pages/status/Programs';
+import { ProgramDetail } from './pages/status/ProgramDetail';
+import { ProgramForm } from './pages/status/ProgramForm';
+import { Roadmap } from './pages/status/Roadmap';
+import { Reports } from './pages/status/Reports';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -28,19 +36,37 @@ export default function App() {
             <Route path="/login" element={<Login />} />
 
             <Route element={<AppLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="resources" element={<Resources />} />
-              <Route path="resources/:id" element={<ResourceDetail />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="projects/:id" element={<ProjectDetail />} />
+              <Route index element={<Navigate to="/staffing/dashboard" replace />} />
+              <Route path="staffing/dashboard" element={<Dashboard />} />
+              <Route path="staffing/resources" element={<Resources />} />
+              <Route path="staffing/resources/:id" element={<ResourceDetail />} />
+              <Route path="staffing/requests" element={<ResourceRequests />} />
+              <Route path="staffing/requests/new" element={<ResourceRequestForm />} />
+              {/* Legacy redirects */}
+              <Route path="dashboard" element={<Navigate to="/staffing/dashboard" replace />} />
+              <Route path="resources" element={<Navigate to="/staffing/resources" replace />} />
+              <Route path="resources/:id" element={<Navigate to="/staffing/resources" replace />} />
+              <Route path="requests" element={<Navigate to="/staffing/requests" replace />} />
+              <Route path="projects" element={<Navigate to="/status/projects" replace />} />
+              <Route path="projects/:id" element={<Navigate to="/status/projects" replace />} />
+
+              {/* Project Status */}
+              <Route path="status/dashboard" element={<StatusDashboard />} />
+              <Route path="status/projects" element={<StatusProjects />} />
+              <Route path="status/projects/:id" element={<StatusProjectDetail />} />
+              <Route path="status/programs" element={<Programs />} />
+              <Route path="status/programs/:id" element={<ProgramDetail />} />
+              <Route path="status/roadmap" element={<Roadmap />} />
+              <Route path="status/reports" element={<Reports />} />
 
               {/* Editor + Admin */}
               <Route element={<EditorOnly />}>
-                <Route path="resources/new" element={<ResourceForm />} />
-                <Route path="resources/:id/edit" element={<ResourceForm />} />
-                <Route path="projects/new" element={<ProjectForm />} />
-                <Route path="projects/:id/edit" element={<ProjectForm />} />
+                <Route path="staffing/resources/new" element={<ResourceForm />} />
+                <Route path="staffing/resources/:id/edit" element={<ResourceForm />} />
+                <Route path="status/projects/new" element={<StatusProjectForm />} />
+                <Route path="status/projects/:id/edit" element={<StatusProjectForm />} />
+                <Route path="status/programs/new" element={<ProgramForm />} />
+                <Route path="status/programs/:id/edit" element={<ProgramForm />} />
               </Route>
 
               {/* Admin only */}
@@ -52,7 +78,7 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/staffing/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

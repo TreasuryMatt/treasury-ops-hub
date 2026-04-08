@@ -94,7 +94,7 @@ function SiteHeader() {
         />
         <div className="usa-header__branding">
           <span className="usa-header__agency">U.S. Department of the Treasury</span>
-          <span className="usa-header__app-name">Capacity Management</span>
+          <span className="usa-header__app-name">Treasury Operations Hub</span>
         </div>
       </NavLink>
       {user && (

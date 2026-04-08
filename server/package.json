@@ -1,7 +1,7 @@
 {
-  "name": "staffing-server",
+  "name": "ops-hub-server",
   "version": "1.0.0",
-  "description": "Treasury Staffing Capacity Management - Server",
+  "description": "Treasury Operations Hub - Server",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",

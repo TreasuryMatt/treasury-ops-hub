@@ -580,6 +580,16 @@ button { font-family: inherit; cursor: pointer; }
   border-color: var(--usa-base);
 }
 
+.usa-button--success {
+  background: var(--usa-success);
+  color: var(--usa-white);
+  border-color: var(--usa-success);
+}
+.usa-button--success:hover:not(:disabled) {
+  background: var(--usa-success-dark);
+  border-color: var(--usa-success-dark);
+}
+
 .usa-button--danger {
   background: var(--usa-secondary);
   color: var(--usa-white);

@@ -13,12 +13,16 @@ adminRouter.use(requireAuth);
 
 // ─── Dashboard stats ─────────────────────────────────────────────────────────
 adminRouter.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {
-  const [totalResources, federalCount, contractorCount, totalProjects, activeAssignments] = await Promise.all([
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const [totalResources, federalCount, contractorCount, totalProjects, activeAssignments, endingSoonProjects] = await Promise.all([
     prisma.resource.count({ where: { isActive: true } }),
     prisma.resource.count({ where: { isActive: true, resourceType: 'federal' } }),
     prisma.resource.count({ where: { isActive: true, resourceType: 'contractor' } }),
     prisma.project.count({ where: { isActive: true } }),
     prisma.assignment.count({ where: { isActive: true } }),
+    prisma.project.count({ where: { isActive: true, endDate: { gte: now, lte: thirtyDaysFromNow } } }),
   ]);
 
   // Get resources with utilization
@@ -61,6 +65,7 @@ adminRouter.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {
       avgUtilization,
       availableResources,
       overCapacity,
+      endingSoonProjects,
       byDivision,
     },
   });
@@ -208,6 +213,13 @@ adminRouter.post('/users', requireAdmin, async (req: AuthenticatedRequest, res: 
 adminRouter.put('/users/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const user = await prisma.user.update({ where: { id: req.params.id as string }, data: req.body });
+    res.json({ data: user });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/users/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.update({ where: { id: req.params.id as string }, data: { isActive: false } });
     res.json({ data: user });
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });

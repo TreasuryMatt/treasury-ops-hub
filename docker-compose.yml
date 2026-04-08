@@ -2,7 +2,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: staffing_postgres
+    container_name: ops_hub_postgres
     environment:
       POSTGRES_USER: staffing_user
       POSTGRES_PASSWORD: staffing_password
@@ -10,7 +10,7 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - staffing_pgdata:/var/lib/postgresql/data
+      - ops_hub_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U staffing_user -d staffing_db']
       interval: 5s
@@ -21,7 +21,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
-    container_name: staffing_server
+    container_name: ops_hub_server
     ports:
       - '3021:3021'
     environment:
@@ -45,7 +45,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
-    container_name: staffing_client
+    container_name: ops_hub_client
     ports:
       - '3020:3020'
     environment:
@@ -60,4 +60,4 @@ services:
       - server
 
 volumes:
-  staffing_pgdata:
+  ops_hub_pgdata:

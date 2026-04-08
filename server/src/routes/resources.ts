@@ -112,8 +112,32 @@ resourcesRouter.get('/:id', async (req: AuthenticatedRequest, res: Response, nex
 // POST /api/resources
 resourcesRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const resource = await prisma.resource.create({ data: req.body, include: RESOURCE_INCLUDE });
-    await logAction(req.user!.id, 'create', 'resource', resource.id, req.body, req.ip);
+    const b = req.body;
+    const toBoolean = (v: any): boolean => v === true || v === 'true' || v === 'on';
+    const toBooleanOrNull = (v: any): boolean | null => v == null ? null : toBoolean(v);
+
+    const data: any = {
+      resourceType: b.resourceType,
+      firstName: b.firstName,
+      lastName: b.lastName,
+      division: b.division,
+      functionalAreaId: b.functionalAreaId || null,
+      opsEngLead: b.opsEngLead || null,
+      supervisorId: b.supervisorId || null,
+      secondLineSupervisorId: b.secondLineSupervisorId || null,
+      gsLevel: b.gsLevel || null,
+      isMatrixed: toBooleanOrNull(b.isMatrixed),
+      isSupervisor: toBoolean(b.isSupervisor),
+      popStartDate: b.popStartDate ? new Date(b.popStartDate) : null,
+      popEndDate: b.popEndDate ? new Date(b.popEndDate) : null,
+      primaryRoleId: b.primaryRoleId || null,
+      secondaryRoleId: b.secondaryRoleId || null,
+      availableForWork: toBoolean(b.availableForWork),
+      notes: b.notes || null,
+    };
+
+    const resource = await prisma.resource.create({ data, include: RESOURCE_INCLUDE });
+    await logAction(req.user!.id, 'create', 'resource', resource.id, data, req.ip);
     res.status(201).json({ data: resource });
   } catch (err: any) {
     next(new AppError(err.message, 400));
@@ -123,12 +147,35 @@ resourcesRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: 
 // PUT /api/resources/:id
 resourcesRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    const b = req.body;
+    const toBoolean = (v: any): boolean => v === true || v === 'true' || v === 'on';
+    const toBooleanOrNull = (v: any): boolean | null => v == null ? null : toBoolean(v);
+
+    const data: any = {};
+    if (b.resourceType !== undefined) data.resourceType = b.resourceType;
+    if (b.firstName !== undefined) data.firstName = b.firstName;
+    if (b.lastName !== undefined) data.lastName = b.lastName;
+    if (b.division !== undefined) data.division = b.division;
+    if (b.functionalAreaId !== undefined) data.functionalAreaId = b.functionalAreaId || null;
+    if (b.opsEngLead !== undefined) data.opsEngLead = b.opsEngLead || null;
+    if (b.supervisorId !== undefined) data.supervisorId = b.supervisorId || null;
+    if (b.secondLineSupervisorId !== undefined) data.secondLineSupervisorId = b.secondLineSupervisorId || null;
+    if (b.gsLevel !== undefined) data.gsLevel = b.gsLevel || null;
+    if (b.isMatrixed !== undefined) data.isMatrixed = toBooleanOrNull(b.isMatrixed);
+    if (b.isSupervisor !== undefined) data.isSupervisor = toBoolean(b.isSupervisor);
+    if (b.popStartDate !== undefined) data.popStartDate = b.popStartDate ? new Date(b.popStartDate) : null;
+    if (b.popEndDate !== undefined) data.popEndDate = b.popEndDate ? new Date(b.popEndDate) : null;
+    if (b.primaryRoleId !== undefined) data.primaryRoleId = b.primaryRoleId || null;
+    if (b.secondaryRoleId !== undefined) data.secondaryRoleId = b.secondaryRoleId || null;
+    if (b.availableForWork !== undefined) data.availableForWork = toBoolean(b.availableForWork);
+    if (b.notes !== undefined) data.notes = b.notes || null;
+
     const resource = await prisma.resource.update({
       where: { id: req.params.id as string },
-      data: req.body,
+      data,
       include: RESOURCE_INCLUDE,
     });
-    await logAction(req.user!.id, 'update', 'resource', resource.id, req.body, req.ip);
+    await logAction(req.user!.id, 'update', 'resource', resource.id, data, req.ip);
     res.json({ data: resource });
   } catch (err: any) {
     next(new AppError(err.message, 400));

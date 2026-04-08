@@ -105,7 +105,7 @@ export function Resources() {
           {roles?.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         {(user?.role === 'editor' || user?.role === 'admin') && (
-          <button className="usa-button usa-button--primary" onClick={() => navigate('/resources/new')}>
+          <button className="usa-button usa-button--primary" onClick={() => navigate('/staffing/resources/new')}>
             <Icon name="add" color="white" /> Add Resource
           </button>
         )}
@@ -146,7 +146,7 @@ export function Resources() {
             </thead>
             <tbody>
               {data?.data.map((r) => (
-                <tr key={r.id} onClick={() => navigate(`/resources/${r.id}`)} style={{ cursor: 'pointer' }}>
+                <tr key={r.id} onClick={() => navigate(`/staffing/resources/${r.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 600 }}>{r.lastName}, {r.firstName}</td>
                   <td>
                     <span className={`badge badge--${r.resourceType}`}>

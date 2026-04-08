@@ -73,8 +73,12 @@ export function ResourceForm() {
     mutationFn: (data: any) => isEdit ? resourcesApi.update(id!, data) : resourcesApi.create(data),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['resources'] });
+      qc.invalidateQueries({ queryKey: ['resource', res.id] });
       qc.invalidateQueries({ queryKey: ['supervisors'] });
-      navigate(`/resources/${res.id}`);
+      navigate(`/staffing/resources/${res.id}`);
+    },
+    onError: (err: any) => {
+      console.error('Resource save error:', err.response?.data?.error || err.message);
     },
   });
 
@@ -224,7 +228,7 @@ export function ResourceForm() {
         )}
 
         <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-          <button className="usa-button usa-button--primary" type="submit" disabled={mutation.isPending}>
+          <button className="usa-button usa-button--success" type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? 'Saving...' : isEdit ? 'Update Resource' : 'Create Resource'}
           </button>
           <button className="usa-button usa-button--outline" type="button" onClick={() => navigate(-1)}>Cancel</button>

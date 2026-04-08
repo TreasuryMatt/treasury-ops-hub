@@ -63,16 +63,17 @@ export function Dashboard() {
       </div>
 
       <div className="stat-grid">
-        <StatCard label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} onClick={() => navigate('/resources')} />
+        <StatCard label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} onClick={() => navigate('/staffing/resources')} />
         <StatCard label="Active Projects" value={stats.totalProjects} color="var(--usa-accent-cool-dark)" onClick={() => navigate('/projects')} />
         <StatCard
           label="Avg Utilization"
           value={`${Math.round(stats.avgUtilization * 100)}%`}
           detail={stats.avgUtilization >= 0.8 ? 'Healthy — above 80%' : stats.avgUtilization >= 0.5 ? 'Underutilized — below 80%' : '⚠ Critical — below 50%'}
           color={stats.avgUtilization >= 0.8 ? 'var(--usa-success)' : stats.avgUtilization >= 0.5 ? 'var(--usa-warning)' : 'var(--usa-error)'}
-          onClick={() => navigate('/resources?sortBy=totalPercentUtilized&sortDir=desc')}
+          onClick={() => navigate('/staffing/resources?sortBy=totalPercentUtilized&sortDir=desc')}
         />
-        <StatCard label="Available Resources" value={stats.availableResources} detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined} color="var(--usa-success)" onClick={() => navigate('/resources?sortBy=availableCapacity&sortDir=desc')} />
+        <StatCard label="Available Resources" value={stats.availableResources} detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined} color="var(--usa-success)" onClick={() => navigate('/staffing/resources?sortBy=availableCapacity&sortDir=desc')} />
+        <StatCard label="Ending Within 30 Days" value={stats.endingSoonProjects} color={stats.endingSoonProjects > 0 ? 'var(--usa-warning)' : 'var(--usa-success)'} onClick={() => navigate('/projects?sortBy=endDate&sortDir=asc')} />
       </div>
 
       <div style={{ marginTop: 32 }}>
@@ -83,7 +84,7 @@ export function Dashboard() {
       </div>
 
       <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-        <button className="usa-button usa-button--outline" onClick={() => navigate('/resources')}>View All Resources</button>
+        <button className="usa-button usa-button--outline" onClick={() => navigate('/staffing/resources')}>View All Resources</button>
         <button className="usa-button usa-button--outline" onClick={() => navigate('/projects')}>View All Projects</button>
       </div>
     </div>

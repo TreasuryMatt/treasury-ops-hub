@@ -136,6 +136,76 @@ async function main() {
   });
   console.log('  Default admin user seeded');
 
+  // ── Project Status Reference Data ──
+
+  // Departments
+  const deptNames = [
+    'TEOAF', 'BFS', 'BPD', 'DO', 'FMS', 'IRS', 'Mint', 'OCC',
+    'OIG', 'SIGTARP', 'TTB', 'FinCEN', 'OFAC', 'OTS', 'CDFI',
+  ];
+  for (const name of deptNames) {
+    await prisma.department.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`  ${deptNames.length} departments seeded`);
+
+  // Status Priorities
+  const priorities = [
+    { name: '1 - Critical', sortOrder: 1 },
+    { name: '2 - High', sortOrder: 2 },
+    { name: '3 - Medium', sortOrder: 3 },
+    { name: '4 - Low', sortOrder: 4 },
+  ];
+  for (const p of priorities) {
+    await prisma.statusPriority.upsert({
+      where: { name: p.name },
+      update: {},
+      create: p,
+    });
+  }
+  console.log(`  ${priorities.length} status priorities seeded`);
+
+  // Execution Types
+  const execTypes = ['Waterfall', 'Agile', 'Hybrid', 'SAFe'];
+  for (const name of execTypes) {
+    await prisma.executionType.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`  ${execTypes.length} execution types seeded`);
+
+  // Customer Categories
+  const custCats = ['Departmental Offices', 'Bureaus', 'External', 'Internal'];
+  for (const name of custCats) {
+    await prisma.customerCategory.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`  ${custCats.length} customer categories seeded`);
+
+  // RAG Definitions
+  const ragDefs = [
+    { color: 'green', label: 'On Track', description: 'Project is proceeding as planned with no significant issues.' },
+    { color: 'yellow', label: 'At Risk', description: 'Project has issues that may impact schedule, scope, or budget if not addressed.' },
+    { color: 'red', label: 'Off Track', description: 'Project has critical issues impacting schedule, scope, or budget.' },
+    { color: 'gray', label: 'Not Started', description: 'Project has not yet begun execution.' },
+  ];
+  for (const rag of ragDefs) {
+    await prisma.ragDefinition.upsert({
+      where: { color: rag.color },
+      update: {},
+      create: rag,
+    });
+  }
+  console.log(`  ${ragDefs.length} RAG definitions seeded`);
+
   console.log('Seeding complete!');
 }
 

@@ -12,6 +12,11 @@ import { resourcesRouter } from './routes/resources';
 import { projectsRouter } from './routes/projects';
 import { assignmentsRouter } from './routes/assignments';
 import { adminRouter } from './routes/admin';
+import { requestsRouter } from './routes/requests';
+import { statusProjectsRouter } from './routes/statusProjects';
+import { programsRouter } from './routes/programs';
+import { portfoliosRouter } from './routes/portfolios';
+import { statusAdminRouter } from './routes/statusAdmin';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -39,6 +44,11 @@ app.use('/api/resources', resourcesRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/requests', requestsRouter);
+app.use('/api/status-projects', statusProjectsRouter);
+app.use('/api/programs', programsRouter);
+app.use('/api/portfolios', portfoliosRouter);
+app.use('/api/status-admin', statusAdminRouter);
 
 // ─── Error handler (must be last) ─────────────────────────────────────────────
 app.use(errorHandler);

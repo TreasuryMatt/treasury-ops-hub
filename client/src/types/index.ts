@@ -103,6 +103,31 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export type RequestStatus = 'pending' | 'approved' | 'denied';
+
+export interface ResourceRequest {
+  id: string;
+  requestorId: string;
+  requestor: { id: string; displayName: string; email: string };
+  projectId: string | null;
+  project: { id: string; name: string } | null;
+  projectOther: string | null;
+  resourceType: ResourceType | null;
+  roleId: string | null;
+  role: { id: string; name: string } | null;
+  functionalAreaId: string | null;
+  functionalArea: { id: string; name: string } | null;
+  percentNeeded: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  notes: string | null;
+  status: RequestStatus;
+  reviewedBy: { id: string; displayName: string } | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
 export interface DashboardStats {
   totalResources: number;
   federalCount: number;
@@ -112,5 +137,192 @@ export interface DashboardStats {
   avgUtilization: number;
   availableResources: number;
   overCapacity: number;
+  endingSoonProjects: number;
   byDivision: Array<{ division: string; count: number; avgUtilization: number }>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROJECT STATUS TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type StatusProjectStatusType = 'green' | 'yellow' | 'red' | 'gray';
+export type UpdateCadence = 'weekly' | 'biweekly' | 'monthly';
+export type IssueCategory = 'risk' | 'issue' | 'blocker';
+export type NotificationType = 'update_due' | 'update_overdue' | 'new_update';
+
+export interface Department {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface StatusPriority {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface ExecutionType {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface CustomerCategory {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface RagDefinition {
+  id: string;
+  color: string;
+  label: string;
+  description: string | null;
+  isActive: boolean;
+}
+
+export interface Portfolio {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  programs?: Program[];
+}
+
+export interface Program {
+  id: string;
+  name: string;
+  description: string | null;
+  portfolioId: string | null;
+  portfolio?: Portfolio | null;
+  isActive: boolean;
+  statusProjects?: StatusProject[];
+}
+
+export interface StatusProject {
+  id: string;
+  name: string;
+  description: string | null;
+  programId: string;
+  program?: Program;
+  ownerId: string | null;
+  owner?: { id: string; displayName: string } | null;
+  departmentId: string | null;
+  department?: Department | null;
+  priorityId: string | null;
+  priority?: StatusPriority | null;
+  executionTypeId: string | null;
+  executionType?: ExecutionType | null;
+  customerCategoryId: string | null;
+  customerCategory?: CustomerCategory | null;
+  phase: string | null;
+  status: StatusProjectStatusType;
+  plannedStartDate: string | null;
+  plannedEndDate: string | null;
+  actualStartDate: string | null;
+  actualEndDate: string | null;
+  funded: boolean;
+  updateCadence: UpdateCadence;
+  nextUpdateDue: string | null;
+  isActive: boolean;
+  phases?: ProjectPhase[];
+  updates?: StatusUpdate[];
+  products?: StatusProjectProduct[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StatusProjectProduct {
+  id: string;
+  statusProjectId: string;
+  productId: string;
+  product?: Product;
+}
+
+export interface ProjectPhase {
+  id: string;
+  statusProjectId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  color: string | null;
+  sortOrder: number;
+}
+
+export interface StatusUpdate {
+  id: string;
+  statusProjectId: string;
+  authorId: string;
+  author?: { id: string; displayName: string };
+  overallStatus: StatusProjectStatusType;
+  summary: string;
+  risks: string | null;
+  blockers: string | null;
+  createdAt: string;
+}
+
+export interface IssueEntry {
+  id: string;
+  statusProjectId: string;
+  authorId: string;
+  author?: { id: string; displayName: string };
+  category: IssueCategory;
+  text: string;
+  createdAt: string;
+}
+
+export interface Accomplishment {
+  id: string;
+  statusProjectId: string;
+  authorId: string;
+  author?: { id: string; displayName: string };
+  text: string;
+  createdAt: string;
+}
+
+export interface ProjectDocument {
+  id: string;
+  statusProjectId: string;
+  uploadedById: string;
+  uploadedBy?: { id: string; displayName: string };
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  statusProjectId: string | null;
+  message: string;
+  read: boolean;
+  emailSent: boolean;
+  createdAt: string;
+}
+
+export interface StatusDashboardStats {
+  totalProjects: number;
+  greenCount: number;
+  yellowCount: number;
+  redCount: number;
+  grayCount: number;
+  overdueUpdates: number;
+  programSummaries: Array<{
+    id: string;
+    name: string;
+    projectCount: number;
+    worstStatus: StatusProjectStatusType;
+    lastUpdateDate: string | null;
+  }>;
+  upcomingMilestones: Array<{
+    projectId: string;
+    projectName: string;
+    phaseName: string;
+    endDate: string;
+  }>;
 }

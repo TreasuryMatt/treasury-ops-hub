@@ -1,6 +1,6 @@
 # Treasury Capacity Management — Backlog
 
-> Last updated: 2026-03-20
+> Last updated: 2026-04-06
 
 ---
 
@@ -16,6 +16,7 @@
 - [x] Resources list page — filterable/sortable table (division, functional area, type, role)
 - [x] Resource detail page — profile card, supervisory chain, assignments with utilization, notes
 - [x] Supervisor data model — isSupervisor flag, FK relations, dropdown on form, column on list
+- [x] Resource Request form — all users can submit; editors approve/deny with review note; approval optionally assigns resource to project
 
 ---
 
@@ -83,6 +84,27 @@
 
 ### ✨ Polish
 - [ ] **Dashboard — "1 resources" pluralization bug** — the PMSO division card reads "1 resources" instead of "1 resource"
+
+---
+
+## 🔍 Insights — 2026-03-21
+
+### 🎯 UX & Interaction
+- [ ] **Users — no way to deactivate a user** — Active column is plain text only; no toggle or button to cut access. High priority.
+- [ ] **Users — no way to delete a user** — No delete option exists. Combined with no deactivation, once a user is created they can't be removed from the UI.
+- [ ] **Add Resource form — Back button has no destination** — says "← Back" with no label; every other back button names its destination (e.g. "← Back to Resources").
+
+### 📊 Data & Content
+- [ ] **Audit Log — most actions not being logged** — only 1 entry exists despite heavy activity (imports, resource creates, assignment changes aren't appearing); audit events not being fired consistently.
+- [ ] **Audit Log — Entity ID not actionable** — rows show a truncated UUID (e.g. `752d5dfd...`) instead of the name of what changed; should show entity name (e.g. "Project: AI Service Desk") and ideally link to the record.
+- [ ] **Dashboard — "1 resources" pluralization bug** — PMSO division bar reads "1 resources" instead of "1 resource".
+- [ ] **Project Detail — "Allocated FTEs" label still confusing** — 78% of *what*? FTEs implies headcount not a percentage; consider "78% avg allocation" or show a clearer breakdown.
+
+### 🧭 Navigation
+- [ ] **Mobile — sidebar doesn't collapse** — sidebar takes up ~65% of screen at 375px wide; app is completely unusable on phones or narrow tablets; needs a hamburger/collapse at small viewports.
+
+### ✨ Polish
+- [ ] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
 
 ---
 

@@ -83,7 +83,7 @@ function ReferenceTable({ title, queryKey, fetchFn, createFn, updateFn, deleteFn
               <input className="usa-input" value={newItem[f.key] || ''} onChange={(e) => setNewItem({ ...newItem, [f.key]: e.target.value })} style={{ minWidth: 120 }} />
             </div>
           ))}
-          <button className="usa-button usa-button--primary" onClick={() => createMutation.mutate(newItem)} disabled={createMutation.isPending}>Save</button>
+          <button className="usa-button usa-button--success" onClick={() => createMutation.mutate(newItem)} disabled={createMutation.isPending}>Save</button>
           <button className="usa-button usa-button--outline" onClick={() => setShowAdd(false)}>Cancel</button>
         </div>
       )}
@@ -141,7 +141,7 @@ function ReferenceTable({ title, queryKey, fetchFn, createFn, updateFn, deleteFn
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button
-                          className="usa-button usa-button--primary usa-button--sm"
+                          className="usa-button usa-button--success usa-button--sm"
                           onClick={() => updateMutation.mutate({ id: item.id, data: editValues })}
                           disabled={updateMutation.isPending}
                         >

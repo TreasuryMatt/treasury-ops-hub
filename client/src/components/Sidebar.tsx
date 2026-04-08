@@ -13,29 +13,64 @@ export function Sidebar() {
     <aside className="usa-sidenav-container" aria-label="Side navigation">
       <nav>
         <div className="sidenav-section">
-          <div className="sidenav-section-label">Staffing</div>
+          <div className="sidenav-section-label">Status</div>
           <ul className="usa-sidenav">
             <li>
-              <NavLink to="/dashboard">
-                <Icon name="dashboard" color={COLOR_MAIN} />
+              <NavLink to="/status/dashboard">
+                <Icon name="bar_chart" color={COLOR_MAIN} />
                 Dashboard
               </NavLink>
             </li>
             <li>
-              <NavLink to="/resources">
-                <Icon name="people" color={COLOR_MAIN} />
-                Resources
+              <NavLink to="/status/projects">
+                <Icon name="work" color={COLOR_MAIN} />
+                Projects
               </NavLink>
             </li>
             <li>
-              <NavLink to="/projects">
-                <Icon name="work" color={COLOR_MAIN} />
-                Projects
+              <NavLink to="/status/programs">
+                <Icon name="folder" color={COLOR_MAIN} />
+                Programs
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/status/roadmap">
+                <Icon name="timeline" color={COLOR_MAIN} />
+                Roadmap
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/status/reports">
+                <Icon name="description" color={COLOR_MAIN} />
+                Reports
               </NavLink>
             </li>
           </ul>
         </div>
 
+        <div className="sidenav-section">
+          <div className="sidenav-section-label">Staffing</div>
+          <ul className="usa-sidenav">
+            <li>
+              <NavLink to="/staffing/dashboard">
+                <Icon name="dashboard" color={COLOR_MAIN} />
+                Dashboard
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/staffing/resources">
+                <Icon name="people" color={COLOR_MAIN} />
+                Resources
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/staffing/requests">
+                <Icon name="pending_actions" color={COLOR_MAIN} />
+                Resource Requests
+              </NavLink>
+            </li>
+          </ul>
+        </div>
 
         {user?.role === 'admin' && (
           <div className="sidenav-section">

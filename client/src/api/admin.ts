@@ -47,6 +47,9 @@ export const adminApi = {
   updateUser: (id: string, data: any) =>
     api.put(`/admin/users/${id}`, data).then((r) => r.data.data),
 
+  deactivateUser: (id: string) =>
+    api.delete(`/admin/users/${id}`).then((r) => r.data.data),
+
   auditLog: (params?: Record<string, string>) =>
     api.get('/admin/audit-log', { params }).then((r) => r.data),
 };
