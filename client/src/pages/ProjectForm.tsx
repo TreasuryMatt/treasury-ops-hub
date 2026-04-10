@@ -9,6 +9,8 @@ import { Icon } from '../components/Icon';
 interface FormData {
   name: string;
   productId: string;
+  federalProductOwner: string;
+  customerContact: string;
   priority: string;
   status: string;
   startDate: string;
@@ -37,6 +39,8 @@ export function ProjectForm() {
       reset({
         name: existing.name,
         productId: existing.productId || '',
+        federalProductOwner: existing.federalProductOwner || '',
+        customerContact: existing.customerContact || '',
         priority: existing.priority || '',
         status: existing.status,
         startDate: existing.startDate ? existing.startDate.split('T')[0] : '',
@@ -58,6 +62,8 @@ export function ProjectForm() {
     const payload: any = {
       name: data.name,
       productId: data.productId || null,
+      federalProductOwner: data.federalProductOwner || null,
+      customerContact: data.customerContact || null,
       priority: data.priority || null,
       status: data.status,
       startDate: data.startDate ? new Date(data.startDate) : null,
@@ -83,11 +89,19 @@ export function ProjectForm() {
             <input id="name" className="usa-input" {...register('name', { required: true })} />
           </div>
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="productId">Product</label>
+            <label className="usa-label" htmlFor="productId">Application</label>
             <select id="productId" className="usa-select" {...register('productId')}>
-              <option value="">Select product</option>
+              <option value="">Select application</option>
               {products?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+          </div>
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="federalProductOwner">Federal Product Owner</label>
+            <input id="federalProductOwner" className="usa-input" {...register('federalProductOwner')} />
+          </div>
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="customerContact">Customer Contact</label>
+            <input id="customerContact" className="usa-input" {...register('customerContact')} />
           </div>
           <div className="usa-form-group">
             <label className="usa-label" htmlFor="status">Status *</label>

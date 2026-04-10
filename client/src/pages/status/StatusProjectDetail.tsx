@@ -144,7 +144,8 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
   const fields = [
     { label: 'Program', value: project.program?.name },
     { label: 'Department', value: project.department?.name },
-    { label: 'Owner', value: project.owner?.displayName },
+    { label: 'Federal Product Owner', value: project.federalProductOwner },
+    { label: 'Customer Contact', value: project.customerContact },
     { label: 'Priority', value: project.priority?.name },
     { label: 'Execution Type', value: project.executionType?.name },
     { label: 'Customer Category', value: project.customerCategory?.name },
@@ -176,7 +177,7 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
 
       {project.products && project.products.length > 0 && (
         <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-          <h3>Linked Applications</h3>
+          <h3>Applications</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {project.products.map((pp) => (
               <span key={pp.id} className="badge badge--federal">{pp.product?.name}</span>
@@ -197,10 +198,9 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
 
 function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; updates: StatusUpdate[]; canEdit: boolean }) {
   const qc = useQueryClient();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<{
-    overallStatus: StatusProjectStatusType;
-    summary: string;
-  }>();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const { register, handleSubmit, reset } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
+  const { register: regEdit, handleSubmit: handleEdit, reset: resetEdit } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
 
   const addUpdate = useMutation({
     mutationFn: (data: any) => statusProjectsApi.createUpdate(projectId, data),
@@ -211,12 +211,30 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
     },
   });
 
+  const saveUpdate = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => statusProjectsApi.updateUpdate(projectId, id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['status-project-updates', projectId] });
+      setEditingId(null);
+    },
+  });
+
+  const deleteUpdate = useMutation({
+    mutationFn: (id: string) => statusProjectsApi.deleteUpdate(projectId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['status-project-updates', projectId] }),
+  });
+
   const STATUS_COLORS: Record<string, string> = {
     green: 'var(--usa-success)',
     yellow: 'var(--usa-warning-dark)',
     red: 'var(--usa-error)',
     gray: 'var(--usa-base)',
   };
+
+  function startEdit(u: StatusUpdate) {
+    resetEdit({ overallStatus: u.overallStatus, summary: u.summary });
+    setEditingId(u.id);
+  }
 
   return (
     <div>
@@ -265,14 +283,53 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
                 boxShadow: 'var(--shadow-1)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <RagBadge status={u.overallStatus} />
-                  <strong>{u.author?.displayName}</strong>
-                </div>
-                <span className="text-sm text-muted">{new Date(u.createdAt).toLocaleString()}</span>
-              </div>
-              <p style={{ margin: 0 }}>{u.summary}</p>
+              {editingId === u.id ? (
+                <form onSubmit={handleEdit((data) => saveUpdate.mutate({ id: u.id, data }))}>
+                  <div className="form-grid" style={{ marginBottom: 'var(--space-2)' }}>
+                    <div className="usa-form-group">
+                      <label className="usa-label">Status *</label>
+                      <select className="usa-select" {...regEdit('overallStatus', { required: true })}>
+                        <option value="green">Green — On Track</option>
+                        <option value="yellow">Yellow — At Risk</option>
+                        <option value="red">Red — Off Track</option>
+                      </select>
+                    </div>
+                    <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="usa-label">Summary *</label>
+                      <textarea className="usa-textarea" {...regEdit('summary', { required: true })} rows={3} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                    <button type="submit" className="usa-button usa-button--success" disabled={saveUpdate.isPending}>
+                      {saveUpdate.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                    <button type="button" className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <RagBadge status={u.overallStatus} />
+                      <strong>{u.author?.displayName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="text-sm text-muted">{new Date(u.createdAt).toLocaleString()}</span>
+                      {canEdit && (
+                        <>
+                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(u)} aria-label="Edit update">
+                            <Icon name="edit" size={15} />
+                          </button>
+                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteUpdate.mutate(u.id)} aria-label="Delete update">
+                            <Icon name="delete" size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{ margin: 0 }}>{u.summary}</p>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -394,6 +451,8 @@ function PhaseForm({ phase, onSubmit, onCancel, isPending }: {
 
 function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId: string; accomplishments: Accomplishment[]; canEdit: boolean }) {
   const qc = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const { register, handleSubmit, reset } = useForm<{ text: string }>();
 
   const addAccomplishment = useMutation({
@@ -404,10 +463,23 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
     },
   });
 
+  const saveAccomplishment = useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) => statusProjectsApi.updateAccomplishment(projectId, id, { text }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['status-project-accomplishments', projectId] });
+      setEditingId(null);
+    },
+  });
+
   const deleteAccomplishment = useMutation({
     mutationFn: (aId: string) => statusProjectsApi.deleteAccomplishment(projectId, aId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['status-project-accomplishments', projectId] }),
   });
+
+  function startEdit(a: Accomplishment) {
+    setEditText(a.text);
+    setEditingId(a.id);
+  }
 
   return (
     <div>
@@ -444,25 +516,43 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
                 background: 'var(--usa-white)',
                 borderRadius: '0 var(--radius) var(--radius) 0',
                 boxShadow: 'var(--shadow-1)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 12,
               }}
             >
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: '0 0 4px' }}>{a.text}</p>
-                <span className="text-sm text-muted">{a.author?.displayName} · {new Date(a.createdAt).toLocaleDateString()}</span>
-              </div>
-              {canEdit && (
-                <button
-                  className="usa-button usa-button--unstyled"
-                  style={{ color: 'var(--usa-error)', flexShrink: 0 }}
-                  onClick={() => deleteAccomplishment.mutate(a.id)}
-                  aria-label="Delete accomplishment"
-                >
-                  <Icon name="delete" size={16} />
-                </button>
+              {editingId === a.id ? (
+                <div style={{ display: 'flex', gap: 'var(--space-1)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <input
+                    className="usa-input"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    style={{ flex: 1, minWidth: 200 }}
+                    autoFocus
+                  />
+                  <button
+                    className="usa-button usa-button--success"
+                    disabled={saveAccomplishment.isPending || !editText.trim()}
+                    onClick={() => saveAccomplishment.mutate({ id: a.id, text: editText })}
+                  >
+                    {saveAccomplishment.isPending ? 'Saving...' : 'Save'}
+                  </button>
+                  <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 4px' }}>{a.text}</p>
+                    <span className="text-sm text-muted">{a.author?.displayName} · {new Date(a.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {canEdit && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(a)} aria-label="Edit accomplishment">
+                        <Icon name="edit" size={15} />
+                      </button>
+                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteAccomplishment.mutate(a.id)} aria-label="Delete accomplishment">
+                        <Icon name="delete" size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}
@@ -474,14 +564,37 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
 
 function IssuesTab({ projectId, issues, canEdit }: { projectId: string; issues: IssueEntry[]; canEdit: boolean }) {
   const qc = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolveNotes, setResolveNotes] = useState('');
+  const [editForm, setEditForm] = useState<{ category: string; text: string }>({ category: 'risk', text: '' });
   const { register, handleSubmit, reset } = useForm<{ category: string; text: string }>();
+
+  const invalidateIssues = () => qc.invalidateQueries({ queryKey: ['status-project-issues', projectId] });
 
   const addIssue = useMutation({
     mutationFn: (data: any) => statusProjectsApi.createIssue(projectId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['status-project-issues', projectId] });
-      reset();
-    },
+    onSuccess: () => { invalidateIssues(); reset(); },
+  });
+
+  const saveIssue = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => statusProjectsApi.updateIssue(projectId, id, data),
+    onSuccess: () => { invalidateIssues(); setEditingId(null); },
+  });
+
+  const deleteIssue = useMutation({
+    mutationFn: (id: string) => statusProjectsApi.deleteIssue(projectId, id),
+    onSuccess: invalidateIssues,
+  });
+
+  const resolveIssue = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string }) => statusProjectsApi.resolveIssue(projectId, id, notes),
+    onSuccess: () => { invalidateIssues(); setResolvingId(null); setResolveNotes(''); },
+  });
+
+  const reopenIssue = useMutation({
+    mutationFn: (id: string) => statusProjectsApi.reopenIssue(projectId, id),
+    onSuccess: invalidateIssues,
   });
 
   const CATEGORY_COLORS: Record<string, string> = {
@@ -495,6 +608,21 @@ function IssuesTab({ projectId, issues, canEdit }: { projectId: string; issues: 
     issue: 'usa-tag--red',
     blocker: 'usa-tag--red',
   };
+
+  function startEdit(iss: IssueEntry) {
+    setEditForm({ category: iss.category, text: iss.text });
+    setEditingId(iss.id);
+    setResolvingId(null);
+  }
+
+  function startResolve(iss: IssueEntry) {
+    setResolvingId(iss.id);
+    setResolveNotes('');
+    setEditingId(null);
+  }
+
+  const openIssues = issues.filter((i) => !i.resolvedAt);
+  const resolvedIssues = issues.filter((i) => !!i.resolvedAt);
 
   return (
     <div>
@@ -529,7 +657,8 @@ function IssuesTab({ projectId, issues, canEdit }: { projectId: string; issues: 
         </div>
       ) : (
         <div>
-          {issues.map((iss) => (
+          {/* Open issues */}
+          {openIssues.map((iss) => (
             <div
               key={iss.id}
               style={{
@@ -541,13 +670,148 @@ function IssuesTab({ projectId, issues, canEdit }: { projectId: string; issues: 
                 boxShadow: 'var(--shadow-1)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`}>{iss.category.toUpperCase()}</span>
-                <span className="text-sm text-muted">{iss.author?.displayName} · {new Date(iss.createdAt).toLocaleDateString()}</span>
-              </div>
-              <p style={{ margin: 0 }}>{iss.text}</p>
+              {editingId === iss.id ? (
+                <div>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}>
+                    <div className="usa-form-group" style={{ margin: 0 }}>
+                      <label className="usa-label">Type</label>
+                      <select
+                        className="usa-select"
+                        value={editForm.category}
+                        onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                        style={{ minWidth: 120 }}
+                      >
+                        <option value="risk">Risk</option>
+                        <option value="issue">Issue</option>
+                        <option value="blocker">Blocker</option>
+                      </select>
+                    </div>
+                    <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
+                      <label className="usa-label">Description *</label>
+                      <input
+                        className="usa-input"
+                        value={editForm.text}
+                        onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                    <button
+                      className="usa-button usa-button--success"
+                      disabled={saveIssue.isPending || !editForm.text.trim()}
+                      onClick={() => saveIssue.mutate({ id: iss.id, data: editForm })}
+                    >
+                      {saveIssue.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                    <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : resolvingId === iss.id ? (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`}>{iss.category.toUpperCase()}</span>
+                  </div>
+                  <p style={{ margin: '0 0 var(--space-1) 0' }}>{iss.text}</p>
+                  <div className="usa-form-group" style={{ margin: '0 0 var(--space-1) 0' }}>
+                    <label className="usa-label">Resolution Notes</label>
+                    <textarea
+                      className="usa-textarea"
+                      rows={2}
+                      placeholder="Describe how this was resolved..."
+                      value={resolveNotes}
+                      onChange={(e) => setResolveNotes(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                    <button
+                      className="usa-button usa-button--success"
+                      disabled={resolveIssue.isPending}
+                      onClick={() => resolveIssue.mutate({ id: iss.id, notes: resolveNotes })}
+                    >
+                      {resolveIssue.isPending ? 'Resolving...' : 'Mark Resolved'}
+                    </button>
+                    <button className="usa-button usa-button--outline" onClick={() => setResolvingId(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`}>{iss.category.toUpperCase()}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="text-sm text-muted">{iss.author?.displayName} · {new Date(iss.createdAt).toLocaleDateString()}</span>
+                      {canEdit && (
+                        <>
+                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-success)' }} onClick={() => startResolve(iss)} aria-label="Resolve issue" title="Resolve">
+                            <Icon name="check_circle" size={15} />
+                          </button>
+                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(iss)} aria-label="Edit issue">
+                            <Icon name="edit" size={15} />
+                          </button>
+                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteIssue.mutate(iss.id)} aria-label="Delete issue">
+                            <Icon name="delete" size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{ margin: 0 }}>{iss.text}</p>
+                </>
+              )}
             </div>
           ))}
+
+          {/* Resolved issues */}
+          {resolvedIssues.length > 0 && (
+            <>
+              {openIssues.length > 0 && (
+                <div style={{ margin: 'var(--space-3) 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
+                  <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Resolved ({resolvedIssues.length})</span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
+                </div>
+              )}
+              {resolvedIssues.map((iss) => (
+                <div
+                  key={iss.id}
+                  style={{
+                    padding: 'var(--space-2) var(--space-3)',
+                    borderLeft: '3px solid var(--usa-success)',
+                    marginBottom: 'var(--space-1)',
+                    background: 'var(--usa-white)',
+                    borderRadius: '0 var(--radius) var(--radius) 0',
+                    boxShadow: 'var(--shadow-1)',
+                    opacity: 0.75,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                      <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`} style={{ opacity: 0.6 }}>{iss.category.toUpperCase()}</span>
+                      <span className="usa-tag" style={{ background: 'var(--usa-success)', color: '#fff' }}>RESOLVED</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="text-sm text-muted">{iss.author?.displayName} · {new Date(iss.createdAt).toLocaleDateString()}</span>
+                      {canEdit && (
+                        <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-warning-dark)' }} onClick={() => reopenIssue.mutate(iss.id)} aria-label="Reopen issue" title="Reopen">
+                          <Icon name="history" size={15} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{ margin: 0, textDecoration: 'line-through', color: 'var(--usa-base)' }}>{iss.text}</p>
+                  {iss.resolutionNotes && (
+                    <p style={{ margin: 'var(--space-1) 0 0', fontSize: '0.875rem', color: 'var(--usa-success-darker)' }}>
+                      <strong>Resolution:</strong> {iss.resolutionNotes}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted" style={{ margin: 'var(--space-half) 0 0' }}>
+                    Resolved by {iss.resolvedBy?.displayName} on {new Date(iss.resolvedAt!).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

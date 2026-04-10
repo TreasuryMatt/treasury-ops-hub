@@ -24,6 +24,7 @@ import { ProgramDetail } from './pages/status/ProgramDetail';
 import { ProgramForm } from './pages/status/ProgramForm';
 import { Roadmap } from './pages/status/Roadmap';
 import { Reports } from './pages/status/Reports';
+import { ExecutiveRollup } from './pages/status/ExecutiveRollup';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -58,6 +59,9 @@ export default function App() {
               <Route path="status/programs/:id" element={<ProgramDetail />} />
               <Route path="status/roadmap" element={<Roadmap />} />
               <Route path="status/reports" element={<Reports />} />
+              {/* Executive */}
+              <Route path="exec/rollup" element={<ExecutiveRollup />} />
+              <Route path="status/rollup" element={<Navigate to="/exec/rollup" replace />} />
 
               {/* Editor + Admin */}
               <Route element={<EditorOnly />}>

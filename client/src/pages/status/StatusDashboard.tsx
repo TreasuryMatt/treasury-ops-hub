@@ -55,30 +55,30 @@ export function StatusDashboard() {
           <h1 className="usa-page-title">Project Status Dashboard</h1>
           <p className="usa-page-subtitle">{stats.totalProjects} project{stats.totalProjects !== 1 ? 's' : ''} tracked</p>
         </div>
-        <button className="usa-button" onClick={() => navigate('/status/projects')}>
-          <Icon name="folder_open" size={16} /> View All Projects
+        <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/projects')}>
+          View All Projects
         </button>
       </div>
 
       {/* Summary Stats */}
       <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-        <div className="stat-card">
+        <div className="stat-card stat-card--clickable" onClick={() => navigate('/status/projects')}>
           <div className="stat-card__value">{stats.totalProjects}</div>
           <div className="stat-card__label">Total Projects</div>
         </div>
-        <div className="stat-card" style={{ borderTopColor: 'var(--usa-success)' }}>
+        <div className="stat-card stat-card--clickable" style={{ borderTopColor: 'var(--usa-success)' }} onClick={() => navigate('/status/projects?status=green')}>
           <div className="stat-card__value" style={{ color: 'var(--usa-success-dark)' }}>{stats.greenCount}</div>
           <div className="stat-card__label">On Track</div>
         </div>
-        <div className="stat-card" style={{ borderTopColor: 'var(--usa-warning-dark)' }}>
+        <div className="stat-card stat-card--clickable" style={{ borderTopColor: 'var(--usa-warning-dark)' }} onClick={() => navigate('/status/projects?status=yellow')}>
           <div className="stat-card__value" style={{ color: 'var(--usa-warning-darker)' }}>{stats.yellowCount}</div>
           <div className="stat-card__label">At Risk</div>
         </div>
-        <div className="stat-card" style={{ borderTopColor: 'var(--usa-error)' }}>
+        <div className="stat-card stat-card--clickable" style={{ borderTopColor: 'var(--usa-error)' }} onClick={() => navigate('/status/projects?status=red')}>
           <div className="stat-card__value" style={{ color: 'var(--usa-error)' }}>{stats.redCount}</div>
           <div className="stat-card__label">Off Track</div>
         </div>
-        <div className={`stat-card${stats.overdueUpdates > 0 ? ' danger' : ''}`}>
+        <div className={`stat-card stat-card--clickable${stats.overdueUpdates > 0 ? ' danger' : ''}`} onClick={() => navigate('/status/projects?status=overdue')}>
           <div className={`stat-card__value${stats.overdueUpdates > 0 ? ' danger' : ''}`}>{stats.overdueUpdates}</div>
           <div className="stat-card__label">Overdue Updates</div>
         </div>
@@ -88,7 +88,7 @@ export function StatusDashboard() {
       <div className="section-header" style={{ marginTop: 'var(--space-4)' }}>
         <h2 className="section-title">Programs</h2>
         <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/programs')}>
-          View All
+          View All Programs
         </button>
       </div>
 

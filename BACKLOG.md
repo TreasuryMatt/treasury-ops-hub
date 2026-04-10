@@ -24,15 +24,17 @@
 
 ### 🟢 Small (< 1 hour)
 
-- [ ] **Favicon** — replace default with U.S. Treasury favicon
-- [ ] **Resources — edit row icon** is white on white in light mode; use appropriate contrasting color
-- [ ] **Dashboard — "View All Resources" button** style should match "View All Projects" button
-- [ ] **Dashboard — Total Resources card** links to the Resources page
+- [x] **Favicon** — replace default with U.S. Treasury favicon
+- [x] **Resources — edit row icon** is white on white in light mode; use appropriate contrasting color
+- [x] **Dashboard — "View All Resources" button** style should match "View All Projects" button
+- [x] **Dashboard — Total Resources card** links to the Resources page
 - [ ] **Dashboard — Available Resources card** links to the Resources page filtered to available-only
 - [ ] **Dashboard — Division labels** show lowercase (e.g. "Pmso" → "PMSO"); capitalize correctly
 
 ### 🟡 Medium (1–4 hours)
 
+- [ ] **Executive rollup report** — configurable time window (weekly/monthly/custom) that aggregates Accomplishments, Updates, Issues, Risks, and Blockers across all projects into a single executive-friendly view; filterable by program or portfolio; exportable
+- [ ] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
 - [ ] **Projects list page** — filterable table (status, priority, product)
 - [ ] **Utilization calculation** — verify total % per resource sums correctly across assignments
 - [ ] **Search** — global name search across resources and projects
@@ -50,6 +52,9 @@
 ### 🔴 Extra Large (multi-day)
 
 - [ ] **Reference data admin** — manage Roles, Functional Areas, Products in the UI
+- [ ] **Bureaus reference data** — admin CRUD for Treasury Bureaus (IRS, OCC, FinCEN, etc.); link bureaus to projects, programs, and resources for filtering and reporting
+- [ ] **Phases reference data** — admin CRUD for standard project phase definitions (e.g. Planning, Execution, Closeout); used as a picklist when adding phases to project roadmaps
+- [ ] **Departments reference data** — admin CRUD for Departments; used as a picklist on projects and resources for filtering and reporting
 - [ ] **User management page** — list users, change roles, activate/deactivate
 - [ ] **Audit log viewer** — paginated table of all actions
 - [ ] **Role-based access** — editors can update resources, viewers read-only
@@ -105,6 +110,33 @@
 
 ### ✨ Polish
 - [ ] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
+
+---
+
+## 🔍 Insight Review — 2026-04-08
+
+### 🎯 UX & Interaction
+- [ ] **Exec Rollup — No text truncation on long entries** — a single verbose accomplishment dominates the page; clamp to 2–3 lines with a "Show more" toggle
+- [ ] **Exec Rollup — Risks & Issues entries have no category badge** — blockers, risks, and issues are mixed with no visual severity indicator; add a colored category chip (Blocker/Risk/Issue) to each entry
+- [ ] **Exec Rollup — Activity sections not collapsible** — Accomplishments, Updates, and Risks & Issues sections grow unbounded; add collapse/expand to each section header
+- [ ] **Status Dashboard — Program card status dot has no label** — yellow dot conveys status through color alone; add tooltip or text label
+- [ ] **Reports — Table horizontally clipped** — "ISSUES" column header cut off at right edge; needs horizontal scroll or narrower columns
+
+### 📊 Data & Content
+- [ ] **Exec Rollup — Zero-count stat cards styled in error color** — "0 Off Track" in red looks alarming; zero counts should use neutral/positive styling
+- [ ] **Projects List — Overdue "Next Update Due" not highlighted** — Awesome Project 3.14 shows 2/14/2026 (2 months overdue) without red styling, unlike the Reports page; inconsistent overdue treatment
+- [ ] **Exec Rollup — No "as of" timestamp** — subtitle shows window range but not when the rollup was generated; executives forwarding this need to know data freshness
+
+### 🧭 Navigation
+- [ ] **Sidebar — Executive section has only one item** — a section with a single nav link ("Rollup") wastes vertical space; consider keeping under Status until there are 2+ items, or add a second exec-level page
+
+### ♿ Accessibility
+- [ ] **Exec Rollup — Trend arrows rely on color alone** — ↑→↓ arrows use green/gray/red without screen-reader-friendly labels; add `aria-label` (e.g. "Status improving")
+- [ ] **Exec Rollup — Trend count colors may fail WCAG contrast** — light green (#b7e4c7) on dark navy program header is faint; verify contrast ratio
+
+### ✨ Polish
+- [ ] **Exec Rollup — Section headers use ALL CAPS** — "ACCOMPLISHMENTS (2)" doesn't match app-wide title case convention; normalize to title case
+- [ ] **Program Detail — Test data typo** — "Thsi is a test propgram" visible in demo; fix if shown to stakeholders
 
 ---
 

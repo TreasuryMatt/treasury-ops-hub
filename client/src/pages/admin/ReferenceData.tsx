@@ -190,7 +190,7 @@ export function ReferenceData() {
     <div className="usa-page">
       <div className="usa-page-header">
         <h1 className="usa-page-title">Reference Data</h1>
-        <p className="usa-page-subtitle">Manage roles, functional areas, and products</p>
+        <p className="usa-page-subtitle">Manage reference data for the application</p>
       </div>
 
       <ReferenceTable
@@ -216,7 +216,7 @@ export function ReferenceData() {
       />
 
       <ReferenceTable
-        title="Products"
+        title="Applications"
         queryKey="products"
         fetchFn={adminApi.products}
         createFn={adminApi.createProduct}

@@ -77,7 +77,7 @@ export function Projects() {
           <option value="low">Low</option>
         </select>
         <select className="usa-select" value={productId} onChange={(e) => { setProductId(e.target.value); setPage(1); }}>
-          <option value="">All Products</option>
+          <option value="">All Applications</option>
           {products?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {(user?.role === 'editor' || user?.role === 'admin') && (
@@ -96,7 +96,7 @@ export function Projects() {
               <tr>
                 {([
                   ['name', 'Project Name'],
-                  ['product', 'Product'],
+                  ['product', 'Application'],
                   ['status', 'Status'],
                   ['priority', 'Priority'],
                   ['startDate', 'Start Date'],

@@ -50,8 +50,8 @@ export function Programs() {
           <p className="usa-page-subtitle">{programs.length} program{programs.length !== 1 ? 's' : ''}</p>
         </div>
         {canEdit && (
-          <button className="usa-button" onClick={() => navigate('/status/programs/new')}>
-            <Icon name="add" size={16} /> New Program
+          <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/programs/new')}>
+            + New Program
           </button>
         )}
       </div>

@@ -181,7 +181,7 @@ export function ResourceDetail() {
           <thead>
             <tr>
               <th>Project</th>
-              <th>Product</th>
+              <th>Application</th>
               <th>Role</th>
               <th>% Utilized</th>
               <th>Start</th>

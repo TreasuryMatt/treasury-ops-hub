@@ -152,7 +152,9 @@ export function ProjectDetail() {
         <div className="detail-card">
           <h3>Project Details</h3>
           <dl className="detail-list">
-            <dt>Product</dt><dd>{project.product?.name || '-'}</dd>
+            <dt>Application</dt><dd>{project.product?.name || '-'}</dd>
+            <dt>Federal Product Owner</dt><dd>{project.federalProductOwner || '-'}</dd>
+            <dt>Customer Contact</dt><dd>{project.customerContact || '-'}</dd>
             <dt>Priority</dt><dd style={{ textTransform: 'capitalize' }}>{project.priority || '-'}</dd>
             <dt>Status</dt><dd>{STATUS_LABELS[project.status]}</dd>
             <dt>Start Date</dt><dd>{project.startDate ? new Date(project.startDate).toLocaleDateString() : '-'}</dd>

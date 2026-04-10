@@ -49,6 +49,18 @@ export function Sidebar() {
         </div>
 
         <div className="sidenav-section">
+          <div className="sidenav-section-label">Executive</div>
+          <ul className="usa-sidenav">
+            <li>
+              <NavLink to="/exec/rollup">
+                <Icon name="star" color={COLOR_MAIN} />
+                Rollup
+              </NavLink>
+            </li>
+          </ul>
+        </div>
+
+        <div className="sidenav-section">
           <div className="sidenav-section-label">Staffing</div>
           <ul className="usa-sidenav">
             <li>

@@ -72,6 +72,8 @@ export interface Project {
   startDate: string | null;
   endDate: string | null;
   description: string | null;
+  federalProductOwner: string | null;
+  customerContact: string | null;
   isActive: boolean;
   assignments: Assignment[];
   teamSize: number;
@@ -147,6 +149,11 @@ export interface DashboardStats {
 
 export type StatusProjectStatusType = 'green' | 'yellow' | 'red' | 'gray';
 export type UpdateCadence = 'weekly' | 'biweekly' | 'monthly';
+
+export interface StatusTrendPoint {
+  status: StatusProjectStatusType;
+  date: string;
+}
 export type IssueCategory = 'risk' | 'issue' | 'blocker';
 export type NotificationType = 'update_due' | 'update_overdue' | 'new_update';
 
@@ -207,8 +214,8 @@ export interface StatusProject {
   description: string | null;
   programId: string;
   program?: Program;
-  ownerId: string | null;
-  owner?: { id: string; displayName: string } | null;
+  federalProductOwner: string | null;
+  customerContact: string | null;
   departmentId: string | null;
   department?: Department | null;
   priorityId: string | null;
@@ -217,6 +224,8 @@ export interface StatusProject {
   executionType?: ExecutionType | null;
   customerCategoryId: string | null;
   customerCategory?: CustomerCategory | null;
+  staffingProjectId: string | null;
+  staffingProject?: { id: string; name: string } | null;
   phase: string | null;
   status: StatusProjectStatusType;
   plannedStartDate: string | null;
@@ -271,6 +280,10 @@ export interface IssueEntry {
   category: IssueCategory;
   text: string;
   createdAt: string;
+  resolvedAt?: string | null;
+  resolvedById?: string | null;
+  resolvedBy?: { id: string; displayName: string } | null;
+  resolutionNotes?: string | null;
 }
 
 export interface Accomplishment {

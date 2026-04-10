@@ -3,16 +3,20 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { statusProjectsApi } from '../../api/statusProjects';
+import { projectsApi } from '../../api/projects';
 import { programsApi } from '../../api/programs';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { adminApi } from '../../api/admin';
-import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product } from '../../types';
+import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product, Project } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
   name: string;
   description: string;
   programId: string;
+  staffingProjectId: string;
+  federalProductOwner: string;
+  customerContact: string;
   departmentId: string;
   priorityId: string;
   executionTypeId: string;
@@ -57,6 +61,10 @@ export function StatusProjectForm() {
   const { data: executionTypes = [] } = useQuery<ExecutionType[]>({ queryKey: ['execution-types'], queryFn: statusAdminApi.executionTypes });
   const { data: customerCategories = [] } = useQuery<CustomerCategory[]>({ queryKey: ['customer-categories'], queryFn: statusAdminApi.customerCategories });
   const { data: products = [] } = useQuery<Product[]>({ queryKey: ['products'], queryFn: adminApi.products });
+  const { data: staffingProjects = [] } = useQuery<Project[]>({
+    queryKey: ['staffing-projects'],
+    queryFn: () => projectsApi.list().then((r) => r.data),
+  });
 
   useEffect(() => {
     if (project) {
@@ -64,6 +72,9 @@ export function StatusProjectForm() {
         name: project.name,
         description: project.description || '',
         programId: project.programId,
+        staffingProjectId: project.staffingProjectId || '',
+        federalProductOwner: project.federalProductOwner || '',
+        customerContact: project.customerContact || '',
         departmentId: project.departmentId || '',
         priorityId: project.priorityId || '',
         executionTypeId: project.executionTypeId || '',
@@ -85,6 +96,9 @@ export function StatusProjectForm() {
     mutationFn: (data: FormData) => {
       const payload = {
         ...data,
+        staffingProjectId: data.staffingProjectId || null,
+        federalProductOwner: data.federalProductOwner || null,
+        customerContact: data.customerContact || null,
         departmentId: data.departmentId || null,
         priorityId: data.priorityId || null,
         executionTypeId: data.executionTypeId || null,
@@ -147,6 +161,24 @@ export function StatusProjectForm() {
               <option value="yellow">Yellow — At Risk</option>
               <option value="red">Red — Off Track</option>
             </select>
+          </div>
+
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="staffingProjectId">Linked Staffing Project</label>
+            <select className="usa-select" id="staffingProjectId" {...register('staffingProjectId')}>
+              <option value="">— None —</option>
+              {staffingProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="federalProductOwner">Federal Product Owner</label>
+            <input className="usa-input" id="federalProductOwner" {...register('federalProductOwner')} />
+          </div>
+
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="customerContact">Customer Contact</label>
+            <input className="usa-input" id="customerContact" {...register('customerContact')} />
           </div>
 
           <div className="usa-form-group">
@@ -222,7 +254,7 @@ export function StatusProjectForm() {
         </div>
 
         <div className="usa-form-group" style={{ marginTop: 'var(--space-3)' }}>
-          <label className="usa-label">Linked Applications (Products)</label>
+          <label className="usa-label">Applications</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 200, overflowY: 'auto', padding: 12, border: '2px solid var(--usa-base)', borderRadius: 4, background: 'var(--usa-white)' }}>
             {products.map((p) => (
               <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, cursor: 'pointer' }}>

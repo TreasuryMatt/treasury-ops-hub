@@ -80,22 +80,50 @@ export function ProgramDetail() {
                 <th>Status</th>
                 <th>Project</th>
                 <th>Phase</th>
+                <th>Applications</th>
                 <th>Owner</th>
                 <th>Next Update Due</th>
               </tr>
             </thead>
             <tbody>
-              {program.statusProjects.map((sp) => (
+              {program.statusProjects.map((sp: any) => (
                 <tr key={sp.id} onClick={() => navigate(`/status/projects/${sp.id}`)} style={{ cursor: 'pointer' }}>
                   <td><RagBadge status={sp.status} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.phase || '—'}</td>
+                  <td>
+                    {sp.products?.length > 0 ? (
+                      <div className="app-pills">
+                        {sp.products.map((pp: any) => pp.product && (
+                          <span key={pp.id} className="app-pill">{pp.product.name}</span>
+                        ))}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td>{sp.owner?.displayName || '—'}</td>
-                  <td>{sp.nextUpdateDue ? new Date(sp.nextUpdateDue).toLocaleDateString() : '—'}</td>
+                  <td>
+                    {sp.nextUpdateDue ? (
+                      <span style={{ color: new Date(sp.nextUpdateDue) < new Date() ? 'var(--usa-error)' : undefined, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {new Date(sp.nextUpdateDue).toLocaleDateString()}
+                        {new Date(sp.nextUpdateDue) < new Date() && <Icon name="warning" size={14} color="var(--usa-error)" />}
+                      </span>
+                    ) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {(program.statusProjects?.length ?? 0) > 0 && (
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <button
+            className="usa-button usa-button--outline usa-button--sm"
+            onClick={() => navigate(`/status/roadmap?programId=${id}`)}
+          >
+            <Icon name="timeline" size={16} /> View Roadmap
+          </button>
         </div>
       )}
     </div>

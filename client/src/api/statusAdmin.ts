@@ -1,5 +1,5 @@
 import api from './client';
-import { Department, StatusPriority, ExecutionType, CustomerCategory, RagDefinition, StatusDashboardStats } from '../types';
+import { Department, StatusPriority, ExecutionType, CustomerCategory, RagDefinition, StatusDashboardStats, StatusTrendPoint } from '../types';
 
 export const statusAdminApi = {
   dashboardStats: () =>
@@ -10,6 +10,9 @@ export const statusAdminApi = {
 
   reports: () =>
     api.get('/status-admin/reports').then((r) => r.data.data),
+
+  rollup: (params: { window?: string; programId?: string; startDate?: string; endDate?: string }) =>
+    api.get('/status-admin/rollup', { params }).then((r) => r.data.data),
 
   departments: () =>
     api.get('/status-admin/departments').then((r) => r.data.data as Department[]),
@@ -25,4 +28,7 @@ export const statusAdminApi = {
 
   ragDefinitions: () =>
     api.get('/status-admin/rag-definitions').then((r) => r.data.data as RagDefinition[]),
+
+  trends: () =>
+    api.get('/status-admin/trends').then((r) => r.data.data as Record<string, StatusTrendPoint[]>),
 };

@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { statusProjectsApi } from '../../api/statusProjects';
+import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
 import { useAuth } from '../../context/AuthContext';
-import { StatusProject, Program } from '../../types';
+import { StatusProject, Program, StatusTrendPoint } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
+import { RagSparkline } from '../../components/RagSparkline';
 
 export function StatusProjects() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export function StatusProjects() {
     status: searchParams.get('status') || '',
     search: '',
   });
+  const [filterProductId, setFilterProductId] = useState('');
 
   const { data: projects = [], isLoading } = useQuery<StatusProject[]>({
     queryKey: ['status-projects', filters],
@@ -28,6 +31,24 @@ export function StatusProjects() {
     queryKey: ['programs'],
     queryFn: programsApi.list,
   });
+  const { data: trends = {} } = useQuery<Record<string, StatusTrendPoint[]>>({
+    queryKey: ['status-trends'],
+    queryFn: statusAdminApi.trends,
+  });
+
+  const allProducts = Array.from(
+    new Map(
+      projects
+        .flatMap((p) => p.products ?? [])
+        .map((pp) => pp.product)
+        .filter(Boolean)
+        .map((prod) => [prod!.id, prod!])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const visibleProjects = filterProductId
+    ? projects.filter((p) => p.products?.some((pp) => pp.product?.id === filterProductId))
+    : projects;
 
   if (isLoading) {
     return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
@@ -38,11 +59,11 @@ export function StatusProjects() {
       <div className="usa-page-header">
         <div>
           <h1 className="usa-page-title">Projects</h1>
-          <p className="usa-page-subtitle">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+          <p className="usa-page-subtitle">{visibleProjects.length} project{visibleProjects.length !== 1 ? 's' : ''}</p>
         </div>
         {canEdit && (
-          <button className="usa-button" onClick={() => navigate('/status/projects/new')}>
-            <Icon name="add" size={16} /> New Project
+          <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/projects/new')}>
+            + New Project
           </button>
         )}
       </div>
@@ -77,10 +98,21 @@ export function StatusProjects() {
           <option value="yellow">At Risk</option>
           <option value="red">Off Track</option>
           <option value="gray">Not Started</option>
+          <option value="overdue">Overdue Updates</option>
+        </select>
+        <select
+          className="usa-select"
+          value={filterProductId}
+          onChange={(e) => setFilterProductId(e.target.value)}
+        >
+          <option value="">All Applications</option>
+          {allProducts.map((prod) => (
+            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          ))}
         </select>
       </div>
 
-      {projects.length === 0 ? (
+      {visibleProjects.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state__icon"><Icon name="folder_open" size={48} /></div>
           <h3>No projects found</h3>
@@ -92,21 +124,33 @@ export function StatusProjects() {
             <thead>
               <tr>
                 <th>Status</th>
+                <th>Trend</th>
                 <th>Project</th>
                 <th>Program</th>
                 <th>Phase</th>
-                <th>Owner</th>
+                <th>Applications</th>
+                <th>Federal Product Owner</th>
                 <th>Next Update Due</th>
               </tr>
             </thead>
             <tbody>
-              {projects.map((sp) => (
+              {visibleProjects.map((sp) => (
                 <tr key={sp.id} onClick={() => navigate(`/status/projects/${sp.id}`)} style={{ cursor: 'pointer' }}>
                   <td><RagBadge status={sp.status} /></td>
+                  <td><RagSparkline points={trends[sp.id] || []} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.program?.name || '—'}</td>
                   <td>{sp.phase || '—'}</td>
-                  <td>{sp.owner?.displayName || '—'}</td>
+                  <td>
+                    {sp.products && sp.products.length > 0 ? (
+                      <div className="app-pills">
+                        {sp.products.map((pp) => pp.product && (
+                          <span key={pp.id} className="app-pill">{pp.product.name}</span>
+                        ))}
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td>{sp.federalProductOwner || '—'}</td>
                   <td>
                     {sp.nextUpdateDue ? (
                       <span style={{ color: new Date(sp.nextUpdateDue) < new Date() ? 'var(--usa-error)' : undefined }}>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, ProjectPhase, StatusProjectStatusType } from '../../types';
+import { Program, StatusProject, ProjectPhase, StatusProjectStatusType, StatusProjectProduct } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 
@@ -14,14 +14,19 @@ const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
   gray: 'var(--usa-base)',
 };
 
-interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases'> {
+interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases' | 'products'> {
   phases: ProjectPhase[];
   program: { id: string; name: string };
+  products: StatusProjectProduct[];
 }
 
 export function Roadmap() {
   const navigate = useNavigate();
-  const [filterProgramId, setFilterProgramId] = useState('');
+  const [searchParams] = useSearchParams();
+  const [filterProgramId, setFilterProgramId] = useState(searchParams.get('programId') || '');
+  const [filterProductId, setFilterProductId] = useState('');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
   const { data: projects = [], isLoading } = useQuery<RoadmapProject[]>({
     queryKey: ['roadmap'],
@@ -33,9 +38,21 @@ export function Roadmap() {
     queryFn: programsApi.list,
   });
 
-  const filtered = filterProgramId
-    ? projects.filter((p) => p.programId === filterProgramId)
-    : projects;
+  const allProducts = Array.from(
+    new Map(
+      projects
+        .flatMap((p) => p.products ?? [])
+        .map((pp) => pp.product)
+        .filter(Boolean)
+        .map((prod) => [prod!.id, prod!])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const filtered = projects.filter((p) => {
+    if (filterProgramId && p.programId !== filterProgramId) return false;
+    if (filterProductId && !p.products?.some((pp) => pp.product?.id === filterProductId)) return false;
+    return true;
+  });
 
   // Only include projects that have phases
   const withPhases = filtered.filter((p) => p.phases.length > 0);
@@ -45,29 +62,86 @@ export function Roadmap() {
   const allDates = withPhases.flatMap((p) =>
     p.phases.flatMap((ph) => [new Date(ph.startDate).getTime(), new Date(ph.endDate).getTime()])
   );
-  const minTime = allDates.length ? Math.min(...allDates) : Date.now();
-  const maxTime = allDates.length ? Math.max(...allDates) : Date.now() + 1;
+  const autoMin = allDates.length ? Math.min(...allDates) : Date.now();
+  const autoMax = allDates.length ? Math.max(...allDates) : Date.now() + 1;
+
+  // Use custom date range if both dates are set, otherwise auto-compute
+  const hasCustomRange = !!customStart && !!customEnd;
+  const minTime = hasCustomRange ? new Date(customStart).getTime() : autoMin;
+  const maxTime = hasCustomRange ? new Date(customEnd).getTime() : autoMax;
   const range = maxTime - minTime || 1;
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
+    new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   const pctLeft = (d: string) => ((new Date(d).getTime() - minTime) / range) * 100;
   const pctWidth = (start: string, end: string) =>
     ((new Date(end).getTime() - new Date(start).getTime()) / range) * 100;
 
-  // Month tick marks
+  // Adaptive tick marks — weekly for short ranges, biweekly for medium, monthly for long
   const tickMonths: { label: string; left: number }[] = [];
-  if (allDates.length) {
+  if (allDates.length || hasCustomRange) {
+    const rangeDays = range / (1000 * 60 * 60 * 24);
     const cursor = new Date(minTime);
-    cursor.setDate(1);
-    while (cursor.getTime() <= maxTime) {
-      const left = ((cursor.getTime() - minTime) / range) * 100;
-      tickMonths.push({
-        label: cursor.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
-        left,
-      });
+
+    if (rangeDays <= 14) {
+      // Daily ticks: every day starting the day after minTime
+      cursor.setDate(cursor.getDate() + 1);
+      while (cursor.getTime() <= maxTime) {
+        const left = ((cursor.getTime() - minTime) / range) * 100;
+        if (left >= 2 && left <= 98) {
+          tickMonths.push({
+            label: cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            left,
+          });
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else if (rangeDays <= 45) {
+      // Weekly ticks: start at the first Monday on or after minTime
+      const day = cursor.getDay();
+      const daysUntilMon = day === 0 ? 1 : day === 1 ? 0 : 8 - day;
+      cursor.setDate(cursor.getDate() + daysUntilMon);
+      while (cursor.getTime() <= maxTime) {
+        const left = ((cursor.getTime() - minTime) / range) * 100;
+        if (left >= 2 && left <= 98) {
+          tickMonths.push({
+            label: cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            left,
+          });
+        }
+        cursor.setDate(cursor.getDate() + 7);
+      }
+    } else if (rangeDays <= 120) {
+      // Biweekly ticks: 1st and 15th of each month
+      cursor.setDate(1);
+      while (cursor.getTime() <= maxTime) {
+        for (const d of [1, 15]) {
+          const tick = new Date(cursor.getFullYear(), cursor.getMonth(), d);
+          const left = ((tick.getTime() - minTime) / range) * 100;
+          if (left >= 2 && left <= 98) {
+            tickMonths.push({
+              label: tick.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+              left,
+            });
+          }
+        }
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    } else {
+      // Monthly ticks
+      cursor.setDate(1);
       cursor.setMonth(cursor.getMonth() + 1);
+      while (cursor.getTime() <= maxTime) {
+        const left = ((cursor.getTime() - minTime) / range) * 100;
+        if (left >= 0 && left <= 100) {
+          tickMonths.push({
+            label: cursor.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+            left,
+          });
+        }
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
     }
   }
 
@@ -98,6 +172,42 @@ export function Roadmap() {
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
+        <select
+          className="usa-select"
+          value={filterProductId}
+          onChange={(e) => setFilterProductId(e.target.value)}
+          style={{ maxWidth: 260 }}
+        >
+          <option value="">All Applications</option>
+          {allProducts.map((prod) => (
+            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          className="usa-input"
+          value={customStart}
+          onChange={(e) => setCustomStart(e.target.value)}
+          style={{ width: 160 }}
+          placeholder="Start date"
+        />
+        <input
+          type="date"
+          className="usa-input"
+          value={customEnd}
+          onChange={(e) => setCustomEnd(e.target.value)}
+          style={{ width: 160 }}
+          placeholder="End date"
+        />
+        {hasCustomRange && (
+          <button
+            className="usa-button usa-button--unstyled"
+            style={{ fontSize: 12, color: 'var(--usa-primary)' }}
+            onClick={() => { setCustomStart(''); setCustomEnd(''); }}
+          >
+            Reset dates
+          </button>
+        )}
       </div>
 
       {withPhases.length === 0 ? (
@@ -134,6 +244,8 @@ export function Roadmap() {
             {(() => {
               const todayPct = ((Date.now() - minTime) / range) * 100;
               if (todayPct < 0 || todayPct > 100) return null;
+              // Total rows = one project-header row (20px) + one phase row (32px) per phase, per project
+              const totalHeight = withPhases.reduce((sum, p) => sum + 20 + p.phases.length * 32, 0);
               return (
                 <div style={{ display: 'flex', paddingLeft: 220, position: 'relative' }}>
                   <div style={{ flex: 1, position: 'relative', height: 0 }}>
@@ -143,7 +255,7 @@ export function Roadmap() {
                         left: `${todayPct}%`,
                         top: 0,
                         width: 2,
-                        height: withPhases.length * 38 + 4,
+                        height: totalHeight,
                         background: 'var(--usa-error)',
                         opacity: 0.5,
                         zIndex: 1,
@@ -169,9 +281,8 @@ export function Roadmap() {
               );
             })()}
 
-            {/* Rows grouped by program */}
+            {/* Rows grouped by program — each phase on its own row */}
             {(() => {
-              // Group by program
               const grouped = new Map<string, RoadmapProject[]>();
               for (const p of withPhases) {
                 const key = p.program.name;
@@ -181,6 +292,7 @@ export function Roadmap() {
 
               return Array.from(grouped.entries()).map(([progName, progProjects]) => (
                 <div key={progName} style={{ marginBottom: 'var(--space-2)' }}>
+                  {/* Program label */}
                   <div
                     style={{
                       fontSize: 11,
@@ -193,69 +305,102 @@ export function Roadmap() {
                   >
                     {progName}
                   </div>
-                  {progProjects.map((proj) => (
-                    <div
-                      key={proj.id}
-                      style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}
-                    >
-                      {/* Project label */}
-                      <div
-                        style={{
-                          width: 210,
-                          flexShrink: 0,
-                          paddingRight: 12,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => navigate(`/status/projects/${proj.id}`)}
-                        title={proj.name}
-                      >
-                        <RagBadge status={proj.status} size="small" />
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {proj.name}
-                        </span>
-                      </div>
 
-                      {/* Phase bars */}
-                      <div style={{ flex: 1, position: 'relative', height: 24, background: 'var(--usa-base-lightest)', borderRadius: 4 }}>
-                        {proj.phases.map((ph) => {
-                          const left = pctLeft(ph.startDate);
-                          const width = pctWidth(ph.startDate, ph.endDate);
-                          return (
-                            <div
-                              key={ph.id}
-                              style={{
-                                position: 'absolute',
-                                left: `${Math.max(0, left)}%`,
-                                width: `${Math.max(0.5, width)}%`,
-                                height: '100%',
-                                backgroundColor: ph.color || STATUS_COLORS[proj.status] || 'var(--usa-primary)',
-                                borderRadius: 3,
-                                display: 'flex',
-                                alignItems: 'center',
-                                overflow: 'hidden',
-                              }}
-                              title={`${ph.name}: ${formatDate(ph.startDate)} – ${formatDate(ph.endDate)}`}
-                            >
-                              <span style={{ fontSize: 10, color: '#fff', fontWeight: 500, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {ph.name}
+                  {progProjects.map((proj) => {
+                    // Filter to phases visible in the current range
+                    const visiblePhases = proj.phases.filter((ph) => {
+                      const rawLeft = pctLeft(ph.startDate);
+                      const rawRight = pctLeft(ph.endDate);
+                      return rawRight >= 0 && rawLeft <= 100;
+                    });
+                    if (visiblePhases.length === 0) return null;
+
+                    return (
+                      <div key={proj.id} style={{ marginBottom: 6 }}>
+                        {/* Project name subheader */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: 'pointer',
+                            marginBottom: 2,
+                            height: 20,
+                          }}
+                          onClick={() => navigate(`/status/projects/${proj.id}`)}
+                          title={proj.name}
+                        >
+                          <div style={{ width: 210, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <RagBadge status={proj.status} size="small" />
+                            <div style={{ overflow: 'hidden' }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                                {proj.name}
                               </span>
+                              {proj.products && proj.products.length > 0 && (
+                                <div className="app-pills" style={{ marginTop: 2 }}>
+                                  {proj.products.map((pp) => pp.product && (
+                                    <span key={pp.id} className="app-pill" style={{ fontSize: 10, padding: '0 4px' }}>{pp.product.name}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/* Faint rule across the bar area */}
+                          <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
+                        </div>
+
+                        {/* One row per phase */}
+                        {visiblePhases.map((ph) => {
+                          const rawLeft = pctLeft(ph.startDate);
+                          const rawRight = pctLeft(ph.endDate);
+                          const clippedLeft = Math.max(0, rawLeft);
+                          const clippedRight = Math.min(100, rawRight);
+                          const clippedWidth = clippedRight - clippedLeft;
+                          const fadeLeft = hasCustomRange && rawLeft < 0;
+                          const fadeRight = hasCustomRange && rawRight > 100;
+                          const barColor = ph.color || STATUS_COLORS[proj.status] || 'var(--usa-primary)';
+                          let background: string = barColor;
+                          if (fadeLeft && fadeRight) {
+                            background = `linear-gradient(to right, transparent, ${barColor} 15%, ${barColor} 85%, transparent)`;
+                          } else if (fadeLeft) {
+                            background = `linear-gradient(to right, transparent, ${barColor} 20%)`;
+                          } else if (fadeRight) {
+                            background = `linear-gradient(to left, transparent, ${barColor} 20%)`;
+                          }
+
+                          return (
+                            <div key={ph.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4, height: 28 }}>
+                              {/* Phase name label — indented */}
+                              <div style={{ width: 210, flexShrink: 0, paddingLeft: 18, paddingRight: 12, fontSize: 11, color: 'var(--usa-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {ph.name}
+                              </div>
+                              {/* Bar track */}
+                              <div style={{ flex: 1, position: 'relative', height: 24, background: 'var(--usa-base-lightest)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${clippedLeft}%`,
+                                    width: `${Math.max(0.5, clippedWidth)}%`,
+                                    height: '100%',
+                                    background,
+                                    borderRadius: 3,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    overflow: 'hidden',
+                                  }}
+                                  title={`${ph.name}: ${formatDate(ph.startDate)} – ${formatDate(ph.endDate)}`}
+                                >
+                                  <span style={{ fontSize: 10, color: '#fff', fontWeight: 500, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {formatDate(ph.startDate)} – {formatDate(ph.endDate)}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ));
             })()}
@@ -275,6 +420,7 @@ export function Roadmap() {
                   <th>Status</th>
                   <th>Project</th>
                   <th>Program</th>
+                  <th>Applications</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,6 +429,15 @@ export function Roadmap() {
                     <td><RagBadge status={p.status} /></td>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td>{p.program?.name}</td>
+                    <td>
+                      {p.products && p.products.length > 0 ? (
+                        <div className="app-pills">
+                          {p.products.map((pp) => pp.product && (
+                            <span key={pp.id} className="app-pill">{pp.product.name}</span>
+                          ))}
+                        </div>
+                      ) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

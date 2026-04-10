@@ -3,15 +3,17 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, StatusProjectStatusType } from '../../types';
+import { Program, StatusProject, StatusProjectStatusType, StatusProjectProduct, StatusTrendPoint } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
+import { RagSparkline } from '../../components/RagSparkline';
 
 interface ReportProject extends Omit<StatusProject, 'program' | 'owner' | 'priority' | 'department'> {
   program: { id: string; name: string };
   owner: { id: string; displayName: string } | null;
   priority: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
+  products: StatusProjectProduct[];
   _count: { updates: number; issues: number };
 }
 
@@ -23,6 +25,7 @@ export function Reports() {
   const navigate = useNavigate();
   const [filterProgramId, setFilterProgramId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterProductId, setFilterProductId] = useState('');
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'status', dir: 'asc' });
 
   const { data: projects = [], isLoading } = useQuery<ReportProject[]>({
@@ -34,10 +37,25 @@ export function Reports() {
     queryKey: ['programs'],
     queryFn: programsApi.list,
   });
+  const { data: trends = {} } = useQuery<Record<string, StatusTrendPoint[]>>({
+    queryKey: ['status-trends'],
+    queryFn: statusAdminApi.trends,
+  });
+
+  const allProducts = Array.from(
+    new Map(
+      projects
+        .flatMap((p) => p.products ?? [])
+        .map((pp) => pp.product)
+        .filter(Boolean)
+        .map((prod) => [prod!.id, prod!])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = projects.filter((p) => {
     if (filterProgramId && p.programId !== filterProgramId) return false;
     if (filterStatus && p.status !== filterStatus) return false;
+    if (filterProductId && !p.products?.some((pp) => pp.product?.id === filterProductId)) return false;
     return true;
   });
 
@@ -160,6 +178,16 @@ export function Reports() {
           <option value="red">Off Track</option>
           <option value="gray">Not Started</option>
         </select>
+        <select
+          className="usa-select"
+          value={filterProductId}
+          onChange={(e) => setFilterProductId(e.target.value)}
+        >
+          <option value="">All Applications</option>
+          {allProducts.map((prod) => (
+            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          ))}
+        </select>
       </div>
 
       {sorted.length === 0 ? (
@@ -174,6 +202,7 @@ export function Reports() {
             <thead>
               <tr>
                 <SortTh col="status">Status</SortTh>
+                <th>Trend</th>
                 <SortTh col="name">Project</SortTh>
                 <SortTh col="program">Program</SortTh>
                 <th>Department</th>
@@ -191,6 +220,7 @@ export function Reports() {
                 return (
                   <tr key={p.id} onClick={() => navigate(`/status/projects/${p.id}`)} style={{ cursor: 'pointer' }}>
                     <td><RagBadge status={p.status} /></td>
+                    <td><RagSparkline points={trends[p.id] || []} /></td>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td>{p.program?.name || '—'}</td>
                     <td>{p.department?.name || '—'}</td>
