@@ -117,12 +117,6 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="sidenav-footer">
-        <div className="font-bold text-xs" style={{ color: 'var(--usa-base-darkest)', marginBottom: 2 }}>
-          {user?.displayName}
-        </div>
-        <div className="text-xs">{user?.role}</div>
-      </div>
     </aside>
   );
 }
