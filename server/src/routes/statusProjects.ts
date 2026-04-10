@@ -28,12 +28,12 @@ statusProjectsRouter.use(requireAuth);
 
 const PROJECT_INCLUDE = {
   program: { select: { id: true, name: true } },
-  owner: { select: { id: true, displayName: true } },
   department: { select: { id: true, name: true } },
   priority: { select: { id: true, name: true, sortOrder: true } },
   executionType: { select: { id: true, name: true } },
   customerCategory: { select: { id: true, name: true } },
   products: { include: { product: { select: { id: true, name: true } } } },
+  staffingProject: { select: { id: true, name: true } },
 };
 
 // GET /api/status-projects
@@ -42,7 +42,11 @@ statusProjectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) =
 
   const where: any = { isActive: true };
   if (programId) where.programId = programId;
-  if (status) where.status = status;
+  if (status === 'overdue') {
+    where.nextUpdateDue = { lt: new Date() };
+  } else if (status) {
+    where.status = status;
+  }
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -75,11 +79,13 @@ statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, 
   try {
     const b = req.body;
     const project = await prisma.statusProject.create({
-      data: {
+      data: ({
         name: b.name,
         description: b.description || null,
         programId: b.programId,
-        ownerId: req.user!.id,
+        staffingProject: b.staffingProjectId ? { connect: { id: b.staffingProjectId } } : undefined,
+        federalProductOwner: b.federalProductOwner || null,
+        customerContact: b.customerContact || null,
         departmentId: b.departmentId || null,
         priorityId: b.priorityId || null,
         executionTypeId: b.executionTypeId || null,
@@ -96,7 +102,7 @@ statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, 
         products: b.productIds?.length
           ? { create: b.productIds.map((pid: string) => ({ productId: pid })) }
           : undefined,
-      },
+      }) as any,
       include: PROJECT_INCLUDE,
     });
 
@@ -122,11 +128,26 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
       data: {
         name: b.name,
         description: b.description ?? undefined,
-        programId: b.programId ?? undefined,
-        departmentId: b.departmentId,
-        priorityId: b.priorityId,
-        executionTypeId: b.executionTypeId,
-        customerCategoryId: b.customerCategoryId,
+        program: b.programId ? { connect: { id: b.programId } } : undefined,
+        staffingProject: b.staffingProjectId !== undefined
+          ? b.staffingProjectId
+            ? { connect: { id: b.staffingProjectId } }
+            : { disconnect: true }
+          : undefined,
+        federalProductOwner: b.federalProductOwner !== undefined ? (b.federalProductOwner || null) : undefined,
+        customerContact: b.customerContact !== undefined ? (b.customerContact || null) : undefined,
+        department: b.departmentId !== undefined
+          ? b.departmentId ? { connect: { id: b.departmentId } } : { disconnect: true }
+          : undefined,
+        priority: b.priorityId !== undefined
+          ? b.priorityId ? { connect: { id: b.priorityId } } : { disconnect: true }
+          : undefined,
+        executionType: b.executionTypeId !== undefined
+          ? b.executionTypeId ? { connect: { id: b.executionTypeId } } : { disconnect: true }
+          : undefined,
+        customerCategory: b.customerCategoryId !== undefined
+          ? b.customerCategoryId ? { connect: { id: b.customerCategoryId } } : { disconnect: true }
+          : undefined,
         phase: b.phase ?? undefined,
         status: b.status ?? undefined,
         plannedStartDate: b.plannedStartDate !== undefined ? (b.plannedStartDate ? new Date(b.plannedStartDate) : null) : undefined,
@@ -196,6 +217,37 @@ statusProjectsRouter.post('/:id/updates', requireEditor, async (req: Authenticat
   }
 });
 
+// PUT /api/status-projects/:id/updates/:updateId
+statusProjectsRouter.put('/:id/updates/:updateId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const b = req.body;
+    const update = await prisma.statusUpdate.update({
+      where: { id: req.params.updateId as string },
+      data: {
+        overallStatus: b.overallStatus ?? undefined,
+        summary: b.summary ?? undefined,
+        risks: b.risks !== undefined ? b.risks || null : undefined,
+        blockers: b.blockers !== undefined ? b.blockers || null : undefined,
+      },
+      include: { author: { select: { id: true, displayName: true } } },
+    });
+    await logAction(req.user!.id, 'update', 'status_update', update.id, { statusProjectId: req.params.id as string }, req.ip);
+    res.json({ data: update });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// DELETE /api/status-projects/:id/updates/:updateId
+statusProjectsRouter.delete('/:id/updates/:updateId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    await prisma.statusUpdate.delete({ where: { id: req.params.updateId as string } });
+    res.json({ message: 'Deleted' });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
 // ─── Phases ──────────────────────────────────────────────────────────────────
 
 // GET /api/status-projects/:id/phases
@@ -258,7 +310,10 @@ statusProjectsRouter.put('/:id/phases/:phaseId', requireEditor, async (req: Auth
 statusProjectsRouter.get('/:id/issues', async (req: AuthenticatedRequest, res: Response) => {
   const issues = await prisma.issueEntry.findMany({
     where: { statusProjectId: req.params.id as string },
-    include: { author: { select: { id: true, displayName: true } } },
+    include: {
+      author: { select: { id: true, displayName: true } },
+      resolvedBy: { select: { id: true, displayName: true } },
+    },
     orderBy: { createdAt: 'desc' },
   });
   res.json({ data: issues });
@@ -278,6 +333,76 @@ statusProjectsRouter.post('/:id/issues', requireEditor, async (req: Authenticate
       include: { author: { select: { id: true, displayName: true } } },
     });
     res.status(201).json({ data: issue });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// PUT /api/status-projects/:id/issues/:issueId
+statusProjectsRouter.put('/:id/issues/:issueId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const b = req.body;
+    const issue = await prisma.issueEntry.update({
+      where: { id: req.params.issueId as string },
+      data: {
+        category: b.category ?? undefined,
+        text: b.text ?? undefined,
+      },
+      include: { author: { select: { id: true, displayName: true } } },
+    });
+    res.json({ data: issue });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// DELETE /api/status-projects/:id/issues/:issueId
+statusProjectsRouter.delete('/:id/issues/:issueId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    await prisma.issueEntry.delete({ where: { id: req.params.issueId as string } });
+    res.json({ message: 'Deleted' });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// PUT /api/status-projects/:id/issues/:issueId/resolve
+statusProjectsRouter.put('/:id/issues/:issueId/resolve', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const issue = await prisma.issueEntry.update({
+      where: { id: req.params.issueId as string },
+      data: {
+        resolvedAt: new Date(),
+        resolvedById: req.user!.id,
+        resolutionNotes: req.body.resolutionNotes || null,
+      },
+      include: {
+        author: { select: { id: true, displayName: true } },
+        resolvedBy: { select: { id: true, displayName: true } },
+      },
+    });
+    res.json({ data: issue });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// PUT /api/status-projects/:id/issues/:issueId/reopen
+statusProjectsRouter.put('/:id/issues/:issueId/reopen', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const issue = await prisma.issueEntry.update({
+      where: { id: req.params.issueId as string },
+      data: {
+        resolvedAt: null,
+        resolvedById: null,
+        resolutionNotes: null,
+      },
+      include: {
+        author: { select: { id: true, displayName: true } },
+        resolvedBy: { select: { id: true, displayName: true } },
+      },
+    });
+    res.json({ data: issue });
   } catch (err: any) {
     next(new AppError(err.message, 400));
   }
@@ -307,6 +432,20 @@ statusProjectsRouter.post('/:id/accomplishments', requireEditor, async (req: Aut
       include: { author: { select: { id: true, displayName: true } } },
     });
     res.status(201).json({ data: item });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// PUT /api/status-projects/:id/accomplishments/:aId
+statusProjectsRouter.put('/:id/accomplishments/:aId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const item = await prisma.accomplishment.update({
+      where: { id: req.params.aId as string },
+      data: { text: req.body.text },
+      include: { author: { select: { id: true, displayName: true } } },
+    });
+    res.json({ data: item });
   } catch (err: any) {
     next(new AppError(err.message, 400));
   }
@@ -391,18 +530,20 @@ statusProjectsRouter.delete('/:id/documents/:docId', requireEditor, async (req: 
 statusProjectsRouter.get('/:id/staffing', async (req: AuthenticatedRequest, res: Response) => {
   const sp = await prisma.statusProject.findUnique({
     where: { id: req.params.id as string },
-    include: { products: { select: { productId: true } } },
+    select: { id: true, name: true, staffingProjectId: true },
   });
 
   if (!sp) return res.json({ data: [], linkedProjectId: null });
 
-  // Find the best-matching staffing project by name
-  const linkedProject = await prisma.project.findFirst({
-    where: { name: { equals: sp.name, mode: 'insensitive' }, isActive: true },
-    select: { id: true },
-  });
-
-  const linkedProjectId = linkedProject?.id ?? null;
+  // Use FK if set, otherwise fall back to name-match
+  let linkedProjectId = sp.staffingProjectId;
+  if (!linkedProjectId) {
+    const matched = await prisma.project.findFirst({
+      where: { name: { equals: sp.name, mode: 'insensitive' }, isActive: true },
+      select: { id: true },
+    });
+    linkedProjectId = matched?.id ?? null;
+  }
 
   if (!linkedProjectId) {
     return res.json({ data: [], linkedProjectId: null });
@@ -442,6 +583,12 @@ statusProjectsRouter.post('/:id/staffing/ensure-project', requireEditor, async (
         select: { id: true },
       });
     }
+
+    // Persist the FK so future lookups use it directly
+    await prisma.statusProject.update({
+      where: { id: sp.id },
+      data: { staffingProjectId: project.id },
+    });
 
     res.json({ linkedProjectId: project.id });
   } catch (err: any) {
