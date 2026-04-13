@@ -23,7 +23,7 @@ export function ProjectDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const canEdit = user?.role === 'editor' || user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
 
   const [showAdd, setShowAdd] = useState(false);
   const [newForm, setNewForm] = useState(EMPTY_NEW);

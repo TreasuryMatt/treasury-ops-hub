@@ -14,7 +14,7 @@ export function ResourceDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const canEdit = user?.role === 'editor' || user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
 
   const { data: resource, isLoading } = useQuery({
     queryKey: ['resource', id],

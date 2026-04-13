@@ -80,7 +80,7 @@ export function Projects() {
           <option value="">All Applications</option>
           {products?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        {(user?.role === 'editor' || user?.role === 'admin') && (
+        {(user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin') && (
           <button className="usa-button usa-button--primary" onClick={() => navigate('/projects/new')}>
             <Icon name="add" color="white" /> Add Project
           </button>

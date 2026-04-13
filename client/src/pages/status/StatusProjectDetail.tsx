@@ -19,7 +19,7 @@ export function StatusProjectDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const canEdit = user?.role === 'editor' || user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const { data: project, isLoading } = useQuery<StatusProject>({
@@ -149,7 +149,7 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
     { label: 'Priority', value: project.priority?.name },
     { label: 'Execution Type', value: project.executionType?.name },
     { label: 'Customer Category', value: project.customerCategory?.name },
-    { label: 'Phase', value: project.phase },
+    { label: 'Phase', value: project.phase?.name },
     { label: 'Funded', value: project.funded ? 'Yes' : 'No' },
     { label: 'Update Cadence', value: project.updateCadence },
     { label: 'Planned Start', value: project.plannedStartDate ? new Date(project.plannedStartDate).toLocaleDateString() : null },

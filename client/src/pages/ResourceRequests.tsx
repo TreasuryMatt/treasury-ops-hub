@@ -206,7 +206,7 @@ export function ResourceRequests() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const isEditorOrAdmin = user?.role === 'editor' || user?.role === 'admin';
+  const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
 
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [reviewTarget, setReviewTarget] = useState<{ request: ResourceRequest; action: 'approved' | 'denied' } | null>(null);
@@ -247,7 +247,7 @@ export function ResourceRequests() {
       <div className="usa-page-header">
         <h1 className="usa-page-title">Resource Requests</h1>
         <p className="usa-page-subtitle">
-          {isEditorOrAdmin ? 'All requests across the organization' : 'Your submitted requests'}
+          {isManagerOrAdmin ? 'All requests across the organization' : 'Your submitted requests'}
         </p>
       </div>
 
@@ -286,7 +286,7 @@ export function ResourceRequests() {
             <thead>
               <tr>
                 <th>Date</th>
-                {isEditorOrAdmin && <th>Requestor</th>}
+                {isManagerOrAdmin && <th>Requestor</th>}
                 <th>Project</th>
                 <th>Role</th>
                 <th>Type</th>
@@ -294,14 +294,14 @@ export function ResourceRequests() {
                 <th>Start</th>
                 <th>End</th>
                 <th>Status</th>
-                {isEditorOrAdmin && <th>Actions</th>}
+                {isManagerOrAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {requests.map((r) => (
                 <tr key={r.id}>
                   <td style={{ whiteSpace: 'nowrap' }}>{formatDate(r.createdAt)}</td>
-                  {isEditorOrAdmin && (
+                  {isManagerOrAdmin && (
                     <td>{r.requestor.displayName}</td>
                   )}
                   <td>
@@ -328,7 +328,7 @@ export function ResourceRequests() {
                       )}
                     </div>
                   </td>
-                  {isEditorOrAdmin && (
+                  {isManagerOrAdmin && (
                     <td>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         {r.status === 'pending' && (

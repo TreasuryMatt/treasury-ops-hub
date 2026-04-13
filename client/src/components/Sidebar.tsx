@@ -84,6 +84,18 @@ export function Sidebar() {
           </ul>
         </div>
 
+        <div className="sidenav-section">
+          <div className="sidenav-section-label">Account</div>
+          <ul className="usa-sidenav">
+            <li>
+              <NavLink to="/notifications">
+                <Icon name="notifications" color={COLOR_MAIN} />
+                Notifications
+              </NavLink>
+            </li>
+          </ul>
+        </div>
+
         {user?.role === 'admin' && (
           <div className="sidenav-section">
             <div className="sidenav-section-label">Admin</div>

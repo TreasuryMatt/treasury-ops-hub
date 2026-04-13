@@ -54,6 +54,8 @@ programsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: R
       data: {
         name: b.name,
         description: b.description || null,
+        logoUrl: b.logoUrl || null,
+        federalOwner: b.federalOwner || null,
         portfolioId: b.portfolioId || null,
       },
       include: PROGRAM_INCLUDE,
@@ -74,6 +76,8 @@ programsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res:
       data: {
         name: b.name ?? undefined,
         description: b.description ?? undefined,
+        logoUrl: b.logoUrl ?? undefined,
+        federalOwner: b.federalOwner ?? undefined,
         portfolioId: b.portfolioId,
       },
       include: PROGRAM_INCLUDE,

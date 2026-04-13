@@ -1,4 +1,4 @@
-export type AppRole = 'viewer' | 'editor' | 'admin';
+export type AppRole = 'viewer' | 'editor' | 'manager' | 'admin';
 export type Division = 'operations' | 'engineering' | 'pmso';
 export type ResourceType = 'federal' | 'contractor';
 export type ProjectStatus = 'in_progress' | 'on_hold' | 'completed';
@@ -50,6 +50,8 @@ export interface Resource {
   isMatrixed: boolean | null;
   popStartDate: string | null;
   popEndDate: string | null;
+  popAlertDaysBefore: number | null;
+  userId: string | null;
   primaryRoleId: string | null;
   primaryRole: Role | null;
   secondaryRoleId: string | null;
@@ -155,7 +157,17 @@ export interface StatusTrendPoint {
   date: string;
 }
 export type IssueCategory = 'risk' | 'issue' | 'blocker';
-export type NotificationType = 'update_due' | 'update_overdue' | 'new_update';
+export type NotificationType =
+  | 'update_due'
+  | 'update_overdue'
+  | 'new_update'
+  | 'issue_created'
+  | 'issue_resolved'
+  | 'issue_reopened'
+  | 'project_status_changed'
+  | 'assignment_added'
+  | 'assignment_removed'
+  | 'pop_expiring';
 
 export interface Department {
   id: string;
@@ -190,6 +202,13 @@ export interface RagDefinition {
   isActive: boolean;
 }
 
+export interface StatusPhase {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface Portfolio {
   id: string;
   name: string;
@@ -202,6 +221,8 @@ export interface Program {
   id: string;
   name: string;
   description: string | null;
+  logoUrl: string | null;
+  federalOwner: string | null;
   portfolioId: string | null;
   portfolio?: Portfolio | null;
   isActive: boolean;
@@ -224,9 +245,10 @@ export interface StatusProject {
   executionType?: ExecutionType | null;
   customerCategoryId: string | null;
   customerCategory?: CustomerCategory | null;
+  phaseId: string | null;
+  phase?: StatusPhase | null;
   staffingProjectId: string | null;
   staffingProject?: { id: string; name: string } | null;
-  phase: string | null;
   status: StatusProjectStatusType;
   plannedStartDate: string | null;
   plannedEndDate: string | null;
@@ -311,11 +333,21 @@ export interface AppNotification {
   id: string;
   userId: string;
   type: NotificationType;
-  statusProjectId: string | null;
+  title: string;
   message: string;
+  linkUrl: string | null;
+  statusProjectId: string | null;
   read: boolean;
   emailSent: boolean;
   createdAt: string;
+}
+
+export interface NotificationPreference {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  inApp: boolean;
+  email: boolean;
 }
 
 export interface StatusDashboardStats {

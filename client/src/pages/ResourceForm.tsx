@@ -20,6 +20,8 @@ interface FormData {
   isSupervisor: boolean;
   popStartDate: string;
   popEndDate: string;
+  popAlertDaysBefore: string;
+  userId: string;
   primaryRoleId: string;
   secondaryRoleId: string;
   availableForWork: boolean;
@@ -61,6 +63,8 @@ export function ResourceForm() {
         isSupervisor: existing.isSupervisor || false,
         popStartDate: existing.popStartDate ? existing.popStartDate.split('T')[0] : '',
         popEndDate: existing.popEndDate ? existing.popEndDate.split('T')[0] : '',
+        popAlertDaysBefore: existing.popAlertDaysBefore != null ? String(existing.popAlertDaysBefore) : '',
+        userId: existing.userId || '',
         primaryRoleId: existing.primaryRoleId || '',
         secondaryRoleId: existing.secondaryRoleId || '',
         availableForWork: existing.availableForWork,
@@ -94,6 +98,10 @@ export function ResourceForm() {
       isMatrixed: data.resourceType === 'federal' ? data.isMatrixed : null,
       popStartDate: data.resourceType === 'contractor' && data.popStartDate ? new Date(data.popStartDate) : null,
       popEndDate: data.resourceType === 'contractor' && data.popEndDate ? new Date(data.popEndDate) : null,
+      popAlertDaysBefore: data.resourceType === 'contractor' && data.popAlertDaysBefore
+        ? parseInt(data.popAlertDaysBefore, 10)
+        : null,
+      userId: data.userId || null,
     };
     mutation.mutate(payload);
   };
@@ -201,8 +209,30 @@ export function ResourceForm() {
                 <label className="usa-label" htmlFor="popEndDate">POP End Date</label>
                 <input id="popEndDate" className="usa-input" type="date" {...register('popEndDate')} />
               </div>
+              <div className="usa-form-group">
+                <label className="usa-label" htmlFor="popAlertDaysBefore">Alert lead time (days)</label>
+                <input
+                  id="popAlertDaysBefore"
+                  className="usa-input"
+                  type="number"
+                  min={1}
+                  max={365}
+                  placeholder="30"
+                  {...register('popAlertDaysBefore')}
+                />
+                <span className="usa-hint">Days before POP end to send expiry notification. Default is 30.</span>
+              </div>
             </>
           )}
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="userId">Linked system user ID</label>
+            <input
+              id="userId"
+              className="usa-input"
+              placeholder="(optional — enables targeted notifications)"
+              {...register('userId')}
+            />
+          </div>
         </div>
 
         <div style={{ marginTop: 16, display: 'flex', gap: 24 }}>

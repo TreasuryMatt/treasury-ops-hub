@@ -104,7 +104,7 @@ export function Resources() {
           <option value="">All Roles</option>
           {roles?.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
-        {(user?.role === 'editor' || user?.role === 'admin') && (
+        {(user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin') && (
           <button className="usa-button usa-button--primary" onClick={() => navigate('/staffing/resources/new')}>
             <Icon name="add" color="white" /> Add Resource
           </button>

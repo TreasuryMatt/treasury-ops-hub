@@ -7,6 +7,7 @@ import { requireAuth, requireEditor } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
+import { notifyAllUsersOfIssue, notifyProjectStatusChanged, notifyNewUpdate } from '../services/notificationService';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -32,6 +33,7 @@ const PROJECT_INCLUDE = {
   priority: { select: { id: true, name: true, sortOrder: true } },
   executionType: { select: { id: true, name: true } },
   customerCategory: { select: { id: true, name: true } },
+  phase: { select: { id: true, name: true } },
   products: { include: { product: { select: { id: true, name: true } } } },
   staffingProject: { select: { id: true, name: true } },
 };
@@ -90,7 +92,7 @@ statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, 
         priorityId: b.priorityId || null,
         executionTypeId: b.executionTypeId || null,
         customerCategoryId: b.customerCategoryId || null,
-        phase: b.phase || null,
+        phase: b.phaseId ? { connect: { id: b.phaseId } } : undefined,
         status: b.status || 'gray',
         plannedStartDate: b.plannedStartDate ? new Date(b.plannedStartDate) : null,
         plannedEndDate: b.plannedEndDate ? new Date(b.plannedEndDate) : null,
@@ -117,6 +119,12 @@ statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, 
 statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const b = req.body;
+
+    // Capture previous status for change detection
+    const previous = await prisma.statusProject.findUnique({
+      where: { id: req.params.id as string },
+      select: { status: true, name: true },
+    });
 
     // Handle product links: delete existing, re-create
     if (b.productIds) {
@@ -148,7 +156,9 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
         customerCategory: b.customerCategoryId !== undefined
           ? b.customerCategoryId ? { connect: { id: b.customerCategoryId } } : { disconnect: true }
           : undefined,
-        phase: b.phase ?? undefined,
+        phase: b.phaseId !== undefined
+          ? b.phaseId ? { connect: { id: b.phaseId } } : { disconnect: true }
+          : undefined,
         status: b.status ?? undefined,
         plannedStartDate: b.plannedStartDate !== undefined ? (b.plannedStartDate ? new Date(b.plannedStartDate) : null) : undefined,
         plannedEndDate: b.plannedEndDate !== undefined ? (b.plannedEndDate ? new Date(b.plannedEndDate) : null) : undefined,
@@ -164,6 +174,12 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
     });
 
     await logAction(req.user!.id, 'update', 'status_project', project.id, {}, req.ip);
+
+    // Fire notification if status changed
+    if (b.status && previous && b.status !== previous.status) {
+      notifyProjectStatusChanged(project.name, project.id, b.status).catch(console.error);
+    }
+
     res.json({ data: project });
   } catch (err: any) {
     next(new AppError(err.message, 400));
@@ -211,6 +227,11 @@ statusProjectsRouter.post('/:id/updates', requireEditor, async (req: Authenticat
     }
 
     await logAction(req.user!.id, 'create', 'status_update', update.id, { statusProjectId: req.params.id as string }, req.ip);
+
+    // Notify all users of new update (fire-and-forget)
+    const authorName = update.author.displayName;
+    notifyNewUpdate(project?.name ?? 'Unknown', req.params.id as string, authorName).catch(console.error);
+
     res.status(201).json({ data: update });
   } catch (err: any) {
     next(new AppError(err.message, 400));
@@ -330,8 +351,14 @@ statusProjectsRouter.post('/:id/issues', requireEditor, async (req: Authenticate
         category: b.category,
         text: b.text,
       },
-      include: { author: { select: { id: true, displayName: true } } },
+      include: {
+        author: { select: { id: true, displayName: true } },
+        statusProject: { select: { name: true } },
+      },
     });
+
+    notifyAllUsersOfIssue('issue_created', issue.statusProject.name, req.params.id as string, b.text).catch(console.error);
+
     res.status(201).json({ data: issue });
   } catch (err: any) {
     next(new AppError(err.message, 400));
@@ -379,8 +406,12 @@ statusProjectsRouter.put('/:id/issues/:issueId/resolve', requireEditor, async (r
       include: {
         author: { select: { id: true, displayName: true } },
         resolvedBy: { select: { id: true, displayName: true } },
+        statusProject: { select: { name: true } },
       },
     });
+
+    notifyAllUsersOfIssue('issue_resolved', issue.statusProject.name, req.params.id as string, issue.text).catch(console.error);
+
     res.json({ data: issue });
   } catch (err: any) {
     next(new AppError(err.message, 400));
@@ -400,8 +431,12 @@ statusProjectsRouter.put('/:id/issues/:issueId/reopen', requireEditor, async (re
       include: {
         author: { select: { id: true, displayName: true } },
         resolvedBy: { select: { id: true, displayName: true } },
+        statusProject: { select: { name: true } },
       },
     });
+
+    notifyAllUsersOfIssue('issue_reopened', issue.statusProject.name, req.params.id as string, issue.text).catch(console.error);
+
     res.json({ data: issue });
   } catch (err: any) {
     next(new AppError(err.message, 400));

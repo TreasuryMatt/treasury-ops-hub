@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../services/prisma';
-import { requireAuth, requireEditor } from '../middleware/auth';
+import { requireAuth, requireEditor, requireManager } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
@@ -19,10 +19,10 @@ const REQUEST_INCLUDE = {
 // GET /api/requests
 requestsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   const { status } = req.query as Record<string, string>;
-  const isEditorOrAdmin = req.user!.role === 'editor' || req.user!.role === 'admin';
+  const isManagerOrAdmin = req.user!.role === 'manager' || req.user!.role === 'admin';
 
   const where: any = {};
-  if (!isEditorOrAdmin) {
+  if (!isManagerOrAdmin) {
     where.requestorId = req.user!.id;
   }
   if (status && ['pending', 'approved', 'denied'].includes(status)) {
@@ -65,7 +65,7 @@ requestsRouter.post('/', async (req: AuthenticatedRequest, res: Response, next: 
 });
 
 // PUT /api/requests/:id/review
-requestsRouter.put('/:id/review', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+requestsRouter.put('/:id/review', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { status, reviewNote, resourceId } = req.body;
     if (!['approved', 'denied'].includes(status)) {
@@ -115,7 +115,7 @@ requestsRouter.put('/:id/review', requireEditor, async (req: AuthenticatedReques
 });
 
 // DELETE /api/requests/:id
-requestsRouter.delete('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+requestsRouter.delete('/:id', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     await prisma.resourceRequest.delete({ where: { id: req.params.id as string } });
     await logAction(req.user!.id, 'delete', 'resource_request', req.params.id as string, {}, req.ip);

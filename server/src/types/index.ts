@@ -1,6 +1,6 @@
 import { Request } from 'express';
 
-export type AppRoleType = 'viewer' | 'editor' | 'admin';
+export type AppRoleType = 'viewer' | 'editor' | 'manager' | 'admin';
 
 export interface AuthUser {
   id: string;

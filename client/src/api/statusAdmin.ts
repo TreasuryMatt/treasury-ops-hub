@@ -1,5 +1,5 @@
 import api from './client';
-import { Department, StatusPriority, ExecutionType, CustomerCategory, RagDefinition, StatusDashboardStats, StatusTrendPoint } from '../types';
+import { Department, StatusPriority, ExecutionType, CustomerCategory, RagDefinition, StatusDashboardStats, StatusTrendPoint, StatusPhase } from '../types';
 
 export const statusAdminApi = {
   dashboardStats: () =>
@@ -28,6 +28,9 @@ export const statusAdminApi = {
 
   ragDefinitions: () =>
     api.get('/status-admin/rag-definitions').then((r) => r.data.data as RagDefinition[]),
+
+  phases: () =>
+    api.get('/status-admin/phases').then((r) => r.data.data as StatusPhase[]),
 
   trends: () =>
     api.get('/status-admin/trends').then((r) => r.data.data as Record<string, StatusTrendPoint[]>),
