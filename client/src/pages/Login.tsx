@@ -43,7 +43,7 @@ export function Login() {
 
         <div className="login-card__header">
           <div className="login-card__agency">U.S. Department of the Treasury</div>
-          <div className="login-card__title">Capacity Management</div>
+          <div className="login-card__title">Operations Hub</div>
           <div className="login-card__subtitle">Secure PIV / CAIA authentication required</div>
         </div>
 
@@ -61,7 +61,9 @@ export function Login() {
                 required
                 autoComplete="username"
               />
-              <span className="usa-hint">Dev mode: mock CAIA login is enabled.</span>
+              <span className="usa-hint">
+                Dev mode — test accounts: <strong>ADMIN001</strong> (admin), <strong>MGR001</strong> (manager), <strong>EDIT001</strong> (editor), <strong>VIEW001</strong> (viewer)
+              </span>
             </div>
 
             {error && (

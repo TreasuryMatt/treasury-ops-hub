@@ -11,7 +11,7 @@ export function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canEdit = user?.role === 'editor' || user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
 
   const { data: program, isLoading } = useQuery<Program>({
     queryKey: ['program', id],
@@ -41,6 +41,9 @@ export function ProgramDetail() {
           <h1 className="usa-page-title">{program.name}</h1>
           {program.portfolio && (
             <p className="usa-page-subtitle">Portfolio: {program.portfolio.name}</p>
+          )}
+          {program.federalOwner && (
+            <p className="usa-page-subtitle">Federal Owner: {program.federalOwner}</p>
           )}
           {program.description && !program.portfolio && (
             <p className="usa-page-subtitle">{program.description}</p>
@@ -90,7 +93,7 @@ export function ProgramDetail() {
                 <tr key={sp.id} onClick={() => navigate(`/status/projects/${sp.id}`)} style={{ cursor: 'pointer' }}>
                   <td><RagBadge status={sp.status} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
-                  <td>{sp.phase || '—'}</td>
+                  <td>{sp.phase?.name || '—'}</td>
                   <td>
                     {sp.products?.length > 0 ? (
                       <div className="app-pills">

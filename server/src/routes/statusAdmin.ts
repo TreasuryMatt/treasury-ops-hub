@@ -107,6 +107,11 @@ statusAdminRouter.get('/rag-definitions', async (_req: AuthenticatedRequest, res
   res.json({ data });
 });
 
+statusAdminRouter.get('/phases', async (_req: AuthenticatedRequest, res: Response) => {
+  const data = await prisma.statusPhase.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
+  res.json({ data });
+});
+
 // GET /api/status-admin/roadmap — all active projects with phases for cross-project Gantt
 statusAdminRouter.get('/roadmap', async (_req: AuthenticatedRequest, res: Response) => {
   const projects = await prisma.statusProject.findMany({

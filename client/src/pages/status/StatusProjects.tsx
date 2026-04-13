@@ -14,7 +14,7 @@ export function StatusProjects() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const canEdit = user?.role === 'editor' || user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
 
   const [filters, setFilters] = useState({
     programId: searchParams.get('programId') || '',
@@ -140,7 +140,7 @@ export function StatusProjects() {
                   <td><RagSparkline points={trends[sp.id] || []} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.program?.name || '—'}</td>
-                  <td>{sp.phase || '—'}</td>
+                  <td>{sp.phase?.name || '—'}</td>
                   <td>
                     {sp.products && sp.products.length > 0 ? (
                       <div className="app-pills">

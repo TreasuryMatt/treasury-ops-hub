@@ -35,6 +35,7 @@ enum ProjectPriority {
 enum AppRole {
   viewer
   editor
+  manager
   admin
 }
 
@@ -66,7 +67,9 @@ model User {
   resolvedIssues      IssueEntry[]     @relation("IssueEntryResolver")
   accomplishments     Accomplishment[] @relation("AccomplishmentAuthor")
   uploadedDocuments   Document[]       @relation("DocumentUploader")
-  notifications       Notification[]   @relation("NotificationRecipient")
+  notifications            Notification[]            @relation("NotificationRecipient")
+  notificationPreferences  NotificationPreference[]  @relation("NotificationPreferenceUser")
+  resource                 Resource?                 @relation("ResourceUser")
 
   @@map("users")
 }
@@ -143,14 +146,19 @@ model Resource {
   isMatrixed Boolean? @map("is_matrixed")
 
   // Contractor-specific
-  popStartDate DateTime? @map("pop_start_date")
-  popEndDate   DateTime? @map("pop_end_date")
+  popStartDate       DateTime? @map("pop_start_date")
+  popEndDate         DateTime? @map("pop_end_date")
+  popAlertDaysBefore Int?      @map("pop_alert_days_before")
 
   // Roles
   primaryRoleId   String? @map("primary_role_id")
   primaryRole     Role?   @relation("PrimaryRole", fields: [primaryRoleId], references: [id])
   secondaryRoleId String? @map("secondary_role_id")
   secondaryRole   Role?   @relation("SecondaryRole", fields: [secondaryRoleId], references: [id])
+
+  // Linked system user (optional — enables targeted notifications)
+  userId           String?   @unique @map("user_id")
+  user             User?     @relation("ResourceUser", fields: [userId], references: [id])
 
   availableForWork Boolean @default(false) @map("available_for_work")
   notes            String?
@@ -285,6 +293,13 @@ enum NotificationType {
   update_due
   update_overdue
   new_update
+  issue_created
+  issue_resolved
+  issue_reopened
+  project_status_changed
+  assignment_added
+  assignment_removed
+  pop_expiring
 }
 
 // ─── Project Status Reference Data ──────────────────────────────────────────
@@ -340,6 +355,17 @@ model RagDefinition {
   @@map("rag_definitions")
 }
 
+model StatusPhase {
+  id        String  @id @default(uuid())
+  name      String  @unique
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  statusProjects StatusProject[]
+
+  @@map("status_phases")
+}
+
 // ─── Portfolio / Program / Project hierarchy ────────────────────────────────
 
 model Portfolio {
@@ -356,14 +382,16 @@ model Portfolio {
 }
 
 model Program {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  portfolioId String?  @map("portfolio_id")
-  portfolio   Portfolio? @relation(fields: [portfolioId], references: [id])
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String?
+  logoUrl      String?  @map("logo_url")
+  federalOwner String?  @map("federal_owner")
+  portfolioId  String?  @map("portfolio_id")
+  portfolio    Portfolio? @relation(fields: [portfolioId], references: [id])
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   statusProjects StatusProject[]
 
@@ -388,7 +416,8 @@ model StatusProject {
   executionType      ExecutionType?      @relation(fields: [executionTypeId], references: [id])
   customerCategoryId String?             @map("customer_category_id")
   customerCategory   CustomerCategory?   @relation(fields: [customerCategoryId], references: [id])
-  phase              String?
+  phaseId            String?             @map("phase_id")
+  phase              StatusPhase?        @relation(fields: [phaseId], references: [id])
   status             StatusProjectStatus @default(gray)
   plannedStartDate   DateTime?           @map("planned_start_date")
   plannedEndDate     DateTime?           @map("planned_end_date")
@@ -503,12 +532,28 @@ model Notification {
   userId          String              @map("user_id")
   user            User                @relation("NotificationRecipient", fields: [userId], references: [id])
   type            NotificationType
+  title           String
+  message         String
+  linkUrl         String?             @map("link_url")
   statusProjectId String?             @map("status_project_id")
   statusProject   StatusProject?      @relation(fields: [statusProjectId], references: [id])
-  message         String
+  // Tracks which resource triggered this (used for PoP dedup)
+  sourceResourceId String?            @map("source_resource_id")
   read            Boolean             @default(false)
   emailSent       Boolean             @default(false) @map("email_sent")
   createdAt       DateTime            @default(now()) @map("created_at")
 
   @@map("notifications")
+}
+
+model NotificationPreference {
+  id     String           @id @default(uuid())
+  userId String           @map("user_id")
+  user   User             @relation("NotificationPreferenceUser", fields: [userId], references: [id])
+  type   NotificationType
+  inApp  Boolean          @default(true) @map("in_app")
+  email  Boolean          @default(true)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }

@@ -98,6 +98,7 @@ export function Users() {
               <select className="usa-select" value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
+                <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -198,6 +199,7 @@ export function Users() {
                   >
                     <option value="viewer">Viewer</option>
                     <option value="editor">Editor</option>
+                    <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

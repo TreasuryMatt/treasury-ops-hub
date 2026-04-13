@@ -7,7 +7,7 @@ import { projectsApi } from '../../api/projects';
 import { programsApi } from '../../api/programs';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { adminApi } from '../../api/admin';
-import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product, Project } from '../../types';
+import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product, Project, StatusPhase } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
@@ -21,7 +21,7 @@ interface FormData {
   priorityId: string;
   executionTypeId: string;
   customerCategoryId: string;
-  phase: string;
+  phaseId: string;
   status: string;
   plannedStartDate: string;
   plannedEndDate: string;
@@ -60,6 +60,7 @@ export function StatusProjectForm() {
   const { data: priorities = [] } = useQuery<StatusPriority[]>({ queryKey: ['status-priorities'], queryFn: statusAdminApi.priorities });
   const { data: executionTypes = [] } = useQuery<ExecutionType[]>({ queryKey: ['execution-types'], queryFn: statusAdminApi.executionTypes });
   const { data: customerCategories = [] } = useQuery<CustomerCategory[]>({ queryKey: ['customer-categories'], queryFn: statusAdminApi.customerCategories });
+  const { data: phases = [] } = useQuery<StatusPhase[]>({ queryKey: ['status-phases'], queryFn: statusAdminApi.phases });
   const { data: products = [] } = useQuery<Product[]>({ queryKey: ['products'], queryFn: adminApi.products });
   const { data: staffingProjects = [] } = useQuery<Project[]>({
     queryKey: ['staffing-projects'],
@@ -79,7 +80,7 @@ export function StatusProjectForm() {
         priorityId: project.priorityId || '',
         executionTypeId: project.executionTypeId || '',
         customerCategoryId: project.customerCategoryId || '',
-        phase: project.phase || '',
+        phaseId: project.phaseId || '',
         status: project.status,
         plannedStartDate: project.plannedStartDate?.split('T')[0] || '',
         plannedEndDate: project.plannedEndDate?.split('T')[0] || '',
@@ -103,6 +104,7 @@ export function StatusProjectForm() {
         priorityId: data.priorityId || null,
         executionTypeId: data.executionTypeId || null,
         customerCategoryId: data.customerCategoryId || null,
+        phaseId: data.phaseId || null,
         plannedStartDate: data.plannedStartDate || null,
         plannedEndDate: data.plannedEndDate || null,
         actualStartDate: data.actualStartDate || null,
@@ -214,8 +216,11 @@ export function StatusProjectForm() {
           </div>
 
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="phase">Phase</label>
-            <input className="usa-input" id="phase" {...register('phase')} placeholder="e.g., Initiating, Planning, Executing" />
+            <label className="usa-label" htmlFor="phaseId">Phase</label>
+            <select className="usa-select" id="phaseId" {...register('phaseId')}>
+              <option value="">— None —</option>
+              {phases.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
           </div>
 
           <div className="usa-form-group">

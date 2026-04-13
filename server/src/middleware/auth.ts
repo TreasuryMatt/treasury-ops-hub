@@ -41,5 +41,9 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
 }
 
 export function requireEditor(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  requireRole('editor', 'admin')(req, res, next);
+  requireRole('editor', 'manager', 'admin')(req, res, next);
+}
+
+export function requireManager(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  requireRole('manager', 'admin')(req, res, next);
 }

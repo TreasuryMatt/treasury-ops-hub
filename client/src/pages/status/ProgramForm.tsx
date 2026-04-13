@@ -10,6 +10,8 @@ import { Icon } from '../../components/Icon';
 interface FormData {
   name: string;
   description: string;
+  federalOwner: string;
+  logoUrl: string;
   portfolioId: string;
 }
 
@@ -37,6 +39,8 @@ export function ProgramForm() {
       reset({
         name: program.name,
         description: program.description || '',
+        federalOwner: program.federalOwner || '',
+        logoUrl: program.logoUrl || '',
         portfolioId: program.portfolioId || '',
       });
     }
@@ -78,6 +82,17 @@ export function ProgramForm() {
         <div className="usa-form-group">
           <label className="usa-label" htmlFor="description">Description</label>
           <textarea className="usa-textarea" id="description" {...register('description')} rows={3} />
+        </div>
+
+        <div className="usa-form-group">
+          <label className="usa-label" htmlFor="federalOwner">Federal Owner</label>
+          <input className="usa-input" id="federalOwner" placeholder="e.g. Jane Smith" {...register('federalOwner')} />
+        </div>
+
+        <div className="usa-form-group">
+          <label className="usa-label" htmlFor="logoUrl">Logo URL (optional)</label>
+          <input className="usa-input" id="logoUrl" type="url" placeholder="https://..." {...register('logoUrl')} />
+          <span className="usa-hint">Displayed on the program card. Leave blank to use initials.</span>
         </div>
 
         <div className="usa-form-group">

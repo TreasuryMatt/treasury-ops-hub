@@ -225,6 +225,17 @@ export function ReferenceData() {
         usageFn={adminApi.productUsage}
         fields={[{ key: 'name', label: 'Name' }, { key: 'description', label: 'Description' }]}
       />
+
+      <ReferenceTable
+        title="Phases"
+        queryKey="phases"
+        fetchFn={adminApi.phases}
+        createFn={adminApi.createPhase}
+        updateFn={adminApi.updatePhase}
+        deleteFn={adminApi.deletePhase}
+        usageFn={adminApi.phaseUsage}
+        fields={[{ key: 'name', label: 'Name' }, { key: 'sortOrder', label: 'Sort Order' }]}
+      />
     </div>
   );
 }

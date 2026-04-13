@@ -79,7 +79,8 @@ adminRouter.get('/roles', async (_req: AuthenticatedRequest, res: Response) => {
 
 adminRouter.post('/roles', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const role = await prisma.role.create({ data: req.body });
+    const { name, sortOrder } = req.body;
+    const role = await prisma.role.create({ data: { name, sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : 0 } });
     res.status(201).json({ data: role });
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
@@ -103,7 +104,8 @@ adminRouter.get('/roles/:id/usage', requireAdmin, async (req: AuthenticatedReque
 
 adminRouter.put('/roles/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const role = await prisma.role.update({ where: { id: req.params.id as string }, data: req.body });
+    const { name, sortOrder } = req.body;
+    const role = await prisma.role.update({ where: { id: req.params.id as string }, data: { name, sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : undefined } });
     res.json({ data: role });
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
@@ -192,6 +194,46 @@ adminRouter.delete('/products/:id', requireAdmin, async (req: AuthenticatedReque
     await prisma.$transaction([
       prisma.project.updateMany({ where: { productId: id }, data: { productId: null } }),
       prisma.product.delete({ where: { id } }),
+    ]);
+    res.json({ message: 'Deleted' });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+// ─── Reference data: Phases ──────────────────────────────────────────────────
+adminRouter.get('/phases', async (_req: AuthenticatedRequest, res: Response) => {
+  const phases = await prisma.statusPhase.findMany({ orderBy: { sortOrder: 'asc' } });
+  res.json({ data: phases });
+});
+
+adminRouter.post('/phases', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, sortOrder } = req.body;
+    const phase = await prisma.statusPhase.create({ data: { name, sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : 0 } });
+    res.status(201).json({ data: phase });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.get('/phases/:id/usage', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const count = await prisma.statusProject.count({ where: { phaseId: req.params.id as string } });
+    res.json({ data: count > 0 ? [{ label: 'status projects', count }] : [] });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.put('/phases/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, sortOrder } = req.body;
+    const phase = await prisma.statusPhase.update({ where: { id: req.params.id as string }, data: { name, sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : undefined } });
+    res.json({ data: phase });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/phases/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.$transaction([
+      prisma.statusProject.updateMany({ where: { phaseId: id }, data: { phaseId: null } }),
+      prisma.statusPhase.delete({ where: { id } }),
     ]);
     res.json({ message: 'Deleted' });
   } catch (err: any) { next(new AppError(err.message, 400)); }

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, AppRole } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
@@ -123,18 +123,17 @@ async function main() {
   }
   console.log(`  ${productNames.length} products seeded`);
 
-  // ── Default admin user ──
-  await prisma.user.upsert({
-    where: { caiaId: 'ADMIN001' },
-    update: {},
-    create: {
-      caiaId: 'ADMIN001',
-      email: 'admin@treasury.gov',
-      displayName: 'System Admin',
-      role: 'admin',
-    },
-  });
-  console.log('  Default admin user seeded');
+  // ── Default test users (one per app role) ──
+  const testUsers = [
+    { caiaId: 'ADMIN001', email: 'admin@treasury.gov',   displayName: 'System Admin',    role: AppRole.admin   },
+    { caiaId: 'MGR001',   email: 'manager@treasury.gov', displayName: 'Test Manager',    role: AppRole.manager },
+    { caiaId: 'EDIT001',  email: 'editor@treasury.gov',  displayName: 'Test Editor',     role: AppRole.editor  },
+    { caiaId: 'VIEW001',  email: 'viewer@treasury.gov',  displayName: 'Test Viewer',     role: AppRole.viewer  },
+  ];
+  for (const u of testUsers) {
+    await prisma.user.upsert({ where: { caiaId: u.caiaId }, update: {}, create: u });
+  }
+  console.log('  Default test users seeded');
 
   // ── Project Status Reference Data ──
 

@@ -144,5 +144,137 @@
 
 - [ ] Export to Excel (mirror of import)
 - [ ] Capacity planning view — future availability by date range
-- [ ] Email notifications for POP expiration (contractor end dates)
 - [ ] Bulk assignment editor — assign multiple people to a project at once
+
+---
+
+## 🔔 Notification System Plan — 2026-04-10
+
+> Planned for implementation week of 2026-04-14.
+
+### Decision Summary
+
+| Dimension | Decision |
+|---|---|
+| Channels | In-app (bell + full page) + Email |
+| Email provider | Provider-agnostic service layer (swappable) |
+| Timing | Real-time |
+| Preferences | Simple on/off per event type (v1); per-channel × per-event matrix (v2) |
+| Priority levels | None — flat |
+| History retention | Indefinite |
+| PoP lead time | Configurable per contractor record |
+
+---
+
+### Trigger Events
+
+| Event | Who gets notified |
+|---|---|
+| Contractor PoP ending (configurable lead time per record) | Configurable; likely manager/supervisor |
+| Resource assigned to project | The resource themselves (email) |
+| Resource removed from project | The resource themselves (email) |
+| Issue created | Project stakeholders (per user prefs) |
+| Issue resolved / reopened | Project stakeholders (per user prefs) |
+| Project status change (e.g. moves to At Risk) | Project stakeholders (per user prefs) |
+| @mention or new comment | Mentioned user |
+
+---
+
+### Architecture Plan
+
+#### 1. Database — `Notification` table (Prisma)
+```
+Notification {
+  id         String   @id @default(uuid())
+  userId     String              // recipient
+  type       String              // event type enum
+  title      String
+  body       String?
+  linkUrl    String?             // deep link into app
+  readAt     DateTime?           // null = unread
+  createdAt  DateTime @default(now())
+  user       User     @relation(...)
+}
+```
+
+#### 2. Database — `NotificationPreference` table
+```
+NotificationPreference {
+  id       String  @id @default(uuid())
+  userId   String
+  type     String  // event type
+  inApp    Boolean @default(true)
+  email    Boolean @default(true)
+  user     User    @relation(...)
+  @@unique([userId, type])
+}
+```
+
+#### 3. Database — `ContractorPopAlert` field (extend Resource)
+Add `popAlertDaysBefore Int?` to the `Resource` model. Null = system default (e.g. 30 days). Populated via the resource edit form.
+
+#### 4. Server — Notification Service (`server/src/services/notificationService.ts`)
+- `createNotification(userId, type, title, body, linkUrl)` — writes DB row
+- `sendEmail(to, subject, html)` — thin wrapper; swap provider by changing one file
+- `notifyUser(userId, type, payload)` — checks prefs, calls createNotification + sendEmail as appropriate
+- Individual helper functions: `notifyAssigned`, `notifyRemoved`, `notifyIssueCreated`, etc.
+
+#### 5. Server — PoP cron job (`server/src/jobs/popAlertJob.ts`)
+- Run nightly via `node-cron` (already in Docker)
+- Query all contractor resources where `popEndDate` is within `popAlertDaysBefore` days
+- Deduplicate: don't re-fire if a notification of that type was already sent within the last 7 days
+- Call `notifyUser` for each match
+
+#### 6. API Routes
+- `GET /api/notifications` — paginated list for current user (unread first)
+- `PATCH /api/notifications/:id/read` — mark single read
+- `PATCH /api/notifications/read-all` — mark all read
+- `GET /api/notifications/preferences` — fetch user prefs
+- `PUT /api/notifications/preferences` — update user prefs (array of `{type, inApp, email}`)
+
+#### 7. UI — Bell Icon (Header)
+- Badge showing unread count (hidden when 0)
+- Dropdown panel: last 5–8 notifications, "Mark all read" button, "View all →" link
+- Poll every 30s or use a simple long-poll (WebSockets are v2)
+
+#### 8. UI — `/notifications` Full Page
+- Full history, indefinite
+- "Mark all read" button
+- Filter: All / Unread
+- Each row: icon, title, body preview, timestamp, deep link
+
+#### 9. UI — Notification Preferences (`/settings/notifications`)
+- Table of event types with In-App and Email toggles
+- Save via `PUT /api/notifications/preferences`
+
+#### 10. UI — Resource Edit Form
+- Add `Alert lead time (days)` field for contractor records
+- Only shown when Type = Contractor
+
+---
+
+### Build Order
+
+1. **Prisma schema** — add `Notification`, `NotificationPreference`, `popAlertDaysBefore`
+2. **Notification service** — `notifyUser`, `sendEmail` stub, helpers
+3. **API routes** — CRUD for notifications + preferences
+4. **Wire triggers** — call `notifyUser` in existing issue/project/assignment routes
+5. **PoP cron job**
+6. **UI — bell + dropdown**
+7. **UI — /notifications page**
+8. **UI — /settings/notifications preferences**
+9. **UI — resource form pop alert field**
+10. **Email provider** — plug in real provider (Resend recommended for DX) behind the service abstraction
+
+---
+
+### Sizing
+
+| Phase | Effort |
+|---|---|
+| Schema + service + API (steps 1–4) | ~4 hours |
+| PoP cron job (step 5) | ~1 hour |
+| Bell + full page UI (steps 6–7) | ~4 hours |
+| Preferences UI + resource form field (steps 8–9) | ~2 hours |
+| Email wiring (step 10) | ~1 hour |
+| **Total** | **~half-day to full day** |

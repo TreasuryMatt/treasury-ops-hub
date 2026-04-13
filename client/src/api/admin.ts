@@ -1,5 +1,5 @@
 import api from './client';
-import { DashboardStats, Role, FunctionalArea, Product } from '../types';
+import { DashboardStats, Role, FunctionalArea, Product, StatusPhase } from '../types';
 
 export const adminApi = {
   stats: () =>
@@ -37,6 +37,17 @@ export const adminApi = {
     api.delete(`/admin/products/${id}`).then((r) => r.data),
   productUsage: (id: string) =>
     api.get(`/admin/products/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
+
+  phases: () =>
+    api.get('/admin/phases').then((r) => r.data.data as StatusPhase[]),
+  createPhase: (data: Partial<StatusPhase>) =>
+    api.post('/admin/phases', data).then((r) => r.data.data as StatusPhase),
+  updatePhase: (id: string, data: Partial<StatusPhase>) =>
+    api.put(`/admin/phases/${id}`, data).then((r) => r.data.data as StatusPhase),
+  deletePhase: (id: string) =>
+    api.delete(`/admin/phases/${id}`).then((r) => r.data),
+  phaseUsage: (id: string) =>
+    api.get(`/admin/phases/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
 
   users: () =>
     api.get('/admin/users').then((r) => r.data.data),

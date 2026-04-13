@@ -25,6 +25,8 @@ import { ProgramForm } from './pages/status/ProgramForm';
 import { Roadmap } from './pages/status/Roadmap';
 import { Reports } from './pages/status/Reports';
 import { ExecutiveRollup } from './pages/status/ExecutiveRollup';
+import { Notifications } from './pages/Notifications';
+import { NotificationPreferences } from './pages/NotificationPreferences';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -62,6 +64,10 @@ export default function App() {
               {/* Executive */}
               <Route path="exec/rollup" element={<ExecutiveRollup />} />
               <Route path="status/rollup" element={<Navigate to="/exec/rollup" replace />} />
+
+              {/* Notifications */}
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="settings/notifications" element={<NotificationPreferences />} />
 
               {/* Editor + Admin */}
               <Route element={<EditorOnly />}>

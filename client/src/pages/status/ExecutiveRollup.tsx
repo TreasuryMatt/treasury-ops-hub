@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
@@ -202,6 +202,9 @@ function ProjectCard({ project }: { project: RollupProject }) {
         {project.owner && (
           <span className="rollup-project-card__owner">{project.owner.displayName}</span>
         )}
+        {project.updates.length === 0 && (
+          <span className="rollup-no-update-badge" title="No status update submitted in this time window">No update</span>
+        )}
         {project.products && project.products.length > 0 && (
           <span className="rollup-project-card__apps">
             {project.products.map((pp) => pp.product && (
@@ -331,13 +334,22 @@ export function ExecutiveRollup() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [collapsedPrograms, setCollapsedPrograms] = useState<Set<string>>(new Set());
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+
+  function applyCustomRange() {
+    const start = startRef.current?.value ?? '';
+    const end = endRef.current?.value ?? '';
+    setCustomStart(start);
+    setCustomEnd(end);
+  }
 
   const queryParams =
     windowOption === 'custom'
       ? { window: 'custom', programId: filterProgramId || undefined, startDate: customStart || undefined, endDate: customEnd || undefined }
       : { window: windowOption, programId: filterProgramId || undefined };
 
-  const { data, isLoading } = useQuery<RollupData>({
+  const { data, isLoading, isFetching } = useQuery<RollupData>({
     queryKey: ['rollup', queryParams],
     queryFn: () => statusAdminApi.rollup(queryParams),
     enabled: windowOption !== 'custom' || (!!customStart && !!customEnd),
@@ -386,11 +398,17 @@ export function ExecutiveRollup() {
     return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
   }
 
+
   return (
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Executive Rollup</h1>
+          <h1 className="usa-page-title">
+            Executive Rollup
+            {isFetching && !isLoading && (
+              <span className="usa-spinner" aria-label="Refreshing" style={{ marginLeft: 10, width: 16, height: 16, verticalAlign: 'middle' }} />
+            )}
+          </h1>
           {summary && (
             <p className="usa-page-subtitle">
               {formatDate(summary.windowStart)} – {formatDate(summary.windowEnd)}
@@ -414,19 +432,21 @@ export function ExecutiveRollup() {
         {windowOption === 'custom' && (
           <>
             <input
+              ref={startRef}
               type="date"
               className="usa-input"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
               style={{ width: 160 }}
             />
+            <span style={{ alignSelf: 'center', color: 'var(--usa-base-dark)', fontSize: 13 }}>to</span>
             <input
+              ref={endRef}
               type="date"
               className="usa-input"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
               style={{ width: 160 }}
             />
+            <button className="usa-button" style={{ background: 'var(--usa-success)', color: '#fff' }} onClick={applyCustomRange}>
+              Apply
+            </button>
           </>
         )}
 
@@ -497,6 +517,15 @@ export function ExecutiveRollup() {
             <div className="stat-card__value">{summary.openIssues}</div>
             <div className="stat-card__label">Open Issues</div>
           </div>
+          {(() => {
+            const delinquent = rawPrograms.flatMap((prog) => prog.projects).filter((p) => p.updates.length === 0).length;
+            return delinquent > 0 ? (
+              <div className="stat-card" style={{ borderTopColor: '#e66a00' }}>
+                <div className="stat-card__value" style={{ color: '#b84c00' }}>{delinquent}</div>
+                <div className="stat-card__label">No Update</div>
+              </div>
+            ) : null;
+          })()}
           {summary.resolvedCount > 0 && (
             <div className="stat-card" style={{ borderTopColor: 'var(--usa-success)' }}>
               <div className="stat-card__value" style={{ color: 'var(--usa-success-dark)' }}>{summary.resolvedCount}</div>
@@ -620,6 +649,7 @@ export function ExecutiveRollup() {
         const programAccomplishments = prog.projects.reduce((n, p) => n + p.accomplishments.length, 0);
         const programBlockers = prog.projects.reduce((n, p) => n + p.blockers.length, 0);
         const programRisks = prog.projects.reduce((n, p) => n + p.risks.length, 0);
+        const delinquentCount = prog.projects.filter((p) => p.updates.length === 0).length;
         const trends = prog.projects.map((p) => getTrend(p.status, p.previousStatus)).filter(Boolean) as TrendDirection[];
         const improving = trends.filter((t) => t === 'improving').length;
         const degrading = trends.filter((t) => t === 'degrading').length;
@@ -636,6 +666,9 @@ export function ExecutiveRollup() {
                 )}
                 {degrading > 0 && (
                   <span className="rollup-trend-count rollup-trend-count--degrading"> · ↓ {degrading}</span>
+                )}
+                {delinquentCount > 0 && (
+                  <span className="rollup-trend-count rollup-trend-count--delinquent"> · ⏱ {delinquentCount} no update{delinquentCount !== 1 ? 's' : ''}</span>
                 )}
                 {programAccomplishments > 0 && ` · ✓ ${programAccomplishments}`}
                 {programBlockers > 0 && ` · ⊘ ${programBlockers} blocker${programBlockers !== 1 ? 's' : ''}`}
