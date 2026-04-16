@@ -97,6 +97,7 @@ export function StatusProjects() {
           <option value="green">On Track</option>
           <option value="yellow">At Risk</option>
           <option value="red">Off Track</option>
+          <option value="initiated">Initiated</option>
           <option value="gray">Not Started</option>
           <option value="overdue">Overdue Updates</option>
         </select>

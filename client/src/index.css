@@ -283,6 +283,22 @@ button { font-family: inherit; cursor: pointer; }
   letter-spacing: .04em;
   text-transform: uppercase;
 }
+.exec-summary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--usa-success);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.exec-summary-btn:hover { background: #1b7a3e; color: #fff; text-decoration: none; }
+.exec-summary-btn.active { background: #154f29; }
 .usa-header__logout {
   background: transparent;
   border: 1px solid rgba(255,255,255,.35);

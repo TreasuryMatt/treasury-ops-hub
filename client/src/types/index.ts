@@ -1,4 +1,5 @@
 export type AppRole = 'viewer' | 'editor' | 'manager' | 'admin';
+export type UserType = 'staff' | 'customer';
 export type Division = 'operations' | 'engineering' | 'pmso';
 export type ResourceType = 'federal' | 'contractor';
 export type ProjectStatus = 'in_progress' | 'on_hold' | 'completed';
@@ -10,6 +11,9 @@ export interface AuthUser {
   email: string;
   displayName: string;
   role: AppRole;
+  userType: UserType;
+  isIntakeReviewer: boolean;
+  isResourceManager: boolean;
 }
 
 export interface Role {
@@ -149,7 +153,72 @@ export interface DashboardStats {
 // PROJECT STATUS TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type StatusProjectStatusType = 'green' | 'yellow' | 'red' | 'gray';
+export type StatusProjectStatusType = 'initiated' | 'green' | 'yellow' | 'red' | 'gray';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTAKE TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type IntakeStatus = 'draft' | 'submitted' | 'under_review' | 'backlog' | 'denied' | 'approved';
+export type IntakeDetermination = 'backlog' | 'denied' | 'approved';
+
+export interface IntakeSubmission {
+  id: string;
+  submitterId: string;
+  submitter?: { id: string; displayName: string; email: string };
+  title: string;
+  status: IntakeStatus;
+  currentVersionId: string | null;
+  currentVersion?: IntakeSubmissionVersion | null;
+  aiScore: number | null;
+  aiScoreDetails: any | null;
+  aiScoredAt: string | null;
+  determination: IntakeDetermination | null;
+  determinationNotes: string | null;
+  denialReason: string | null;
+  determinedById: string | null;
+  determinedBy?: { id: string; displayName: string } | null;
+  determinedAt: string | null;
+  linkedProjectId: string | null;
+  linkedProject?: { id: string; name: string; status: string } | null;
+  designReviewMd: string | null;
+  designReviewGeneratedAt: string | null;
+  versions?: IntakeSubmissionVersion[];
+  documents?: IntakeDocument[];
+  _count?: { versions: number; documents: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IntakeSubmissionVersion {
+  id: string;
+  submissionId: string;
+  versionNumber: number;
+  formData: Record<string, any>;
+  createdAt: string;
+  createdById: string;
+  createdBy?: { id: string; displayName: string };
+}
+
+export interface IntakeDocument {
+  id: string;
+  submissionId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+  uploadedById: string;
+  uploadedBy?: { id: string; displayName: string };
+  uploadedAt: string;
+}
+
+export interface IntakeDashboardStats {
+  total: number;
+  byStatus: Record<IntakeStatus, number>;
+  avgScore: number | null;
+  recentSubmissions: IntakeSubmission[];
+}
 export type UpdateCadence = 'weekly' | 'biweekly' | 'monthly';
 
 export interface StatusTrendPoint {

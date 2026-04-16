@@ -45,5 +45,25 @@ export function requireEditor(req: AuthenticatedRequest, res: Response, next: Ne
 }
 
 export function requireManager(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  requireRole('manager', 'admin')(req, res, next);
+  if (!req.user) {
+    next(new AppError('Unauthorized', 401));
+    return;
+  }
+  if (!req.user.isResourceManager && req.user.role !== 'manager' && req.user.role !== 'admin') {
+    next(new AppError('Forbidden — Resource Manager access required', 403));
+    return;
+  }
+  next();
+}
+
+export function requireIntakeReviewer(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    next(new AppError('Unauthorized', 401));
+    return;
+  }
+  if (!req.user.isIntakeReviewer && req.user.role !== 'admin') {
+    next(new AppError('Forbidden — Intake Reviewer access required', 403));
+    return;
+  }
+  next();
 }

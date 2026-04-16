@@ -39,23 +39,46 @@ enum AppRole {
   admin
 }
 
+enum UserType {
+  staff
+  customer
+}
+
 enum RequestStatus {
   pending
   approved
   denied
 }
 
+enum IntakeStatus {
+  draft
+  submitted
+  under_review
+  backlog
+  denied
+  approved
+}
+
+enum IntakeDetermination {
+  backlog
+  denied
+  approved
+}
+
 // ─── Users (app login) ──────────────────────────────────────────────────────
 
 model User {
-  id          String   @id @default(uuid())
-  caiaId      String   @unique @map("caia_id")
-  email       String   @unique
-  displayName String   @map("display_name")
-  role        AppRole  @default(viewer)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  caiaId           String   @unique @map("caia_id")
+  email            String   @unique
+  displayName      String   @map("display_name")
+  role             AppRole  @default(viewer)
+  userType         UserType @default(staff) @map("user_type")
+  isIntakeReviewer Boolean  @default(false) @map("is_intake_reviewer")
+  isResourceManager Boolean @default(false) @map("is_resource_manager")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   auditLogs        AuditLog[]
   submittedRequests ResourceRequest[] @relation("RequestSubmitter")
@@ -70,6 +93,12 @@ model User {
   notifications            Notification[]            @relation("NotificationRecipient")
   notificationPreferences  NotificationPreference[]  @relation("NotificationPreferenceUser")
   resource                 Resource?                 @relation("ResourceUser")
+
+  // Intake relations
+  intakeSubmissions         IntakeSubmission[]        @relation("IntakeSubmitter")
+  intakeDeterminations      IntakeSubmission[]        @relation("IntakeDeterminer")
+  intakeVersionsCreated     IntakeSubmissionVersion[] @relation("IntakeVersionCreator")
+  intakeDocumentsUploaded   IntakeDocument[]          @relation("IntakeDocUploader")
 
   @@map("users")
 }
@@ -271,6 +300,7 @@ model AuditLog {
 // ─── Project Status Enums ──────────────────────────────────────────────────
 
 enum StatusProjectStatus {
+  initiated
   green
   yellow
   red
@@ -437,6 +467,7 @@ model StatusProject {
   documents       Document[]
   products        StatusProjectProduct[]
   notifications   Notification[]
+  intakeSubmission IntakeSubmission?  @relation("IntakeLinkedProject")
 
   @@map("status_projects")
 }
@@ -556,4 +587,86 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@map("notification_preferences")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTAKE — Customer submission and review workflow
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model IntakeSubmission {
+  id              String       @id @default(uuid())
+  submitterId     String       @map("submitter_id")
+  submitter       User         @relation("IntakeSubmitter", fields: [submitterId], references: [id])
+
+  title           String
+  status          IntakeStatus @default(draft)
+
+  currentVersionId String?    @unique @map("current_version_id")
+  currentVersion  IntakeSubmissionVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+
+  // AI scoring (reviewer-only visibility)
+  aiScore         Float?       @map("ai_score")
+  aiScoreDetails  Json?        @map("ai_score_details")
+  aiScoredAt      DateTime?    @map("ai_scored_at")
+
+  // Leadership determination
+  determination       IntakeDetermination? @map("determination")
+  determinationNotes  String?              @map("determination_notes")
+  denialReason        String?              @map("denial_reason")
+  determinedById      String?              @map("determined_by_id")
+  determinedBy        User?                @relation("IntakeDeterminer", fields: [determinedById], references: [id])
+  determinedAt        DateTime?            @map("determined_at")
+
+  // Auto-created project link
+  linkedProjectId String?        @unique @map("linked_project_id")
+  linkedProject   StatusProject? @relation("IntakeLinkedProject", fields: [linkedProjectId], references: [id])
+
+  // Design review doc
+  designReviewMd          String?   @map("design_review_md")
+  designReviewGeneratedAt DateTime? @map("design_review_generated_at")
+
+  // Relations
+  versions    IntakeSubmissionVersion[] @relation("AllVersions")
+  documents   IntakeDocument[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("intake_submissions")
+}
+
+model IntakeSubmissionVersion {
+  id              String           @id @default(uuid())
+  submissionId    String           @map("submission_id")
+  submission      IntakeSubmission @relation("AllVersions", fields: [submissionId], references: [id], onDelete: Cascade)
+
+  versionNumber   Int              @map("version_number")
+  formData        Json             @map("form_data")
+
+  createdAt       DateTime         @default(now()) @map("created_at")
+  createdById     String           @map("created_by_id")
+  createdBy       User             @relation("IntakeVersionCreator", fields: [createdById], references: [id])
+
+  currentForSubmission IntakeSubmission? @relation("CurrentVersion")
+
+  @@unique([submissionId, versionNumber])
+  @@map("intake_submission_versions")
+}
+
+model IntakeDocument {
+  id            String           @id @default(uuid())
+  submissionId  String           @map("submission_id")
+  submission    IntakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  filename      String
+  originalName  String           @map("original_name")
+  mimeType      String           @map("mime_type")
+  sizeBytes     Int              @map("size_bytes")
+  storagePath   String           @map("storage_path")
+
+  uploadedById  String           @map("uploaded_by_id")
+  uploadedBy    User             @relation("IntakeDocUploader", fields: [uploadedById], references: [id])
+  uploadedAt    DateTime         @default(now()) @map("uploaded_at")
+
+  @@map("intake_documents")
 }

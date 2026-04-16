@@ -158,6 +158,7 @@ export function StatusProjectForm() {
           <div className="usa-form-group">
             <label className="usa-label" htmlFor="status">Status</label>
             <select className="usa-select" id="status" {...register('status')}>
+              <option value="initiated">Initiated</option>
               <option value="gray">Not Started</option>
               <option value="green">Green — On Track</option>
               <option value="yellow">Yellow — At Risk</option>

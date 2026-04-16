@@ -28,12 +28,14 @@ function initials(name: string): string {
 }
 
 const STATUS_COLORS: Record<string, string> = {
+  initiated: 'var(--usa-info)',
   green:  'var(--usa-success)',
   yellow: 'var(--usa-warning-dark)',
   red:    'var(--usa-error)',
   gray:   'var(--usa-base)',
 };
 const STATUS_LABELS: Record<string, string> = {
+  initiated: 'Initiated',
   green:  'On Track',
   yellow: 'At Risk',
   red:    'Off Track',
@@ -41,7 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function ProjectStatusBar({ projects }: { projects: { status: string }[] }) {
-  const counts: Record<string, number> = { green: 0, yellow: 0, red: 0, gray: 0 };
+  const counts: Record<string, number> = { initiated: 0, green: 0, yellow: 0, red: 0, gray: 0 };
   for (const p of projects) counts[p.status] = (counts[p.status] ?? 0) + 1;
 
   const total = projects.length;
@@ -52,7 +54,7 @@ function ProjectStatusBar({ projects }: { projects: { status: string }[] }) {
       {hasAny ? (
         <>
           <div className="prog-card__status-bar">
-            {(['red', 'yellow', 'green', 'gray'] as const).map((s) =>
+            {(['red', 'yellow', 'green', 'initiated', 'gray'] as const).map((s) =>
               counts[s] > 0 ? (
                 <div
                   key={s}
@@ -67,7 +69,7 @@ function ProjectStatusBar({ projects }: { projects: { status: string }[] }) {
             )}
           </div>
           <div className="prog-card__status-legend">
-            {(['red', 'yellow', 'green', 'gray'] as const).map((s) =>
+            {(['red', 'yellow', 'green', 'initiated', 'gray'] as const).map((s) =>
               counts[s] > 0 ? (
                 <span key={s} className="prog-card__status-chip" style={{ color: STATUS_COLORS[s] }}>
                   <span className="prog-card__status-dot" style={{ background: STATUS_COLORS[s] }} />

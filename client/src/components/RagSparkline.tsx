@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StatusTrendPoint, StatusProjectStatusType } from '../types';
 
 const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
+  initiated: 'var(--usa-info)',
   green: 'var(--usa-success)',
   yellow: 'var(--usa-warning)',
   red: 'var(--usa-error)',
@@ -9,6 +10,7 @@ const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
 };
 
 const STATUS_LABELS: Record<StatusProjectStatusType, string> = {
+  initiated: 'Initiated',
   green: 'On Track',
   yellow: 'At Risk',
   red: 'Off Track',

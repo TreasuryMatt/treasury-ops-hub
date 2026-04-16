@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../services/prisma';
-import { requireAuth, requireEditor } from '../middleware/auth';
+import { requireAuth, requireAdmin, requireEditor } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
@@ -183,7 +183,7 @@ resourcesRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res
 });
 
 // DELETE /api/resources/:id (soft delete)
-resourcesRouter.delete('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+resourcesRouter.delete('/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     await prisma.resource.update({ where: { id: req.params.id as string }, data: { isActive: false } });
     await logAction(req.user!.id, 'delete', 'resource', req.params.id as string, {}, req.ip);

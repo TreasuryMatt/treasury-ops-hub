@@ -18,6 +18,8 @@ import { programsRouter } from './routes/programs';
 import { portfoliosRouter } from './routes/portfolios';
 import { statusAdminRouter } from './routes/statusAdmin';
 import { notificationsRouter } from './routes/notifications';
+import { intakeRouter } from './routes/intake';
+import { intakeAiRouter } from './routes/intakeAi';
 import { startPopAlertJob } from './jobs/popAlertJob';
 import { startUpdateDueJob } from './jobs/updateDueJob';
 import { errorHandler } from './middleware/errorHandler';
@@ -53,6 +55,8 @@ app.use('/api/programs', programsRouter);
 app.use('/api/portfolios', portfoliosRouter);
 app.use('/api/status-admin', statusAdminRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/intake', intakeRouter);
+app.use('/api/intake/ai', intakeAiRouter);
 
 // ─── Error handler (must be last) ─────────────────────────────────────────────
 app.use(errorHandler);

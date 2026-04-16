@@ -206,7 +206,7 @@ export function ResourceRequests() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
+  const isManagerOrAdmin = user?.isResourceManager || user?.role === 'manager' || user?.role === 'admin';
 
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [reviewTarget, setReviewTarget] = useState<{ request: ResourceRequest; action: 'approved' | 'denied' } | null>(null);

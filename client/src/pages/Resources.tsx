@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resourcesApi } from '../api/resources';
 import { adminApi } from '../api/admin';
@@ -14,6 +14,18 @@ export function Resources() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const canDelete = user?.role === 'admin';
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const deleteResource = useMutation({
+    mutationFn: (id: string) => resourcesApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['resources'] });
+      setConfirmDelete(null);
+    },
+  });
+
   const [search, setSearch] = useState('');
   const [division, setDivision] = useState('');
   const [resourceType, setResourceType] = useState('');
@@ -142,6 +154,7 @@ export function Resources() {
                 <th style={thStyle} onClick={() => handleSort('availableCapacity')}>
                   Available <SortIcon field="availableCapacity" active={sortBy === 'availableCapacity'} dir={sortDir} />
                 </th>
+                {canDelete && <th style={{ ...thStyle, width: 48 }} />}
               </tr>
             </thead>
             <tbody>
@@ -167,10 +180,21 @@ export function Resources() {
                       {Math.round(r.availableCapacity * 100)}%
                     </span>
                   </td>
+                  {canDelete && (
+                    <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                      <button
+                        className="usa-button usa-button--unstyled"
+                        title="Deactivate resource"
+                        onClick={() => setConfirmDelete({ id: r.id, name: `${r.lastName}, ${r.firstName}` })}
+                      >
+                        <Icon name="delete" size={16} color="var(--usa-error)" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
               {data?.data.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32 }}>No resources found.</td></tr>
+                <tr><td colSpan={canDelete ? 9 : 8} style={{ textAlign: 'center', padding: 32 }}>No resources found.</td></tr>
               )}
             </tbody>
           </table>
@@ -183,6 +207,27 @@ export function Resources() {
             </div>
           )}
         </>
+      )}
+
+      {confirmDelete && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 className="modal-title">Deactivate Resource</h2>
+            <p>Are you sure you want to deactivate <strong>{confirmDelete.name}</strong>? They will be hidden from the roster but their data will be preserved.</p>
+            <div className="modal-actions">
+              <button
+                className="usa-button usa-button--secondary"
+                onClick={() => deleteResource.mutate(confirmDelete.id)}
+                disabled={deleteResource.isPending}
+              >
+                {deleteResource.isPending ? 'Deactivating…' : 'Yes, Deactivate'}
+              </button>
+              <button className="usa-button usa-button--outline" onClick={() => setConfirmDelete(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

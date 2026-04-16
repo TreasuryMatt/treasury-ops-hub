@@ -1,4 +1,5 @@
-import { PrismaClient, AppRole } from '@prisma/client';
+import 'dotenv/config';
+import { PrismaClient, AppRole, UserType } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
@@ -125,15 +126,43 @@ async function main() {
 
   // ── Default test users (one per app role) ──
   const testUsers = [
-    { caiaId: 'ADMIN001', email: 'admin@treasury.gov',   displayName: 'System Admin',    role: AppRole.admin   },
-    { caiaId: 'MGR001',   email: 'manager@treasury.gov', displayName: 'Test Manager',    role: AppRole.manager },
-    { caiaId: 'EDIT001',  email: 'editor@treasury.gov',  displayName: 'Test Editor',     role: AppRole.editor  },
-    { caiaId: 'VIEW001',  email: 'viewer@treasury.gov',  displayName: 'Test Viewer',     role: AppRole.viewer  },
+    { caiaId: 'ADMIN001', email: 'admin@treasury.gov',   displayName: 'System Admin',      role: AppRole.admin,  userType: UserType.staff,    isIntakeReviewer: true,  isResourceManager: true },
+    { caiaId: 'EDIT001',  email: 'editor@treasury.gov',  displayName: 'Test Editor',       role: AppRole.editor, userType: UserType.staff,    isIntakeReviewer: false, isResourceManager: false },
+    { caiaId: 'VIEW001',  email: 'viewer@treasury.gov',  displayName: 'Test Viewer',       role: AppRole.viewer, userType: UserType.staff,    isIntakeReviewer: false, isResourceManager: false },
+    { caiaId: 'REVIEW01', email: 'reviewer@treasury.gov', displayName: 'Intake Reviewer',  role: AppRole.editor, userType: UserType.staff,    isIntakeReviewer: true,  isResourceManager: false },
+    { caiaId: 'RMGR001',  email: 'resourcemgr@treasury.gov', displayName: 'Resource Manager', role: AppRole.viewer, userType: UserType.staff, isIntakeReviewer: false, isResourceManager: true },
+    { caiaId: 'CUST001',  email: 'customer1@treasury.gov', displayName: 'Alice Customer',  role: AppRole.viewer, userType: UserType.customer, isIntakeReviewer: false, isResourceManager: false },
+    { caiaId: 'CUST002',  email: 'customer2@treasury.gov', displayName: 'Bob Customer',    role: AppRole.viewer, userType: UserType.customer, isIntakeReviewer: false, isResourceManager: false },
   ];
+  await prisma.user.upsert({
+    where: { caiaId: 'MGR001' },
+    update: {
+      displayName: 'Legacy Manager (Inactive)',
+      role: AppRole.viewer,
+      userType: UserType.staff,
+      isIntakeReviewer: false,
+      isResourceManager: false,
+      isActive: false,
+    },
+    create: {
+      caiaId: 'MGR001',
+      email: 'manager@treasury.gov',
+      displayName: 'Legacy Manager (Inactive)',
+      role: AppRole.viewer,
+      userType: UserType.staff,
+      isIntakeReviewer: false,
+      isResourceManager: false,
+      isActive: false,
+    },
+  });
   for (const u of testUsers) {
-    await prisma.user.upsert({ where: { caiaId: u.caiaId }, update: {}, create: u });
+    await prisma.user.upsert({
+      where: { caiaId: u.caiaId },
+      update: u,
+      create: u,
+    });
   }
-  console.log('  Default test users seeded');
+  console.log('  Default test users seeded (including intake reviewer, resource manager, and customers)');
 
   // ── Project Status Reference Data ──
 

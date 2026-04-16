@@ -19,7 +19,7 @@ const REQUEST_INCLUDE = {
 // GET /api/requests
 requestsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   const { status } = req.query as Record<string, string>;
-  const isManagerOrAdmin = req.user!.role === 'manager' || req.user!.role === 'admin';
+  const isManagerOrAdmin = req.user!.isResourceManager || req.user!.role === 'manager' || req.user!.role === 'admin';
 
   const where: any = {};
   if (!isManagerOrAdmin) {

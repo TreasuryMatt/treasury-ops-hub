@@ -18,7 +18,7 @@ interface ReportProject extends Omit<StatusProject, 'program' | 'owner' | 'prior
 }
 
 const STATUS_ORDER: Record<StatusProjectStatusType, number> = {
-  red: 0, yellow: 1, green: 2, gray: 3,
+  red: 0, yellow: 1, green: 2, initiated: 3, gray: 4,
 };
 
 export function Reports() {
@@ -176,6 +176,7 @@ export function Reports() {
           <option value="green">On Track</option>
           <option value="yellow">At Risk</option>
           <option value="red">Off Track</option>
+          <option value="initiated">Initiated</option>
           <option value="gray">Not Started</option>
         </select>
         <select

@@ -187,6 +187,65 @@
   color: var(--usa-success-dark);
 }
 
+/* ── Intake Status Pills ────────────────────────────────────────────────── */
+.intake-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.intake-status-pill--draft {
+  background: #eef1f5;
+  color: var(--usa-base-darkest);
+  border-color: #d3dbe6;
+}
+
+.intake-status-pill--submitted {
+  background: #d9ecff;
+  color: var(--usa-primary-dark);
+  border-color: #9cc7f3;
+}
+
+.intake-status-pill--under_review {
+  background: #e8f2ff;
+  color: #1f4f8c;
+  border-color: #aac9f2;
+}
+
+.intake-status-pill--backlog {
+  background: #f5ead9;
+  color: #6b4e16;
+  border-color: #e7c98f;
+}
+
+.intake-status-pill--denied {
+  background: #fae0e0;
+  color: #b50909;
+  border-color: #f1b3b3;
+}
+
+.intake-status-pill--approved {
+  background: #14b82a;
+  color: #fff;
+  border-color: #119722;
+}
+
+.intake-status-pill--pending {
+  background: #edf1f7;
+  color: var(--usa-base-dark);
+  border-color: #d4dce8;
+}
+
 /* ── Detail Layout ──────────────────────────────────────────────────────── */
 .detail-grid {
   display: grid;
@@ -305,6 +364,24 @@
   font-size: 14px;
   flex: 1;
 }
+
+.rollup-program__rag-pills {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.rollup-program__rag-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+.rollup-program__rag-pill--green  { background: rgba(0, 114, 64, 0.25);  color: #e0f5eb; }
+.rollup-program__rag-pill--yellow { background: rgba(255, 190, 46, 0.3); color: #fff3cc; }
+.rollup-program__rag-pill--red    { background: rgba(205, 43, 30, 0.3);  color: #ffe0de; }
 
 .rollup-program__meta {
   font-size: 12px;
@@ -529,4 +606,137 @@
 }
 .rollup-entry__project-link:hover {
   text-decoration: underline;
+}
+
+/* Needs Attention section */
+.rollup-attention {
+  background: var(--usa-white);
+  border: 1.5px solid rgba(205, 43, 30, 0.35);
+  border-radius: 8px;
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+
+.rollup-attention__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(205, 43, 30, 0.06);
+  border-bottom: 1px solid var(--usa-base-lighter);
+}
+
+.rollup-attention__title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--usa-error);
+  flex: 1;
+}
+
+.rollup-attention__count {
+  font-size: 12px;
+  color: var(--usa-base-dark);
+}
+
+.rollup-attention__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--usa-base-lightest);
+}
+
+.rollup-attention__row:last-child {
+  border-bottom: none;
+}
+
+.rollup-attention__project {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--usa-primary);
+  text-decoration: none;
+  min-width: 160px;
+}
+
+.rollup-attention__project:hover {
+  text-decoration: underline;
+}
+
+.rollup-attention__program {
+  font-size: 12px;
+  color: var(--usa-base-dark);
+  flex: 1;
+}
+
+.rollup-attention__flags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.rollup-attention__flag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* Staffing section inside ProjectCard */
+.rollup-staffing__summary {
+  font-size: 13px;
+  color: var(--usa-base-dark);
+  padding: 4px 0 6px;
+}
+
+.rollup-staffing__group {
+  margin-top: 6px;
+}
+
+.rollup-staffing__group-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--usa-base);
+  margin-bottom: 4px;
+}
+
+.rollup-staffing__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--usa-base-lightest);
+}
+.rollup-staffing__row:last-child {
+  border-bottom: none;
+}
+
+.rollup-staffing__name {
+  flex: 1;
+  color: var(--usa-ink);
+}
+
+.rollup-staffing__badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.rollup-staffing__badge--danger {
+  background: var(--usa-error-lighter);
+  color: var(--usa-error-darker);
+}
+
+.rollup-staffing__badge--warning {
+  background: var(--usa-warning-lighter);
+  color: var(--usa-warning-darker);
 }

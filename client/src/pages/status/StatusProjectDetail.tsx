@@ -67,7 +67,7 @@ export function StatusProjectDetail() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'updates', label: 'Updates' },
-    { key: 'accomplishments', label: 'Accomplishments' },
+    { key: 'accomplishments', label: 'Successes' },
     { key: 'roadmap', label: 'Roadmap' },
     { key: 'issues', label: 'Issues' },
     { key: 'documents', label: 'Documents' },
@@ -485,12 +485,12 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
     <div>
       {canEdit && (
         <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-          <h3>Log Accomplishment</h3>
+          <h3>Log Success</h3>
           <form onSubmit={handleSubmit((data) => addAccomplishment.mutate(data))}>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
                 <label className="usa-label">Description *</label>
-                <input className="usa-input" placeholder="Describe the accomplishment..." {...register('text', { required: true })} />
+                <input className="usa-input" placeholder="Describe the success..." {...register('text', { required: true })} />
               </div>
               <button type="submit" className="usa-button usa-button--success" disabled={addAccomplishment.isPending}>Add</button>
             </div>
@@ -501,7 +501,7 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
       {accomplishments.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state__icon"><Icon name="emoji_events" size={48} /></div>
-          <h3>No accomplishments logged</h3>
+          <h3>No successes logged</h3>
           <p>Log key wins and milestones as this project progresses.</p>
         </div>
       ) : (
@@ -544,10 +544,10 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
                   </div>
                   {canEdit && (
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(a)} aria-label="Edit accomplishment">
+                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(a)} aria-label="Edit success">
                         <Icon name="edit" size={15} />
                       </button>
-                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteAccomplishment.mutate(a.id)} aria-label="Delete accomplishment">
+                      <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteAccomplishment.mutate(a.id)} aria-label="Delete success">
                         <Icon name="delete" size={15} />
                       </button>
                     </div>

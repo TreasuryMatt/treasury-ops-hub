@@ -8,6 +8,7 @@ import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 
 const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
+  initiated: 'var(--usa-info)',
   green: 'var(--usa-success)',
   yellow: 'var(--usa-warning)',
   red: 'var(--usa-error)',
