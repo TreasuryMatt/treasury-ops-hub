@@ -15,6 +15,7 @@ export function ResourceDetail() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const canManageAssignments = !!user && (user.isResourceManager || user.role === 'manager' || user.role === 'admin');
   const canDelete = user?.role === 'admin';
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -147,7 +148,7 @@ export function ResourceDetail() {
       <div style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ fontSize: 18 }}>Assignments ({resource.assignments.length})</h2>
-          {canEdit && (
+          {canManageAssignments && (
             <button className="usa-button usa-button--outline" onClick={() => setShowAdd(!showAdd)}>
               <Icon name="add" size={16} /> Add Assignment
             </button>
@@ -200,7 +201,7 @@ export function ResourceDetail() {
               <th>% Utilized</th>
               <th>Start</th>
               <th>End</th>
-              {canEdit && <th>Actions</th>}
+              {canManageAssignments && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -267,7 +268,7 @@ export function ResourceDetail() {
                   <td>{Math.round(a.percentUtilized * 100)}%</td>
                   <td>{a.startDate ? new Date(a.startDate).toLocaleDateString() : '-'}</td>
                   <td>{a.endDate ? new Date(a.endDate).toLocaleDateString() : '-'}</td>
-                  {canEdit && (
+                  {canManageAssignments && (
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button
                         className="usa-button usa-button--unstyled"
@@ -291,7 +292,7 @@ export function ResourceDetail() {
               )
             ))}
             {resource.assignments.length === 0 && (
-              <tr><td colSpan={canEdit ? 7 : 6} style={{ textAlign: 'center', padding: 24 }}>No assignments yet.</td></tr>
+              <tr><td colSpan={canManageAssignments ? 7 : 6} style={{ textAlign: 'center', padding: 24 }}>No assignments yet.</td></tr>
             )}
           </tbody>
         </table>

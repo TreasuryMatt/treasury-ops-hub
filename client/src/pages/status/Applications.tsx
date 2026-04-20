@@ -16,14 +16,11 @@ export function Applications() {
     queryFn: () => applicationsApi.list(),
   });
 
-  const grouped = applications.reduce<Record<string, Application[]>>((acc, application) => {
-    const key = application.program?.name || 'No Program';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(application);
-    return acc;
-  }, {});
-
-  const groups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+  const sortedApplications = [...applications].sort((a, b) => {
+    const programCompare = (a.program?.name || 'No Program').localeCompare(b.program?.name || 'No Program');
+    if (programCompare !== 0) return programCompare;
+    return a.name.localeCompare(b.name);
+  });
 
   if (isLoading) {
     return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
@@ -50,44 +47,39 @@ export function Applications() {
           <p>Create an application and assign it to a program to start organizing projects.</p>
         </div>
       ) : (
-        groups.map(([programName, programApplications]) => (
-          <div key={programName} style={{ marginBottom: 'var(--space-4)' }}>
-            <div className="section-header">
-              <h2 className="section-title">{programName}</h2>
-            </div>
-            <div className="table-wrap">
-              <table className="usa-table">
-                <thead>
-                  <tr>
-                    <th>Application</th>
-                    <th>Description</th>
-                    <th>Projects</th>
-                    {canEdit && <th>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {programApplications.map((application) => (
-                    <tr key={application.id}>
-                      <td style={{ fontWeight: 600 }}>{application.name}</td>
-                    <td>{application.description || '—'}</td>
-                    <td>{application._count?.statusProjects ?? 0}</td>
-                    {canEdit && (
-                      <td>
-                        <button
-                          className="usa-button usa-button--unstyled"
-                          onClick={() => navigate(`/status/applications/${application.id}/edit`)}
-                        >
-                          Edit
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))
+        <div className="table-wrap">
+          <table className="usa-table">
+            <thead>
+              <tr>
+                <th>Application</th>
+                <th>Program</th>
+                <th>Description</th>
+                <th>Projects</th>
+                {canEdit && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedApplications.map((application) => (
+                <tr key={application.id}>
+                  <td style={{ fontWeight: 600 }}>{application.name}</td>
+                  <td>{application.program?.name || 'No Program'}</td>
+                  <td>{application.description || '—'}</td>
+                  <td>{application._count?.statusProjects ?? 0}</td>
+                  {canEdit && (
+                    <td>
+                      <button
+                        className="usa-button usa-button--unstyled"
+                        onClick={() => navigate(`/status/applications/${application.id}/edit`)}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../services/prisma';
-import { requireAuth, requireEditor } from '../middleware/auth';
+import { requireAuth, requireEditor, requireManager } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
@@ -618,7 +618,7 @@ statusProjectsRouter.get('/:id/staffing', async (req: AuthenticatedRequest, res:
 
 // POST /api/status-projects/:id/staffing/ensure-project
 // Finds or creates a linked staffing Project so assignments can be added
-statusProjectsRouter.post('/:id/staffing/ensure-project', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+statusProjectsRouter.post('/:id/staffing/ensure-project', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const sp = await prisma.statusProject.findUnique({
       where: { id: req.params.id as string },

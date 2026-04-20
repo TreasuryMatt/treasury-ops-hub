@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../services/prisma';
-import { requireAuth, requireEditor } from '../middleware/auth';
+import { requireAuth, requireManager } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
@@ -10,7 +10,7 @@ export const assignmentsRouter = Router();
 assignmentsRouter.use(requireAuth);
 
 // POST /api/assignments
-assignmentsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+assignmentsRouter.post('/', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const assignment = await prisma.assignment.create({
       data: req.body,
@@ -40,7 +40,7 @@ assignmentsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res
 });
 
 // PUT /api/assignments/:id
-assignmentsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+assignmentsRouter.put('/:id', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const assignment = await prisma.assignment.update({
       where: { id: req.params.id as string },
@@ -55,7 +55,7 @@ assignmentsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, r
 });
 
 // DELETE /api/assignments/:id (soft delete)
-assignmentsRouter.delete('/:id', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+assignmentsRouter.delete('/:id', requireManager, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const existing = await prisma.assignment.findUnique({
       where: { id: req.params.id as string },

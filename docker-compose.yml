@@ -4,15 +4,15 @@ services:
     image: postgres:16-alpine
     container_name: ops_hub_postgres
     environment:
-      POSTGRES_USER: staffing_user
-      POSTGRES_PASSWORD: staffing_password
-      POSTGRES_DB: staffing_db
+      POSTGRES_USER: opshub_user
+      POSTGRES_PASSWORD: opshub_password
+      POSTGRES_DB: opshub
     ports:
       - '5433:5432'
     volumes:
       - ops_hub_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U staffing_user -d staffing_db']
+      test: ['CMD-SHELL', 'pg_isready -U opshub_user -d opshub']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,7 +25,7 @@ services:
     ports:
       - '3021:3021'
     environment:
-      DATABASE_URL: postgresql://staffing_user:staffing_password@postgres:5432/staffing_db
+      DATABASE_URL: postgresql://opshub_user:opshub_password@postgres:5432/opshub
       PORT: 3021
       NODE_ENV: development
       MOCK_CAIA: 'true'

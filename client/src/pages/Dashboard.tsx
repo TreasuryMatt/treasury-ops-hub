@@ -2,24 +2,19 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../api/admin';
+import { projectsApi } from '../api/projects';
+import { resourcesApi } from '../api/resources';
+import { Project, Resource } from '../types';
 import { formatDivision } from '../utils/format';
 
-function StatCard({ label, value, detail, color, onClick }: { label: string; value: string | number; detail?: string; color?: string; onClick?: () => void }) {
-  const card = (
-    <div className="stat-card" style={{ borderTopColor: color || 'var(--usa-primary)' }}>
-      <div className="stat-card__value">{value}</div>
-      <div className="stat-card__label">{label}</div>
-      {detail && <div className="stat-card__detail">{detail}</div>}
-    </div>
+function QuickStat({ label, value, detail, tone = 'neutral', onClick }: { label: string; value: string | number; detail?: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
+  return (
+    <button className={`dashboard-quick-stat dashboard-quick-stat--${tone}`} onClick={onClick}>
+      <div className="dashboard-quick-stat__label">{label}</div>
+      <div className="dashboard-quick-stat__value">{value}</div>
+      {detail && <div className="dashboard-quick-stat__detail">{detail}</div>}
+    </button>
   );
-  if (onClick) {
-    return (
-      <button className="stat-card--link" onClick={onClick}>
-        {card}
-      </button>
-    );
-  }
-  return card;
 }
 
 function UtilizationBar({ label, value, count }: { label: string; value: number; count: number }) {
@@ -39,11 +34,95 @@ function UtilizationBar({ label, value, count }: { label: string; value: number;
   );
 }
 
+function ActionCard({ title, metric, detail, tone = 'neutral', ctaLabel, onClick }: { title: string; metric: string; detail: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; ctaLabel: string; onClick: () => void }) {
+  return (
+    <div className={`dashboard-action-card dashboard-action-card--${tone}`}>
+      <div className="dashboard-action-card__eyebrow">{title}</div>
+      <div className="dashboard-action-card__metric">{metric}</div>
+      <p className="dashboard-action-card__detail">{detail}</p>
+      <button className="usa-button usa-button--outline" onClick={onClick}>{ctaLabel}</button>
+    </div>
+  );
+}
+
+function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <section className="usa-card">
+      <div className="usa-card__header">
+        <div>
+          <div className="usa-card__header-title">{title}</div>
+          {subtitle && <div className="dashboard-section-subtitle">{subtitle}</div>}
+        </div>
+      </div>
+      <div className="usa-card__body">{children}</div>
+    </section>
+  );
+}
+
+function ResourceListItem({ resource, metric, tone = 'neutral', onClick }: { resource: Resource; metric: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
+  return (
+    <button className="dashboard-list-item" onClick={onClick}>
+      <div>
+        <div className="dashboard-list-item__title">{resource.lastName}, {resource.firstName}</div>
+        <div className="dashboard-list-item__meta">
+          {formatDivision(resource.division)} · {resource.primaryRole?.name || 'No primary role'} · {resource.functionalArea?.name || 'No functional area'}
+        </div>
+      </div>
+      <span className={`dashboard-pill dashboard-pill--${tone}`}>{metric}</span>
+    </button>
+  );
+}
+
+function ProjectListItem({ project, metric, subtitle, tone = 'neutral', onClick }: { project: Project; metric: string; subtitle: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
+  return (
+    <button className="dashboard-list-item" onClick={onClick}>
+      <div>
+        <div className="dashboard-list-item__title">{project.name}</div>
+        <div className="dashboard-list-item__meta">{subtitle}</div>
+      </div>
+      <span className={`dashboard-pill dashboard-pill--${tone}`}>{metric}</span>
+    </button>
+  );
+}
+
+function EmptyListState({ message }: { message: string }) {
+  return <div className="dashboard-list-empty">{message}</div>;
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatShortDate(value: string | null) {
+  if (!value) return 'No date';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value));
+}
+
+function daysUntil(value: string | null) {
+  if (!value) return null;
+  const now = new Date();
+  const target = new Date(value);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.ceil((target.getTime() - now.getTime()) / msPerDay);
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => adminApi.stats(),
+  });
+  const { data: availableResourcesData, isLoading: isAvailableResourcesLoading } = useQuery({
+    queryKey: ['dashboard-available-resources'],
+    queryFn: () => resourcesApi.list({ page: '1', limit: '5', available: 'true', sortBy: 'availableCapacity', sortDir: 'desc' }),
+  });
+  const { data: stretchedResourcesData, isLoading: isStretchedResourcesLoading } = useQuery({
+    queryKey: ['dashboard-stretched-resources'],
+    queryFn: () => resourcesApi.list({ page: '1', limit: '5', sortBy: 'totalPercentUtilized', sortDir: 'desc' }),
+  });
+  const { data: endingSoonProjectsData, isLoading: isEndingSoonProjectsLoading } = useQuery({
+    queryKey: ['dashboard-ending-projects'],
+    queryFn: () => projectsApi.list({ page: '1', limit: '5', sortBy: 'endDate', sortDir: 'asc', status: 'in_progress' }),
   });
 
   if (isLoading || !stats) {
@@ -55,25 +134,139 @@ export function Dashboard() {
     );
   }
 
+  const availableResources = (availableResourcesData?.data ?? []).filter((resource) => resource.availableCapacity > 0);
+  const stretchedResources = (stretchedResourcesData?.data ?? []).filter((resource) => resource.totalPercentUtilized > 1);
+  const upcomingProjectTransitions = (endingSoonProjectsData?.data ?? []).filter((project) => {
+    const days = daysUntil(project.endDate);
+    return days !== null && days >= 0 && days <= 45;
+  });
+
   return (
     <div className="usa-page">
       <div className="usa-page-header">
         <h1 className="usa-page-title">Dashboard</h1>
-        <p className="usa-page-subtitle">Capacity Management Overview</p>
+        <p className="usa-page-subtitle">Staffing coordination and near-term actions</p>
       </div>
 
-      <div className="stat-grid">
-        <StatCard label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} onClick={() => navigate('/staffing/resources')} />
-        <StatCard label="Active Projects" value={stats.totalProjects} color="var(--usa-accent-cool-dark)" onClick={() => navigate('/projects')} />
-        <StatCard
+      <div className="dashboard-quick-stats">
+        <QuickStat label="Total Resources" value={stats.totalResources} detail={`${stats.federalCount} Federal / ${stats.contractorCount} Contractor`} onClick={() => navigate('/staffing/resources')} />
+        <QuickStat label="Active Projects" value={stats.totalProjects} onClick={() => navigate('/projects')} />
+        <QuickStat
           label="Avg Utilization"
           value={`${Math.round(stats.avgUtilization * 100)}%`}
           detail={stats.avgUtilization >= 0.8 ? 'Healthy — above 80%' : stats.avgUtilization >= 0.5 ? 'Underutilized — below 80%' : '⚠ Critical — below 50%'}
-          color={stats.avgUtilization >= 0.8 ? 'var(--usa-success)' : stats.avgUtilization >= 0.5 ? 'var(--usa-warning)' : 'var(--usa-error)'}
+          tone={stats.avgUtilization >= 0.8 ? 'success' : stats.avgUtilization >= 0.5 ? 'warning' : 'danger'}
           onClick={() => navigate('/staffing/resources?sortBy=totalPercentUtilized&sortDir=desc')}
         />
-        <StatCard label="Available Resources" value={stats.availableResources} detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined} color="var(--usa-success)" onClick={() => navigate('/staffing/resources?sortBy=availableCapacity&sortDir=desc')} />
-        <StatCard label="Ending Within 30 Days" value={stats.endingSoonProjects} color={stats.endingSoonProjects > 0 ? 'var(--usa-warning)' : 'var(--usa-success)'} onClick={() => navigate('/projects?sortBy=endDate&sortDir=asc')} />
+        <QuickStat
+          label="Available Resources"
+          value={stats.availableResources}
+          detail={stats.overCapacity > 0 ? `${stats.overCapacity} over capacity` : undefined}
+          tone="success"
+          onClick={() => navigate('/staffing/resources?sortBy=availableCapacity&sortDir=desc')}
+        />
+        <QuickStat
+          label="Ending Within 30 Days"
+          value={stats.endingSoonProjects}
+          tone={stats.endingSoonProjects > 0 ? 'warning' : 'success'}
+          onClick={() => navigate('/projects?sortBy=endDate&sortDir=asc')}
+        />
+      </div>
+
+      <div className="dashboard-actions-grid">
+        <ActionCard
+          title="Suggested focus"
+          metric={`${stats.overCapacity} overloaded ${stats.overCapacity === 1 ? 'resource' : 'resources'}`}
+          detail={stats.overCapacity > 0 ? 'Rebalance assignments for people above 100% before pulling in new work.' : 'No one is over capacity right now, which gives you room to place new work intentionally.'}
+          tone={stats.overCapacity > 0 ? 'danger' : 'success'}
+          ctaLabel="Review utilization"
+          onClick={() => navigate('/staffing/resources?sortBy=totalPercentUtilized&sortDir=desc')}
+        />
+        <ActionCard
+          title="Suggested focus"
+          metric={`${stats.availableResources} available ${stats.availableResources === 1 ? 'resource' : 'resources'}`}
+          detail="Use bench capacity to staff open needs or protect upcoming transitions before they become urgent."
+          tone={stats.availableResources > 0 ? 'success' : 'neutral'}
+          ctaLabel="View available staff"
+          onClick={() => navigate('/staffing/resources?available=true&sortBy=availableCapacity&sortDir=desc')}
+        />
+        <ActionCard
+          title="Suggested focus"
+          metric={`${stats.endingSoonProjects} ending soon`}
+          detail="Projects nearing completion usually create staffing moves, backfills, or offboarding work. Get ahead of those handoffs here."
+          tone={stats.endingSoonProjects > 0 ? 'warning' : 'neutral'}
+          ctaLabel="Plan transitions"
+          onClick={() => navigate('/projects?sortBy=endDate&sortDir=asc')}
+        />
+      </div>
+
+      <div className="dashboard-section-grid">
+        <SectionCard title="Who Can Take Work" subtitle="People with real remaining capacity right now">
+          {isAvailableResourcesLoading ? (
+            <span className="usa-spinner" aria-label="Loading available resources" />
+          ) : availableResources.length > 0 ? (
+            <div className="dashboard-list">
+              {availableResources.map((resource) => (
+                <ResourceListItem
+                  key={resource.id}
+                  resource={resource}
+                  metric={`${Math.round(resource.availableCapacity * 100)}% free`}
+                  tone="success"
+                  onClick={() => navigate(`/staffing/resources/${resource.id}`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyListState message="Everyone is fully allocated or data has not been marked as available yet." />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Who Needs Relief" subtitle="People already carrying more than full capacity">
+          {isStretchedResourcesLoading ? (
+            <span className="usa-spinner" aria-label="Loading stretched resources" />
+          ) : stretchedResources.length > 0 ? (
+            <div className="dashboard-list">
+              {stretchedResources.map((resource) => (
+                <ResourceListItem
+                  key={resource.id}
+                  resource={resource}
+                  metric={`${formatPercent(resource.totalPercentUtilized)} allocated`}
+                  tone="danger"
+                  onClick={() => navigate(`/staffing/resources/${resource.id}`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyListState message="No one is over capacity at the moment." />
+          )}
+        </SectionCard>
+      </div>
+
+      <div className="dashboard-section-grid dashboard-section-grid--single">
+        <SectionCard title="Upcoming Project Transitions" subtitle="In-progress work ending within the next 45 days">
+          {isEndingSoonProjectsLoading ? (
+            <span className="usa-spinner" aria-label="Loading upcoming project transitions" />
+          ) : upcomingProjectTransitions.length > 0 ? (
+            <div className="dashboard-list">
+              {upcomingProjectTransitions.map((project) => {
+                const days = daysUntil(project.endDate);
+                const tone = days !== null && days <= 14 ? 'danger' : 'warning';
+                return (
+                  <ProjectListItem
+                    key={project.id}
+                    project={project}
+                    subtitle={`${project.product?.name || 'No application'} · Team size ${project.teamSize}`}
+                    metric={days !== null ? `${days}d left` : formatShortDate(project.endDate)}
+                    tone={tone}
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyListState message="No in-progress projects are ending in the next 45 days." />
+          )}
+        </SectionCard>
       </div>
 
       <div style={{ marginTop: 32 }}>

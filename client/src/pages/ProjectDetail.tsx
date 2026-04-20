@@ -24,6 +24,7 @@ export function ProjectDetail() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const canManageAssignments = !!user && (user.isResourceManager || user.role === 'manager' || user.role === 'admin');
 
   const [showAdd, setShowAdd] = useState(false);
   const [newForm, setNewForm] = useState(EMPTY_NEW);
@@ -116,7 +117,7 @@ export function ProjectDetail() {
     });
   }
 
-  const colCount = canEdit ? 7 : 5;
+  const colCount = canManageAssignments ? 7 : 5;
 
   return (
     <div className="usa-page">
@@ -183,7 +184,7 @@ export function ProjectDetail() {
       <div style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ fontSize: 18 }}>Team Roster ({project.assignments.length})</h2>
-          {canEdit && (
+          {canManageAssignments && (
             <button className="usa-button usa-button--outline" onClick={() => { setShowAdd(!showAdd); setNewForm(EMPTY_NEW); }}>
               <Icon name="add" size={16} /> Add Member
             </button>
@@ -269,7 +270,7 @@ export function ProjectDetail() {
               <th>% Allocated</th>
               <th>Start</th>
               <th>End</th>
-              {canEdit && <th>Actions</th>}
+              {canManageAssignments && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -350,7 +351,7 @@ export function ProjectDetail() {
                       <td>{Math.round(a.percentUtilized * 100)}%</td>
                       <td>{a.startDate ? new Date(a.startDate).toLocaleDateString() : '-'}</td>
                       <td>{a.endDate ? new Date(a.endDate).toLocaleDateString() : '-'}</td>
-                      {canEdit && (
+                      {canManageAssignments && (
                         <td>
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button

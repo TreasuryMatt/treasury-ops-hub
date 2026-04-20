@@ -42,6 +42,15 @@ const STATUS_LABELS: Record<string, string> = {
   gray:   'No Status',
 };
 
+function getProgramStatus(program: Program): keyof typeof STATUS_LABELS {
+  const statuses = (program.statusProjects ?? []).map((project) => project.status);
+  if (statuses.includes('red')) return 'red';
+  if (statuses.includes('yellow')) return 'yellow';
+  if (statuses.includes('initiated')) return 'initiated';
+  if (statuses.includes('green')) return 'green';
+  return 'gray';
+}
+
 function ProjectStatusBar({ projects }: { projects: { status: string }[] }) {
   const counts: Record<string, number> = { initiated: 0, green: 0, yellow: 0, red: 0, gray: 0 };
   for (const p of projects) counts[p.status] = (counts[p.status] ?? 0) + 1;
@@ -143,6 +152,9 @@ export function Programs() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const [portfolioFilter, setPortfolioFilter] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState('');
+  const [ownerFilter, setOwnerFilter] = React.useState('');
 
   const { data: programs = [], isLoading } = useQuery<Program[]>({
     queryKey: ['programs'],
@@ -153,25 +165,21 @@ export function Programs() {
     queryFn: portfoliosApi.list,
   });
 
-  const grouped = React.useMemo(() => {
-    const byPortfolio: Record<string, Program[]> = {};
-    const unassigned: Program[] = [];
-    for (const p of programs) {
-      if (p.portfolioId) {
-        if (!byPortfolio[p.portfolioId]) byPortfolio[p.portfolioId] = [];
-        byPortfolio[p.portfolioId].push(p);
-      } else {
-        unassigned.push(p);
-      }
-    }
-    return { byPortfolio, unassigned };
+  const federalOwners = React.useMemo(() => {
+    return Array.from(new Set(programs.map((program) => program.federalOwner).filter((owner): owner is string => Boolean(owner)))).sort((a, b) => a.localeCompare(b));
   }, [programs]);
+
+  const filteredPrograms = React.useMemo(() => {
+    return [...programs]
+      .filter((program) => !portfolioFilter || (portfolioFilter === '__none__' ? !program.portfolioId : program.portfolioId === portfolioFilter))
+      .filter((program) => !statusFilter || getProgramStatus(program) === statusFilter)
+      .filter((program) => !ownerFilter || (ownerFilter === '__none__' ? !program.federalOwner : program.federalOwner === ownerFilter))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [ownerFilter, portfolioFilter, programs, statusFilter]);
 
   if (isLoading) {
     return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
   }
-
-  const hasGrouped = portfolios.some((pf) => grouped.byPortfolio[pf.id]?.length);
 
   return (
     <div className="usa-page">
@@ -195,31 +203,44 @@ export function Programs() {
         </div>
       ) : (
         <>
-          {portfolios.filter((pf) => grouped.byPortfolio[pf.id]?.length).map((pf) => (
-            <div key={pf.id} style={{ marginBottom: 'var(--space-5)' }}>
-              <div className="section-header">
-                <h2 className="section-title">{pf.name}</h2>
-              </div>
-              <div className="prog-card-grid">
-                {grouped.byPortfolio[pf.id].map((prog) => (
-                  <ProgramCard key={prog.id} program={prog} />
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="filter-bar">
+            <select className="usa-select" value={portfolioFilter} onChange={(e) => setPortfolioFilter(e.target.value)}>
+              <option value="">All Portfolios</option>
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
+              ))}
+              <option value="__none__">No Portfolio</option>
+            </select>
 
-          {grouped.unassigned.length > 0 && (
-            <div>
-              {hasGrouped && (
-                <div className="section-header">
-                  <h2 className="section-title">No Portfolio</h2>
-                </div>
-              )}
-              <div className="prog-card-grid">
-                {grouped.unassigned.map((prog) => (
-                  <ProgramCard key={prog.id} program={prog} />
-                ))}
-              </div>
+            <select className="usa-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">All Health</option>
+              <option value="green">On Track</option>
+              <option value="yellow">At Risk</option>
+              <option value="red">Off Track</option>
+              <option value="initiated">Initiated</option>
+              <option value="gray">No Status</option>
+            </select>
+
+            <select className="usa-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+              <option value="">All Federal Owners</option>
+              {federalOwners.map((owner) => (
+                <option key={owner} value={owner}>{owner}</option>
+              ))}
+              <option value="__none__">No Federal Owner</option>
+            </select>
+          </div>
+
+          {filteredPrograms.length > 0 ? (
+            <div className="prog-card-grid">
+              {filteredPrograms.map((program) => (
+                <ProgramCard key={program.id} program={program} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state__icon"><Icon name="tune" size={48} /></div>
+              <h3>No programs match these filters</h3>
+              <p>Try a different portfolio, program health, or owner combination.</p>
             </div>
           )}
         </>

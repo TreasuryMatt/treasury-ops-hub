@@ -7,7 +7,7 @@ import { assignmentsApi } from '../../api/assignments';
 import { resourcesApi } from '../../api/resources';
 import { adminApi } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
-import { StatusProject, StatusUpdate, IssueEntry, Accomplishment, ProjectPhase, ProjectDocument, StatusProjectStatusType, Assignment } from '../../types';
+import { StatusProject, StatusUpdate, IssueEntry, Accomplishment, ProjectPhase, ProjectDocument, StatusProjectStatusType } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { GanttChart } from '../../components/GanttChart';
@@ -18,8 +18,8 @@ export function StatusProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const qc = useQueryClient();
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const canManageAssignments = !!user && (user.isResourceManager || user.role === 'manager' || user.role === 'admin');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const { data: project, isLoading } = useQuery<StatusProject>({
@@ -135,7 +135,7 @@ export function StatusProjectDetail() {
       {activeTab === 'accomplishments' && <AccomplishmentsTab projectId={id!} accomplishments={accomplishments} canEdit={canEdit} />}
       {activeTab === 'issues' && <IssuesTab projectId={id!} issues={issues} canEdit={canEdit} />}
       {activeTab === 'documents' && <DocumentsTab projectId={id!} documents={documents} canEdit={canEdit} />}
-      {activeTab === 'staffing' && <StaffingTab projectId={id!} canEdit={canEdit} />}
+      {activeTab === 'staffing' && <StaffingTab projectId={id!} canEdit={canManageAssignments} />}
     </div>
   );
 }

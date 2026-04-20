@@ -16,6 +16,7 @@ export function Resources() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const canDelete = user?.role === 'admin';
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const deleteResource = useMutation({
@@ -77,8 +78,15 @@ export function Resources() {
   return (
     <div className="usa-page">
       <div className="usa-page-header">
-        <h1 className="usa-page-title">Resources</h1>
-        <p className="usa-page-subtitle">{data?.meta.total ?? '...'} total resources</p>
+        <div>
+          <h1 className="usa-page-title">Resources</h1>
+          <p className="usa-page-subtitle">{data?.meta.total ?? '...'} total resources</p>
+        </div>
+        {canEdit && (
+          <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/staffing/resources/new')}>
+            + Add Resource
+          </button>
+        )}
       </div>
 
       <div className="filter-bar">
@@ -116,11 +124,6 @@ export function Resources() {
           <option value="">All Roles</option>
           {roles?.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
-        {(user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin') && (
-          <button className="usa-button usa-button--primary" onClick={() => navigate('/staffing/resources/new')}>
-            <Icon name="add" color="white" /> Add Resource
-          </button>
-        )}
       </div>
 
       {isLoading ? (
