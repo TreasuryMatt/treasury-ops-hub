@@ -15,6 +15,7 @@ statusAdminRouter.get('/dashboard-stats', async (_req: AuthenticatedRequest, res
     where: { isActive: true },
     include: {
       program: { select: { id: true, name: true } },
+      application: { select: { id: true, name: true } },
       phases: { where: { endDate: { gte: now, lte: twoWeeksFromNow } }, orderBy: { endDate: 'asc' } },
     },
   });
@@ -118,8 +119,8 @@ statusAdminRouter.get('/roadmap', async (_req: AuthenticatedRequest, res: Respon
     where: { isActive: true },
     include: {
       program: { select: { id: true, name: true } },
+      application: { select: { id: true, name: true } },
       phases: { orderBy: { sortOrder: 'asc' } },
-      products: { include: { product: { select: { id: true, name: true } } } },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],
   });
@@ -170,7 +171,7 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
     },
     include: {
       program: { select: { id: true, name: true } },
-      products: { include: { product: { select: { id: true, name: true } } } },
+      application: { select: { id: true, name: true } },
       updates: {
         where: { createdAt: dateFilter },
         orderBy: { createdAt: 'desc' },
@@ -308,7 +309,7 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
       nextUpdateDue: p.nextUpdateDue?.toISOString() ?? null,
       federalProductOwner: p.federalProductOwner,
       customerContact: p.customerContact,
-      products: p.products,
+      application: p.application,
       updates: p.updates,
       accomplishments: p.accomplishments,
       issues: p.issues.filter((i) => i.category === 'issue' && !i.resolvedAt),
@@ -350,7 +351,7 @@ statusAdminRouter.get('/reports', async (_req: AuthenticatedRequest, res: Respon
       program: { select: { id: true, name: true } },
       priority: { select: { id: true, name: true } },
       department: { select: { id: true, name: true } },
-      products: { include: { product: { select: { id: true, name: true } } } },
+      application: { select: { id: true, name: true } },
       _count: { select: { updates: true, issues: true } },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],

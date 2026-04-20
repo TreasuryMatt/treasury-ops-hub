@@ -216,17 +216,6 @@ export function ReferenceData() {
       />
 
       <ReferenceTable
-        title="Applications"
-        queryKey="products"
-        fetchFn={adminApi.products}
-        createFn={adminApi.createProduct}
-        updateFn={adminApi.updateProduct}
-        deleteFn={adminApi.deleteProduct}
-        usageFn={adminApi.productUsage}
-        fields={[{ key: 'name', label: 'Name' }, { key: 'description', label: 'Description' }]}
-      />
-
-      <ReferenceTable
         title="Phases"
         queryKey="phases"
         fetchFn={adminApi.phases}

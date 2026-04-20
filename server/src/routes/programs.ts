@@ -10,6 +10,11 @@ programsRouter.use(requireAuth);
 
 const PROGRAM_INCLUDE = {
   portfolio: { select: { id: true, name: true } },
+  applications: {
+    where: { isActive: true },
+    include: { _count: { select: { statusProjects: true } } },
+    orderBy: { name: 'asc' as const },
+  },
   statusProjects: {
     where: { isActive: true },
     select: {
@@ -20,7 +25,8 @@ const PROGRAM_INCLUDE = {
       nextUpdateDue: true,
       federalProductOwner: true,
       customerContact: true,
-      products: { include: { product: { select: { id: true, name: true } } } },
+      applicationId: true,
+      application: { select: { id: true, name: true } },
     },
     orderBy: { name: 'asc' as const },
   },

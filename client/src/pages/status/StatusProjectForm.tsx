@@ -6,14 +6,15 @@ import { statusProjectsApi } from '../../api/statusProjects';
 import { projectsApi } from '../../api/projects';
 import { programsApi } from '../../api/programs';
 import { statusAdminApi } from '../../api/statusAdmin';
-import { adminApi } from '../../api/admin';
-import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product, Project, StatusPhase } from '../../types';
+import { applicationsApi } from '../../api/applications';
+import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Application, Project, StatusPhase } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
   name: string;
   description: string;
   programId: string;
+  applicationId: string;
   staffingProjectId: string;
   federalProductOwner: string;
   customerContact: string;
@@ -29,7 +30,6 @@ interface FormData {
   actualEndDate: string;
   funded: boolean;
   updateCadence: string;
-  productIds: string[];
 }
 
 export function StatusProjectForm() {
@@ -39,13 +39,13 @@ export function StatusProjectForm() {
   const qc = useQueryClient();
   const isEdit = !!id;
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       programId: searchParams.get('programId') || '',
+      applicationId: searchParams.get('applicationId') || '',
       status: 'gray',
       updateCadence: 'monthly',
       funded: false,
-      productIds: [],
     },
   });
 
@@ -61,10 +61,16 @@ export function StatusProjectForm() {
   const { data: executionTypes = [] } = useQuery<ExecutionType[]>({ queryKey: ['execution-types'], queryFn: statusAdminApi.executionTypes });
   const { data: customerCategories = [] } = useQuery<CustomerCategory[]>({ queryKey: ['customer-categories'], queryFn: statusAdminApi.customerCategories });
   const { data: phases = [] } = useQuery<StatusPhase[]>({ queryKey: ['status-phases'], queryFn: statusAdminApi.phases });
-  const { data: products = [] } = useQuery<Product[]>({ queryKey: ['products'], queryFn: adminApi.products });
   const { data: staffingProjects = [] } = useQuery<Project[]>({
     queryKey: ['staffing-projects'],
     queryFn: () => projectsApi.list().then((r) => r.data),
+  });
+  const selectedProgramId = watch('programId');
+  const selectedApplicationId = watch('applicationId');
+  const { data: applications = [] } = useQuery<Application[]>({
+    queryKey: ['applications', selectedProgramId],
+    queryFn: () => applicationsApi.list({ programId: selectedProgramId }),
+    enabled: !!selectedProgramId,
   });
 
   useEffect(() => {
@@ -73,6 +79,7 @@ export function StatusProjectForm() {
         name: project.name,
         description: project.description || '',
         programId: project.programId,
+        applicationId: project.applicationId || '',
         staffingProjectId: project.staffingProjectId || '',
         federalProductOwner: project.federalProductOwner || '',
         customerContact: project.customerContact || '',
@@ -88,16 +95,23 @@ export function StatusProjectForm() {
         actualEndDate: project.actualEndDate?.split('T')[0] || '',
         funded: project.funded,
         updateCadence: project.updateCadence,
-        productIds: project.products?.map((p) => p.productId) || [],
       });
     }
   }, [project, reset]);
+
+  useEffect(() => {
+    if (!selectedApplicationId) return;
+    if (!applications.some((application) => application.id === selectedApplicationId)) {
+      setValue('applicationId', '');
+    }
+  }, [applications, selectedApplicationId, setValue]);
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       const payload = {
         ...data,
         staffingProjectId: data.staffingProjectId || null,
+        applicationId: data.applicationId || null,
         federalProductOwner: data.federalProductOwner || null,
         customerContact: data.customerContact || null,
         departmentId: data.departmentId || null,
@@ -153,6 +167,22 @@ export function StatusProjectForm() {
               {programs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             {errors.programId && <span className="usa-error-message">{errors.programId.message}</span>}
+          </div>
+
+          <div className="usa-form-group">
+            <label className="usa-label" htmlFor="applicationId">Application *</label>
+            <select
+              className="usa-select"
+              id="applicationId"
+              {...register('applicationId', { required: 'Application is required' })}
+              disabled={!selectedProgramId}
+            >
+              <option value="">{selectedProgramId ? '— Select —' : 'Select a program first'}</option>
+              {applications.map((application) => (
+                <option key={application.id} value={application.id}>{application.name}</option>
+              ))}
+            </select>
+            {errors.applicationId && <span className="usa-error-message">{errors.applicationId.message}</span>}
           </div>
 
           <div className="usa-form-group">
@@ -256,18 +286,6 @@ export function StatusProjectForm() {
           <div className="usa-form-group" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" id="funded" {...register('funded')} style={{ width: 18, height: 18 }} />
             <label htmlFor="funded" style={{ marginBottom: 0, fontWeight: 700 }}>Funded</label>
-          </div>
-        </div>
-
-        <div className="usa-form-group" style={{ marginTop: 'var(--space-3)' }}>
-          <label className="usa-label">Applications</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxHeight: 200, overflowY: 'auto', padding: 12, border: '2px solid var(--usa-base)', borderRadius: 4, background: 'var(--usa-white)' }}>
-            {products.map((p) => (
-              <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, cursor: 'pointer' }}>
-                <input type="checkbox" value={p.id} {...register('productIds')} style={{ width: 16, height: 16 }} />
-                {p.name}
-              </label>
-            ))}
           </div>
         </div>
 

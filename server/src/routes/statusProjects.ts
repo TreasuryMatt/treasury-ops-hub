@@ -29,14 +29,33 @@ statusProjectsRouter.use(requireAuth);
 
 const PROJECT_INCLUDE = {
   program: { select: { id: true, name: true } },
+  application: { select: { id: true, name: true, programId: true } },
   department: { select: { id: true, name: true } },
   priority: { select: { id: true, name: true, sortOrder: true } },
   executionType: { select: { id: true, name: true } },
   customerCategory: { select: { id: true, name: true } },
   phase: { select: { id: true, name: true } },
-  products: { include: { product: { select: { id: true, name: true } } } },
   staffingProject: { select: { id: true, name: true } },
 };
+
+async function validateApplication(programId: string, applicationId?: string | null) {
+  if (!applicationId) return null;
+
+  const application = await prisma.application.findFirst({
+    where: {
+      id: applicationId,
+      programId,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (!application) {
+    throw new AppError('Application must belong to the selected program', 400);
+  }
+
+  return application;
+}
 
 // GET /api/status-projects
 statusProjectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
@@ -80,11 +99,14 @@ statusProjectsRouter.get('/:id', async (req: AuthenticatedRequest, res: Response
 statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const b = req.body;
+    await validateApplication(b.programId, b.applicationId);
+
     const project = await prisma.statusProject.create({
       data: ({
         name: b.name,
         description: b.description || null,
         programId: b.programId,
+        applicationId: b.applicationId || null,
         staffingProject: b.staffingProjectId ? { connect: { id: b.staffingProjectId } } : undefined,
         federalProductOwner: b.federalProductOwner || null,
         customerContact: b.customerContact || null,
@@ -101,9 +123,6 @@ statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, 
         funded: b.funded || false,
         updateCadence: b.updateCadence || 'monthly',
         nextUpdateDue: b.plannedStartDate ? computeNextUpdateDue(new Date(b.plannedStartDate), b.updateCadence || 'monthly') : null,
-        products: b.productIds?.length
-          ? { create: b.productIds.map((pid: string) => ({ productId: pid })) }
-          : undefined,
       }) as any,
       include: PROJECT_INCLUDE,
     });
@@ -125,11 +144,12 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
       where: { id: req.params.id as string },
       select: { status: true, name: true },
     });
-
-    // Handle product links: delete existing, re-create
-    if (b.productIds) {
-      await prisma.statusProjectProduct.deleteMany({ where: { statusProjectId: req.params.id as string } });
-    }
+    const nextProgramId = b.programId ?? (await prisma.statusProject.findUnique({
+      where: { id: req.params.id as string },
+      select: { programId: true },
+    }))?.programId;
+    if (!nextProgramId) throw new AppError('Program is required', 400);
+    await validateApplication(nextProgramId, b.applicationId);
 
     const project = await prisma.statusProject.update({
       where: { id: req.params.id as string },
@@ -137,6 +157,9 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
         name: b.name,
         description: b.description ?? undefined,
         program: b.programId ? { connect: { id: b.programId } } : undefined,
+        application: b.applicationId !== undefined
+          ? b.applicationId ? { connect: { id: b.applicationId } } : { disconnect: true }
+          : undefined,
         staffingProject: b.staffingProjectId !== undefined
           ? b.staffingProjectId
             ? { connect: { id: b.staffingProjectId } }
@@ -166,9 +189,6 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
         actualEndDate: b.actualEndDate !== undefined ? (b.actualEndDate ? new Date(b.actualEndDate) : null) : undefined,
         funded: b.funded ?? undefined,
         updateCadence: b.updateCadence ?? undefined,
-        products: b.productIds
-          ? { create: b.productIds.map((pid: string) => ({ productId: pid })) }
-          : undefined,
       },
       include: PROJECT_INCLUDE,
     });

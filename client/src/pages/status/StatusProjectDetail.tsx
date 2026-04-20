@@ -143,6 +143,7 @@ export function StatusProjectDetail() {
 function OverviewTab({ project, phases }: { project: StatusProject; phases: ProjectPhase[] }) {
   const fields = [
     { label: 'Program', value: project.program?.name },
+    { label: 'Application', value: project.application?.name },
     { label: 'Department', value: project.department?.name },
     { label: 'Federal Product Owner', value: project.federalProductOwner },
     { label: 'Customer Contact', value: project.customerContact },
@@ -174,17 +175,6 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
           ))}
         </dl>
       </div>
-
-      {project.products && project.products.length > 0 && (
-        <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-          <h3>Applications</h3>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {project.products.map((pp) => (
-              <span key={pp.id} className="badge badge--federal">{pp.product?.name}</span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {phases.length > 0 && (
         <div className="detail-card">

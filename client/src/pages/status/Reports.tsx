@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, StatusProjectStatusType, StatusProjectProduct, StatusTrendPoint } from '../../types';
+import { Program, StatusProject, StatusProjectStatusType, Application, StatusTrendPoint } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { RagSparkline } from '../../components/RagSparkline';
@@ -13,7 +13,7 @@ interface ReportProject extends Omit<StatusProject, 'program' | 'owner' | 'prior
   owner: { id: string; displayName: string } | null;
   priority: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
-  products: StatusProjectProduct[];
+  application: Application | null;
   _count: { updates: number; issues: number };
 }
 
@@ -25,7 +25,7 @@ export function Reports() {
   const navigate = useNavigate();
   const [filterProgramId, setFilterProgramId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterProductId, setFilterProductId] = useState('');
+  const [filterApplicationId, setFilterApplicationId] = useState('');
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'status', dir: 'asc' });
 
   const { data: projects = [], isLoading } = useQuery<ReportProject[]>({
@@ -42,20 +42,19 @@ export function Reports() {
     queryFn: statusAdminApi.trends,
   });
 
-  const allProducts = Array.from(
+  const allApplications = Array.from(
     new Map(
       projects
-        .flatMap((p) => p.products ?? [])
-        .map((pp) => pp.product)
-        .filter(Boolean)
-        .map((prod) => [prod!.id, prod!])
+        .map((project) => project.application)
+        .filter((application): application is Application => application != null)
+        .map((application) => [application.id, application])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = projects.filter((p) => {
     if (filterProgramId && p.programId !== filterProgramId) return false;
     if (filterStatus && p.status !== filterStatus) return false;
-    if (filterProductId && !p.products?.some((pp) => pp.product?.id === filterProductId)) return false;
+    if (filterApplicationId && p.application?.id !== filterApplicationId) return false;
     return true;
   });
 
@@ -181,12 +180,12 @@ export function Reports() {
         </select>
         <select
           className="usa-select"
-          value={filterProductId}
-          onChange={(e) => setFilterProductId(e.target.value)}
+          value={filterApplicationId}
+          onChange={(e) => setFilterApplicationId(e.target.value)}
         >
           <option value="">All Applications</option>
-          {allProducts.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          {allApplications.map((application) => (
+            <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
       </div>

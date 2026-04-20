@@ -21,8 +21,10 @@ import { StatusProjects } from './pages/status/StatusProjects';
 import { StatusProjectDetail } from './pages/status/StatusProjectDetail';
 import { StatusProjectForm } from './pages/status/StatusProjectForm';
 import { Programs } from './pages/status/Programs';
+import { Applications } from './pages/status/Applications';
 import { ProgramDetail } from './pages/status/ProgramDetail';
 import { ProgramForm } from './pages/status/ProgramForm';
+import { ApplicationForm } from './pages/status/ApplicationForm';
 import { Roadmap } from './pages/status/Roadmap';
 import { Reports } from './pages/status/Reports';
 import { ExecutiveRollup } from './pages/status/ExecutiveRollup';
@@ -70,6 +72,7 @@ export default function App() {
               <Route path="status/projects" element={<StatusProjects />} />
               <Route path="status/projects/:id" element={<StatusProjectDetail />} />
               <Route path="status/programs" element={<Programs />} />
+              <Route path="status/applications" element={<Applications />} />
               <Route path="status/programs/:id" element={<ProgramDetail />} />
               <Route path="status/roadmap" element={<Roadmap />} />
               <Route path="status/reports" element={<Reports />} />
@@ -96,6 +99,8 @@ export default function App() {
                 <Route path="status/projects/:id/edit" element={<StatusProjectForm />} />
                 <Route path="status/programs/new" element={<ProgramForm />} />
                 <Route path="status/programs/:id/edit" element={<ProgramForm />} />
+                <Route path="status/applications/new" element={<ApplicationForm />} />
+                <Route path="status/applications/:id/edit" element={<ApplicationForm />} />
               </Route>
 
               {/* Admin only */}

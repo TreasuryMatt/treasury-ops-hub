@@ -286,6 +286,16 @@ export interface Portfolio {
   programs?: Program[];
 }
 
+export interface Application {
+  id: string;
+  name: string;
+  description: string | null;
+  programId: string;
+  program?: Program | null;
+  isActive: boolean;
+  _count?: { statusProjects: number };
+}
+
 export interface Program {
   id: string;
   name: string;
@@ -295,6 +305,7 @@ export interface Program {
   portfolioId: string | null;
   portfolio?: Portfolio | null;
   isActive: boolean;
+  applications?: Application[];
   statusProjects?: StatusProject[];
 }
 
@@ -304,6 +315,8 @@ export interface StatusProject {
   description: string | null;
   programId: string;
   program?: Program;
+  applicationId: string | null;
+  application?: Application | null;
   federalProductOwner: string | null;
   customerContact: string | null;
   departmentId: string | null;
@@ -329,16 +342,8 @@ export interface StatusProject {
   isActive: boolean;
   phases?: ProjectPhase[];
   updates?: StatusUpdate[];
-  products?: StatusProjectProduct[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface StatusProjectProduct {
-  id: string;
-  statusProjectId: string;
-  productId: string;
-  product?: Product;
 }
 
 export interface ProjectPhase {

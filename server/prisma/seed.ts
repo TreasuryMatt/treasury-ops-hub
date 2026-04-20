@@ -234,6 +234,87 @@ async function main() {
   }
   console.log(`  ${ragDefs.length} RAG definitions seeded`);
 
+  // Status Applications
+  const programs = await prisma.program.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  });
+
+  if (programs.length > 0) {
+    const fallbackProgram = programs[0];
+    const historicalLinks = await prisma.$queryRaw<Array<{ programId: string; productName: string }>>`
+      SELECT DISTINCT
+        sp.program_id AS "programId",
+        p.name AS "productName"
+      FROM status_project_products spp
+      JOIN status_projects sp ON sp.id = spp.status_project_id
+      JOIN products p ON p.id = spp.product_id
+      ORDER BY sp.program_id, p.name
+    `;
+
+    const applicationPairs = new Map<string, { programId: string; name: string }>();
+    for (const link of historicalLinks) {
+      applicationPairs.set(`${link.programId}::${link.productName}`, { programId: link.programId, name: link.productName });
+    }
+
+    for (const name of productNames) {
+      const hasHistoricalProgram = historicalLinks.some((link) => link.productName === name);
+      if (!hasHistoricalProgram) {
+        applicationPairs.set(`${fallbackProgram.id}::${name}`, { programId: fallbackProgram.id, name });
+      }
+    }
+
+    for (const pair of applicationPairs.values()) {
+      await prisma.application.upsert({
+        where: { programId_name: { programId: pair.programId, name: pair.name } },
+        update: {},
+        create: {
+          programId: pair.programId,
+          name: pair.name,
+        },
+      });
+    }
+
+    const statusProjectsNeedingApps = await prisma.statusProject.findMany({
+      where: { isActive: true, applicationId: null },
+      select: {
+        id: true,
+        programId: true,
+        products: {
+          include: {
+            product: { select: { name: true } },
+          },
+          orderBy: { product: { name: 'asc' } },
+        },
+      },
+    });
+
+    let linkedCount = 0;
+    for (const project of statusProjectsNeedingApps) {
+      const productName = project.products[0]?.product?.name;
+      if (!productName) continue;
+
+      const application = await prisma.application.findUnique({
+        where: { programId_name: { programId: project.programId, name: productName } },
+        select: { id: true },
+      });
+
+      if (!application) continue;
+
+      await prisma.statusProject.update({
+        where: { id: project.id },
+        data: { applicationId: application.id },
+      });
+      linkedCount += 1;
+    }
+
+    console.log(`  ${applicationPairs.size} applications ensured across ${programs.length} program(s)`);
+    console.log(`  ${linkedCount} status project application links backfilled`);
+  } else {
+    console.log('  Skipped application seeding (no programs found)');
+  }
+
   console.log('Seeding complete!');
 }
 

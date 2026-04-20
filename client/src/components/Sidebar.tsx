@@ -34,6 +34,12 @@ export function Sidebar() {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/status/applications">
+                <Icon name="tune" color={COLOR_MAIN} />
+                Applications
+              </NavLink>
+            </li>
+            <li>
               <NavLink to="/status/roadmap">
                 <Icon name="timeline" color={COLOR_MAIN} />
                 Roadmap

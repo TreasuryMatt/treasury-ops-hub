@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProjectStatusType, IssueCategory } from '../../types';
+import { Program, StatusProjectStatusType, IssueCategory, Application } from '../../types';
 import { RagBadge } from '../../components/RagBadge';
 import { Icon } from '../../components/Icon';
 
@@ -51,7 +51,7 @@ interface RollupProject {
   previousStatus: StatusProjectStatusType | null;
   nextUpdateDue: string | null;
   owner: { id: string; displayName: string } | null;
-  products: { id: string; product: { id: string; name: string } | null }[];
+  application: Application | null;
   updates: RollupUpdate[];
   accomplishments: RollupAccomplishment[];
   issues: RollupIssue[];
@@ -292,11 +292,9 @@ function ProjectCard({ project }: { project: RollupProject }) {
         {project.updates.length === 0 && (
           <span className="rollup-no-update-badge" title="No status update submitted in this time window">No update</span>
         )}
-        {project.products && project.products.length > 0 && (
+        {project.application && (
           <span className="rollup-project-card__apps">
-            {project.products.map((pp) => pp.product && (
-              <span key={pp.id} className="app-pill">{pp.product.name}</span>
-            ))}
+            <span className="app-pill">{project.application.name}</span>
           </span>
         )}
         <span className="rollup-project-card__counts">
@@ -487,14 +485,13 @@ export function ExecutiveRollup() {
   const rawPrograms = data?.programs ?? [];
   const now = new Date();
 
-  const allProducts = Array.from(
+  const allApplications = Array.from(
     new Map(
       rawPrograms
         .flatMap((prog) => prog.projects)
-        .flatMap((p) => p.products ?? [])
-        .map((pp) => pp.product)
-        .filter((prod): prod is { id: string; name: string } => prod != null)
-        .map((prod) => [prod.id, prod])
+        .map((project) => project.application)
+        .filter((application): application is Application => application != null)
+        .map((application) => [application.id, application])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -502,9 +499,7 @@ export function ExecutiveRollup() {
     ? rawPrograms
         .map((prog) => ({
           ...prog,
-          projects: prog.projects.filter((p) =>
-            p.products?.some((pp: { product: { id: string; name: string } | null }) => pp.product?.id === filterProductId)
-          ),
+          projects: prog.projects.filter((p) => p.application?.id === filterProductId),
         }))
         .filter((prog) => prog.projects.length > 0)
     : rawPrograms;
@@ -591,8 +586,8 @@ export function ExecutiveRollup() {
           onChange={(e) => setFilterProductId(e.target.value)}
         >
           <option value="">All Applications</option>
-          {allProducts.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          {allApplications.map((application) => (
+            <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
       </div>
