@@ -54,6 +54,9 @@ export function ProgramDetail() {
             <button className="usa-button usa-button--outline" onClick={() => navigate(`/status/programs/${id}/edit`)}>
               <Icon name="edit" size={16} /> Edit
             </button>
+            <button className="usa-button usa-button--outline" onClick={() => navigate(`/status/applications/new?programId=${id}`)}>
+              <Icon name="add" size={16} /> New Application
+            </button>
             <button className="usa-button" onClick={() => navigate('/status/projects/new?programId=' + id)}>
               <Icon name="add" size={16} /> New Project
             </button>
@@ -63,6 +66,52 @@ export function ProgramDetail() {
 
       {program.description && program.portfolio && (
         <p style={{ marginBottom: 'var(--space-3)', color: 'var(--usa-base-dark)' }}>{program.description}</p>
+      )}
+
+      <div className="section-header">
+        <h2 className="section-title">Applications ({program.applications?.length ?? 0})</h2>
+      </div>
+
+      {!program.applications?.length ? (
+        <div className="empty-state" style={{ marginBottom: 'var(--space-3)' }}>
+          <div className="empty-state__icon"><Icon name="apps" size={48} /></div>
+          <h3>No applications yet</h3>
+          <p>Add an application before creating projects in this program.</p>
+        </div>
+      ) : (
+        <div className="table-wrap" style={{ marginBottom: 'var(--space-3)' }}>
+          <table className="usa-table">
+            <thead>
+              <tr>
+                <th>Application</th>
+                <th>Description</th>
+                <th>Projects</th>
+                {canEdit && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {program.applications.map((application) => (
+                <tr key={application.id}>
+                  <td style={{ fontWeight: 600 }}>{application.name}</td>
+                  <td>{application.description || '—'}</td>
+                  <td>{application._count?.statusProjects ?? 0}</td>
+                  {canEdit && (
+                    <td>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="usa-button usa-button--unstyled" onClick={() => navigate(`/status/applications/${application.id}/edit`)}>
+                          Edit
+                        </button>
+                        <button className="usa-button usa-button--unstyled" onClick={() => navigate(`/status/projects/new?programId=${program.id}&applicationId=${application.id}`)}>
+                          New Project
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="section-header">
@@ -83,7 +132,7 @@ export function ProgramDetail() {
                 <th>Status</th>
                 <th>Project</th>
                 <th>Phase</th>
-                <th>Applications</th>
+                <th>Application</th>
                 <th>Owner</th>
                 <th>Next Update Due</th>
               </tr>
@@ -94,15 +143,7 @@ export function ProgramDetail() {
                   <td><RagBadge status={sp.status} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.phase?.name || '—'}</td>
-                  <td>
-                    {sp.products?.length > 0 ? (
-                      <div className="app-pills">
-                        {sp.products.map((pp: any) => pp.product && (
-                          <span key={pp.id} className="app-pill">{pp.product.name}</span>
-                        ))}
-                      </div>
-                    ) : '—'}
-                  </td>
+                  <td>{sp.application?.name || '—'}</td>
                   <td>{sp.owner?.displayName || '—'}</td>
                   <td>
                     {sp.nextUpdateDue ? (
@@ -120,7 +161,7 @@ export function ProgramDetail() {
       )}
 
       {(program.statusProjects?.length ?? 0) > 0 && (
-        <div style={{ marginTop: 'var(--space-2)' }}>
+        <div style={{ marginTop: 'var(--space-2)', display: 'flex', gap: 'var(--space-1)' }}>
           <button
             className="usa-button usa-button--outline usa-button--sm"
             onClick={() => navigate(`/status/roadmap?programId=${id}`)}

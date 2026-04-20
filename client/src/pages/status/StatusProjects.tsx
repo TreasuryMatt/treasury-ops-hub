@@ -21,7 +21,7 @@ export function StatusProjects() {
     status: searchParams.get('status') || '',
     search: '',
   });
-  const [filterProductId, setFilterProductId] = useState('');
+  const [filterApplicationId, setFilterApplicationId] = useState('');
 
   const { data: projects = [], isLoading } = useQuery<StatusProject[]>({
     queryKey: ['status-projects', filters],
@@ -36,18 +36,17 @@ export function StatusProjects() {
     queryFn: statusAdminApi.trends,
   });
 
-  const allProducts = Array.from(
+  const allApplications = Array.from(
     new Map(
       projects
-        .flatMap((p) => p.products ?? [])
-        .map((pp) => pp.product)
-        .filter(Boolean)
-        .map((prod) => [prod!.id, prod!])
+        .map((project) => project.application)
+        .filter((application): application is NonNullable<typeof application> => application != null)
+        .map((application) => [application.id, application])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
-  const visibleProjects = filterProductId
-    ? projects.filter((p) => p.products?.some((pp) => pp.product?.id === filterProductId))
+  const visibleProjects = filterApplicationId
+    ? projects.filter((p) => p.application?.id === filterApplicationId)
     : projects;
 
   if (isLoading) {
@@ -97,17 +96,18 @@ export function StatusProjects() {
           <option value="green">On Track</option>
           <option value="yellow">At Risk</option>
           <option value="red">Off Track</option>
+          <option value="initiated">Initiated</option>
           <option value="gray">Not Started</option>
           <option value="overdue">Overdue Updates</option>
         </select>
         <select
           className="usa-select"
-          value={filterProductId}
-          onChange={(e) => setFilterProductId(e.target.value)}
+          value={filterApplicationId}
+          onChange={(e) => setFilterApplicationId(e.target.value)}
         >
           <option value="">All Applications</option>
-          {allProducts.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          {allApplications.map((application) => (
+            <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
       </div>
@@ -128,7 +128,7 @@ export function StatusProjects() {
                 <th>Project</th>
                 <th>Program</th>
                 <th>Phase</th>
-                <th>Applications</th>
+                <th>Application</th>
                 <th>Federal Product Owner</th>
                 <th>Next Update Due</th>
               </tr>
@@ -141,15 +141,7 @@ export function StatusProjects() {
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.program?.name || '—'}</td>
                   <td>{sp.phase?.name || '—'}</td>
-                  <td>
-                    {sp.products && sp.products.length > 0 ? (
-                      <div className="app-pills">
-                        {sp.products.map((pp) => pp.product && (
-                          <span key={pp.id} className="app-pill">{pp.product.name}</span>
-                        ))}
-                      </div>
-                    ) : '—'}
-                  </td>
+                  <td>{sp.application?.name || '—'}</td>
                   <td>{sp.federalProductOwner || '—'}</td>
                   <td>
                     {sp.nextUpdateDue ? (

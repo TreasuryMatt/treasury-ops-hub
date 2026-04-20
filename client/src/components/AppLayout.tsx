@@ -281,6 +281,10 @@ function SiteHeader() {
       </NavLink>
       {user && (
         <div className="usa-header__user">
+          <NavLink to="/exec/summary" className="exec-summary-btn">
+            <Icon name="star" color="#fff" size={16} />
+            Executive Summary
+          </NavLink>
           <NotificationBell />
           <span className="usa-header__user-name">{user.displayName}</span>
           <span className="usa-header__user-role">{user.role}</span>
@@ -307,6 +311,10 @@ export function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.userType === 'customer') {
+    return <Navigate to="/intake" replace />;
+  }
+
   return (
     <div className="app-shell">
       <a className="usa-skipnav" href="#main-content">Skip to main content</a>
@@ -331,5 +339,13 @@ export function AdminOnly() {
 export function EditorOnly() {
   const { user } = useAuth();
   if (user?.role === 'viewer') return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
+export function IntakeReviewerOnly() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.userType === 'customer') return <Navigate to="/intake" replace />;
+  if (!user.isIntakeReviewer && user.role !== 'admin') return <Navigate to="/staffing/dashboard" replace />;
   return <Outlet />;
 }

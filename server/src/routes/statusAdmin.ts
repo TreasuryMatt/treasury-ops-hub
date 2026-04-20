@@ -15,6 +15,7 @@ statusAdminRouter.get('/dashboard-stats', async (_req: AuthenticatedRequest, res
     where: { isActive: true },
     include: {
       program: { select: { id: true, name: true } },
+      application: { select: { id: true, name: true } },
       phases: { where: { endDate: { gte: now, lte: twoWeeksFromNow } }, orderBy: { endDate: 'asc' } },
     },
   });
@@ -118,8 +119,8 @@ statusAdminRouter.get('/roadmap', async (_req: AuthenticatedRequest, res: Respon
     where: { isActive: true },
     include: {
       program: { select: { id: true, name: true } },
+      application: { select: { id: true, name: true } },
       phases: { orderBy: { sortOrder: 'asc' } },
-      products: { include: { product: { select: { id: true, name: true } } } },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],
   });
@@ -170,7 +171,7 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
     },
     include: {
       program: { select: { id: true, name: true } },
-      products: { include: { product: { select: { id: true, name: true } } } },
+      application: { select: { id: true, name: true } },
       updates: {
         where: { createdAt: dateFilter },
         orderBy: { createdAt: 'desc' },
@@ -194,6 +195,28 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
           resolvedBy: { select: { id: true, displayName: true } },
         },
       },
+      staffingProject: {
+        include: {
+          assignments: {
+            where: { isActive: true },
+            include: {
+              resource: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  resourceType: true,
+                  popEndDate: true,
+                  assignments: {
+                    where: { isActive: true },
+                    select: { percentUtilized: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],
   });
@@ -213,6 +236,60 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
     : [];
   const previousStatusMap = new Map(previousUpdates.map((u) => [u.statusProjectId, u.overallStatus]));
 
+  // --- Staffing risk helpers ---
+  const POP_HORIZON_DAYS = 60;
+  const popHorizon = new Date(now.getTime() + POP_HORIZON_DAYS * 24 * 60 * 60 * 1000);
+
+  type StaffingRisk = {
+    fteCount: number;
+    contractorCount: number;
+    overAllocated: { id: string; name: string; totalPercent: number }[];
+    popExpiring: { id: string; name: string; popEndDate: string; daysRemaining: number }[];
+  };
+
+  function computeStaffing(sp: (typeof projects)[number]['staffingProject']): StaffingRisk | null {
+    if (!sp) return null;
+    const assignments = sp.assignments;
+
+    const fteCount        = assignments.filter((a) => a.resource.resourceType === 'federal').length;
+    const contractorCount = assignments.filter((a) => a.resource.resourceType === 'contractor').length;
+
+    const overAllocated = assignments
+      .map((a) => ({
+        id:           a.resource.id,
+        name:         `${a.resource.firstName} ${a.resource.lastName}`,
+        totalPercent: a.resource.assignments.reduce((s, x) => s + x.percentUtilized, 0),
+      }))
+      .filter((r) => r.totalPercent > 1.0);
+
+    const popExpiring = assignments
+      .filter((a) => {
+        const pop = a.resource.popEndDate;
+        return (
+          a.resource.resourceType === 'contractor' &&
+          pop != null &&
+          new Date(pop) >= now &&
+          new Date(pop) <= popHorizon
+        );
+      })
+      .map((a) => ({
+        id:           a.resource.id,
+        name:         `${a.resource.firstName} ${a.resource.lastName}`,
+        popEndDate:   a.resource.popEndDate!.toISOString(),
+        daysRemaining: Math.ceil(
+          (new Date(a.resource.popEndDate!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        ),
+      }))
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+    return { fteCount, contractorCount, overAllocated, popExpiring };
+  }
+
+  // Pre-compute staffing per project to reuse for both the response map and summary counts
+  const staffingMap = new Map<string, StaffingRisk | null>(
+    projects.map((p) => [p.id, computeStaffing(p.staffingProject)])
+  );
+
   // Group by program
   const programMap = new Map<string, { id: string; name: string; projects: typeof projects }>();
   for (const p of projects) {
@@ -229,15 +306,17 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
       name: p.name,
       status: p.status,
       previousStatus: previousStatusMap.get(p.id) ?? null,
+      nextUpdateDue: p.nextUpdateDue?.toISOString() ?? null,
       federalProductOwner: p.federalProductOwner,
       customerContact: p.customerContact,
-      products: p.products,
+      application: p.application,
       updates: p.updates,
       accomplishments: p.accomplishments,
       issues: p.issues.filter((i) => i.category === 'issue' && !i.resolvedAt),
       risks: p.issues.filter((i) => i.category === 'risk' && !i.resolvedAt),
       blockers: p.issues.filter((i) => i.category === 'blocker' && !i.resolvedAt),
       resolvedIssues: p.issues.filter((i) => !!i.resolvedAt),
+      staffing: staffingMap.get(p.id) ?? null,
     })),
   }));
 
@@ -257,6 +336,8 @@ statusAdminRouter.get('/rollup', async (req: AuthenticatedRequest, res: Response
     openRisks: allProjects.reduce((n, p) => n + p.issues.filter((i) => i.category === 'risk' && !i.resolvedAt).length, 0),
     openBlockers: allProjects.reduce((n, p) => n + p.issues.filter((i) => i.category === 'blocker' && !i.resolvedAt).length, 0),
     resolvedCount: allProjects.reduce((n, p) => n + p.issues.filter((i) => !!i.resolvedAt).length, 0),
+    staffingOverAllocatedProjects: allProjects.filter((p) => (staffingMap.get(p.id)?.overAllocated.length ?? 0) > 0).length,
+    staffingPopExpiringProjects:   allProjects.filter((p) => (staffingMap.get(p.id)?.popExpiring.length   ?? 0) > 0).length,
   };
 
   res.json({ data: { summary, programs } });
@@ -270,7 +351,7 @@ statusAdminRouter.get('/reports', async (_req: AuthenticatedRequest, res: Respon
       program: { select: { id: true, name: true } },
       priority: { select: { id: true, name: true } },
       department: { select: { id: true, name: true } },
-      products: { include: { product: { select: { id: true, name: true } } } },
+      application: { select: { id: true, name: true } },
       _count: { select: { updates: true, issues: true } },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],

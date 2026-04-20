@@ -1,6 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+
+function getLoginErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const message = error.response?.data?.error;
+
+    if (status === 401) {
+      return 'User not found or inactive. Check your CAIA ID.';
+    }
+
+    if (status === 403 && typeof message === 'string') {
+      return message;
+    }
+
+    if (!error.response) {
+      return 'The sign-in service is unavailable right now. Try again in a moment.';
+    }
+  }
+
+  return 'Unable to sign in right now. Try again in a moment.';
+}
 
 export function Login() {
   const { login } = useAuth();
@@ -13,11 +35,13 @@ export function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const normalizedCaiaId = caiaId.trim().toUpperCase();
+
     try {
-      await login(caiaId.trim());
-      navigate('/staffing/dashboard');
-    } catch {
-      setError('User not found or inactive. Check your CAIA ID.');
+      const user = await login(normalizedCaiaId);
+      navigate(user.userType === 'customer' ? '/intake' : '/staffing/dashboard');
+    } catch (err) {
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -55,14 +79,16 @@ export function Login() {
                 id="caia-id"
                 className="usa-input"
                 value={caiaId}
-                onChange={(e) => setCaiaId(e.target.value)}
+                onChange={(e) => setCaiaId(e.target.value.toUpperCase())}
                 placeholder="e.g. ADMIN001"
                 autoFocus
                 required
                 autoComplete="username"
+                autoCapitalize="characters"
+                spellCheck={false}
               />
               <span className="usa-hint">
-                Dev mode — test accounts: <strong>ADMIN001</strong> (admin), <strong>MGR001</strong> (manager), <strong>EDIT001</strong> (editor), <strong>VIEW001</strong> (viewer)
+                Dev mode — test accounts: <strong>ADMIN001</strong> (admin), <strong>REVIEW01</strong> (intake reviewer), <strong>RMGR001</strong> (resource manager), <strong>CUST001</strong> (customer), <strong>EDIT001</strong> (editor), <strong>VIEW001</strong> (viewer)
               </span>
             </div>
 

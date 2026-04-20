@@ -5,7 +5,7 @@ import { authApi } from '../api/auth';
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (caiaId: string) => Promise<void>;
+  login: (caiaId: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (caiaId: string) => {
     const { user: u } = await authApi.mockLogin(caiaId);
     setUser(u);
+    return u;
   };
 
   const logout = async () => {

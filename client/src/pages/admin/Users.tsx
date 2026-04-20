@@ -5,6 +5,17 @@ import { Icon } from '../../components/Icon';
 import { SortIcon, SortDir } from '../../components/SortIcon';
 import { useAuth } from '../../context/AuthContext';
 
+type AdminUserForm = {
+  displayName: string;
+  email: string;
+  caiaId: string;
+  role: string;
+  userType: 'staff' | 'customer';
+  isIntakeReviewer: boolean;
+  isResourceManager: boolean;
+  isActive: boolean;
+};
+
 export function Users() {
   const { user: currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
@@ -17,7 +28,16 @@ export function Users() {
 
   // Edit modal state
   const [editingUser, setEditingUser] = useState<any | null>(null);
-  const [editValues, setEditValues] = useState({ displayName: '', email: '', caiaId: '', role: 'viewer', isActive: true });
+  const [editValues, setEditValues] = useState<AdminUserForm>({
+    displayName: '',
+    email: '',
+    caiaId: '',
+    role: 'viewer',
+    userType: 'staff',
+    isIntakeReviewer: false,
+    isResourceManager: false,
+    isActive: true,
+  });
 
   // Deactivate confirmation state
   const [pendingDeactivateUser, setPendingDeactivateUser] = useState<any | null>(null);
@@ -33,14 +53,22 @@ export function Users() {
     return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
   });
 
-  const [newUser, setNewUser] = useState({ caiaId: '', email: '', displayName: '', role: 'viewer' });
+  const [newUser, setNewUser] = useState({
+    caiaId: '',
+    email: '',
+    displayName: '',
+    role: 'viewer',
+    userType: 'staff' as 'staff' | 'customer',
+    isIntakeReviewer: false,
+    isResourceManager: false,
+  });
 
   const createMutation = useMutation({
     mutationFn: (data: any) => adminApi.createUser(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAdd(false);
-      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer' });
+      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer', userType: 'staff', isIntakeReviewer: false, isResourceManager: false });
     },
   });
 
@@ -62,7 +90,16 @@ export function Users() {
 
   function openEdit(u: any) {
     setEditingUser(u);
-    setEditValues({ displayName: u.displayName, email: u.email, caiaId: u.caiaId, role: u.role, isActive: u.isActive });
+    setEditValues({
+      displayName: u.displayName,
+      email: u.email,
+      caiaId: u.caiaId,
+      role: u.role === 'manager' ? 'viewer' : u.role,
+      userType: u.userType || 'staff',
+      isIntakeReviewer: Boolean(u.isIntakeReviewer),
+      isResourceManager: Boolean(u.isResourceManager || u.role === 'manager'),
+      isActive: u.isActive,
+    });
   }
 
   return (
@@ -98,9 +135,35 @@ export function Users() {
               <select className="usa-select" value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
-                <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
               </select>
+            </div>
+            <div>
+              <label className="usa-label">User Type</label>
+              <select className="usa-select" value={newUser.userType} onChange={(e) => setNewUser({ ...newUser, userType: e.target.value as 'staff' | 'customer' })}>
+                <option value="staff">Staff</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+              <input
+                id="new-isIntakeReviewer"
+                type="checkbox"
+                className="usa-checkbox__input"
+                checked={newUser.isIntakeReviewer}
+                onChange={(e) => setNewUser({ ...newUser, isIntakeReviewer: e.target.checked })}
+              />
+              <label htmlFor="new-isIntakeReviewer" className="usa-checkbox__label">Intake Reviewer</label>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+              <input
+                id="new-isResourceManager"
+                type="checkbox"
+                className="usa-checkbox__input"
+                checked={newUser.isResourceManager}
+                onChange={(e) => setNewUser({ ...newUser, isResourceManager: e.target.checked })}
+              />
+              <label htmlFor="new-isResourceManager" className="usa-checkbox__label">Resource Manager</label>
             </div>
             <button className="usa-button usa-button--success" disabled={createMutation.isPending} onClick={() => createMutation.mutate(newUser)}>
               {createMutation.isPending ? 'Creating…' : 'Create'}
@@ -114,7 +177,7 @@ export function Users() {
         <table className="usa-table">
           <thead>
             <tr>
-              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
+              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isResourceManager', 'Resource Manager'], ['isIntakeReviewer', 'Reviewer'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
                 <th key={field} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(field)}>
                   {label} <SortIcon field={field} active={sortBy === field} dir={sortDir} />
                 </th>
@@ -128,7 +191,9 @@ export function Users() {
                 <td style={{ fontWeight: 600 }}>{u.displayName}</td>
                 <td>{u.caiaId}</td>
                 <td>{u.email}</td>
-                <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                <td style={{ textTransform: 'capitalize' }}>{u.role === 'manager' ? 'viewer' : u.role}</td>
+                <td>{u.isResourceManager || u.role === 'manager' ? 'Yes' : 'No'}</td>
+                <td>{u.isIntakeReviewer ? 'Yes' : 'No'}</td>
                 <td>{u.isActive ? 'Yes' : 'No'}</td>
                 {isAdmin && (
                   <td style={{ whiteSpace: 'nowrap' }}>
@@ -199,9 +264,39 @@ export function Users() {
                   >
                     <option value="viewer">Viewer</option>
                     <option value="editor">Editor</option>
-                    <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                   </select>
+                </div>
+                <div>
+                  <label className="usa-label" style={{ marginTop: 0 }}>User Type</label>
+                  <select
+                    className="usa-select"
+                    value={editValues.userType}
+                    onChange={(e) => setEditValues({ ...editValues, userType: e.target.value as 'staff' | 'customer' })}
+                  >
+                    <option value="staff">Staff</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
+                  <input
+                    id="edit-isIntakeReviewer"
+                    type="checkbox"
+                    className="usa-checkbox__input"
+                    checked={editValues.isIntakeReviewer}
+                    onChange={(e) => setEditValues({ ...editValues, isIntakeReviewer: e.target.checked })}
+                  />
+                  <label htmlFor="edit-isIntakeReviewer" className="usa-checkbox__label">Intake Reviewer</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
+                  <input
+                    id="edit-isResourceManager"
+                    type="checkbox"
+                    className="usa-checkbox__input"
+                    checked={editValues.isResourceManager}
+                    onChange={(e) => setEditValues({ ...editValues, isResourceManager: e.target.checked })}
+                  />
+                  <label htmlFor="edit-isResourceManager" className="usa-checkbox__label">Resource Manager</label>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
                   <input

@@ -3,28 +3,29 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, ProjectPhase, StatusProjectStatusType, StatusProjectProduct } from '../../types';
+import { Program, StatusProject, ProjectPhase, StatusProjectStatusType, Application } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 
 const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
+  initiated: 'var(--usa-info)',
   green: 'var(--usa-success)',
   yellow: 'var(--usa-warning)',
   red: 'var(--usa-error)',
   gray: 'var(--usa-base)',
 };
 
-interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases' | 'products'> {
+interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases' | 'application'> {
   phases: ProjectPhase[];
   program: { id: string; name: string };
-  products: StatusProjectProduct[];
+  application: Application | null;
 }
 
 export function Roadmap() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filterProgramId, setFilterProgramId] = useState(searchParams.get('programId') || '');
-  const [filterProductId, setFilterProductId] = useState('');
+  const [filterApplicationId, setFilterApplicationId] = useState('');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
@@ -38,19 +39,18 @@ export function Roadmap() {
     queryFn: programsApi.list,
   });
 
-  const allProducts = Array.from(
+  const allApplications = Array.from(
     new Map(
       projects
-        .flatMap((p) => p.products ?? [])
-        .map((pp) => pp.product)
-        .filter(Boolean)
-        .map((prod) => [prod!.id, prod!])
+        .map((project) => project.application)
+        .filter((application): application is Application => application != null)
+        .map((application) => [application.id, application])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = projects.filter((p) => {
     if (filterProgramId && p.programId !== filterProgramId) return false;
-    if (filterProductId && !p.products?.some((pp) => pp.product?.id === filterProductId)) return false;
+    if (filterApplicationId && p.application?.id !== filterApplicationId) return false;
     return true;
   });
 
@@ -174,13 +174,13 @@ export function Roadmap() {
         </select>
         <select
           className="usa-select"
-          value={filterProductId}
-          onChange={(e) => setFilterProductId(e.target.value)}
+          value={filterApplicationId}
+          onChange={(e) => setFilterApplicationId(e.target.value)}
           style={{ maxWidth: 260 }}
         >
           <option value="">All Applications</option>
-          {allProducts.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          {allApplications.map((application) => (
+            <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
         <input
@@ -336,11 +336,9 @@ export function Roadmap() {
                               <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                                 {proj.name}
                               </span>
-                              {proj.products && proj.products.length > 0 && (
+                              {proj.application && (
                                 <div className="app-pills" style={{ marginTop: 2 }}>
-                                  {proj.products.map((pp) => pp.product && (
-                                    <span key={pp.id} className="app-pill" style={{ fontSize: 10, padding: '0 4px' }}>{pp.product.name}</span>
-                                  ))}
+                                  <span className="app-pill" style={{ fontSize: 10, padding: '0 4px' }}>{proj.application.name}</span>
                                 </div>
                               )}
                             </div>
@@ -420,7 +418,7 @@ export function Roadmap() {
                   <th>Status</th>
                   <th>Project</th>
                   <th>Program</th>
-                  <th>Applications</th>
+                  <th>Application</th>
                 </tr>
               </thead>
               <tbody>
@@ -429,15 +427,7 @@ export function Roadmap() {
                     <td><RagBadge status={p.status} /></td>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td>{p.program?.name}</td>
-                    <td>
-                      {p.products && p.products.length > 0 ? (
-                        <div className="app-pills">
-                          {p.products.map((pp) => pp.product && (
-                            <span key={pp.id} className="app-pill">{pp.product.name}</span>
-                          ))}
-                        </div>
-                      ) : '—'}
-                    </td>
+                    <td>{p.application?.name || '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -2,6 +2,7 @@ import React from 'react';
 import { StatusProjectStatusType } from '../types';
 
 const RAG_CONFIG: Record<StatusProjectStatusType, { bg: string; label: string }> = {
+  initiated: { bg: 'var(--usa-base-light)', label: 'Initiated' },
   green: { bg: 'var(--usa-success)', label: 'On Track' },
   yellow: { bg: 'var(--usa-warning)', label: 'At Risk' },
   red: { bg: 'var(--usa-error)', label: 'Off Track' },

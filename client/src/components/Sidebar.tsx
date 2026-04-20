@@ -34,6 +34,12 @@ export function Sidebar() {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/status/applications">
+                <Icon name="tune" color={COLOR_MAIN} />
+                Applications
+              </NavLink>
+            </li>
+            <li>
               <NavLink to="/status/roadmap">
                 <Icon name="timeline" color={COLOR_MAIN} />
                 Roadmap
@@ -48,17 +54,25 @@ export function Sidebar() {
           </ul>
         </div>
 
-        <div className="sidenav-section">
-          <div className="sidenav-section-label">Executive</div>
-          <ul className="usa-sidenav">
-            <li>
-              <NavLink to="/exec/rollup">
-                <Icon name="star" color={COLOR_MAIN} />
-                Rollup
-              </NavLink>
-            </li>
-          </ul>
-        </div>
+        {(user?.isIntakeReviewer || user?.role === 'admin') && (
+          <div className="sidenav-section">
+            <div className="sidenav-section-label">Intake</div>
+            <ul className="usa-sidenav">
+              <li>
+                <NavLink to="/intake/review" end>
+                  <Icon name="assessment" color={COLOR_MAIN} />
+                  Dashboard
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/intake/review/submissions">
+                  <Icon name="summarize" color={COLOR_MAIN} />
+                  Submission Queue
+                </NavLink>
+              </li>
+            </ul>
+          </div>
+        )}
 
         <div className="sidenav-section">
           <div className="sidenav-section-label">Staffing</div>
@@ -79,18 +93,6 @@ export function Sidebar() {
               <NavLink to="/staffing/requests">
                 <Icon name="pending_actions" color={COLOR_MAIN} />
                 Resource Requests
-              </NavLink>
-            </li>
-          </ul>
-        </div>
-
-        <div className="sidenav-section">
-          <div className="sidenav-section-label">Account</div>
-          <ul className="usa-sidenav">
-            <li>
-              <NavLink to="/notifications">
-                <Icon name="notifications" color={COLOR_MAIN} />
-                Notifications
               </NavLink>
             </li>
           </ul>

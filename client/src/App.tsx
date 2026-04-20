@@ -2,7 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
-import { AppLayout, AdminOnly, EditorOnly } from './components/AppLayout';
+import { AppLayout, AdminOnly, EditorOnly, IntakeReviewerOnly } from './components/AppLayout';
+import { IntakePortalLayout } from './components/IntakePortalLayout';
 
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -20,13 +21,20 @@ import { StatusProjects } from './pages/status/StatusProjects';
 import { StatusProjectDetail } from './pages/status/StatusProjectDetail';
 import { StatusProjectForm } from './pages/status/StatusProjectForm';
 import { Programs } from './pages/status/Programs';
+import { Applications } from './pages/status/Applications';
 import { ProgramDetail } from './pages/status/ProgramDetail';
 import { ProgramForm } from './pages/status/ProgramForm';
+import { ApplicationForm } from './pages/status/ApplicationForm';
 import { Roadmap } from './pages/status/Roadmap';
 import { Reports } from './pages/status/Reports';
 import { ExecutiveRollup } from './pages/status/ExecutiveRollup';
 import { Notifications } from './pages/Notifications';
 import { NotificationPreferences } from './pages/NotificationPreferences';
+import { IntakeCustomerHome } from './pages/intake/IntakeCustomerHome';
+import { IntakeSubmissionForm } from './pages/intake/IntakeSubmissionForm';
+import { IntakeReviewerDashboard } from './pages/intake/IntakeReviewerDashboard';
+import { IntakeReviewerQueue } from './pages/intake/IntakeReviewerQueue';
+import { IntakeReviewerDetail } from './pages/intake/IntakeReviewerDetail';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -37,6 +45,12 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+
+            <Route path="/intake" element={<IntakePortalLayout />}>
+              <Route index element={<IntakeCustomerHome />} />
+              <Route path="new" element={<IntakeSubmissionForm />} />
+              <Route path=":id" element={<IntakeSubmissionForm />} />
+            </Route>
 
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/staffing/dashboard" replace />} />
@@ -58,16 +72,24 @@ export default function App() {
               <Route path="status/projects" element={<StatusProjects />} />
               <Route path="status/projects/:id" element={<StatusProjectDetail />} />
               <Route path="status/programs" element={<Programs />} />
+              <Route path="status/applications" element={<Applications />} />
               <Route path="status/programs/:id" element={<ProgramDetail />} />
               <Route path="status/roadmap" element={<Roadmap />} />
               <Route path="status/reports" element={<Reports />} />
               {/* Executive */}
-              <Route path="exec/rollup" element={<ExecutiveRollup />} />
-              <Route path="status/rollup" element={<Navigate to="/exec/rollup" replace />} />
+              <Route path="exec/summary" element={<ExecutiveRollup />} />
+              <Route path="exec/rollup" element={<Navigate to="/exec/summary" replace />} />
+              <Route path="status/rollup" element={<Navigate to="/exec/summary" replace />} />
 
               {/* Notifications */}
               <Route path="notifications" element={<Notifications />} />
               <Route path="settings/notifications" element={<NotificationPreferences />} />
+
+              <Route element={<IntakeReviewerOnly />}>
+                <Route path="intake/review" element={<IntakeReviewerDashboard />} />
+                <Route path="intake/review/submissions" element={<IntakeReviewerQueue />} />
+                <Route path="intake/review/submissions/:id" element={<IntakeReviewerDetail />} />
+              </Route>
 
               {/* Editor + Admin */}
               <Route element={<EditorOnly />}>
@@ -77,6 +99,8 @@ export default function App() {
                 <Route path="status/projects/:id/edit" element={<StatusProjectForm />} />
                 <Route path="status/programs/new" element={<ProgramForm />} />
                 <Route path="status/programs/:id/edit" element={<ProgramForm />} />
+                <Route path="status/applications/new" element={<ApplicationForm />} />
+                <Route path="status/applications/:id/edit" element={<ApplicationForm />} />
               </Route>
 
               {/* Admin only */}

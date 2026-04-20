@@ -4,7 +4,7 @@
   "description": "Treasury Operations Hub - Server",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --watch prisma/schema.prisma --ext ts,prisma --exec \"npm run prisma:generate && ts-node src/index.ts\"",
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",

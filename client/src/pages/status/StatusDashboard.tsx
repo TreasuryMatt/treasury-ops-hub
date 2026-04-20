@@ -6,6 +6,7 @@ import { StatusDashboardStats, StatusProjectStatusType } from '../../types';
 import { Icon } from '../../components/Icon';
 
 const RAG_LABELS: Record<StatusProjectStatusType, string> = {
+  initiated: 'Initiated',
   green: 'On Track',
   yellow: 'At Risk',
   red: 'Off Track',
@@ -13,6 +14,7 @@ const RAG_LABELS: Record<StatusProjectStatusType, string> = {
 };
 
 const RAG_COLORS: Record<StatusProjectStatusType, string> = {
+  initiated: 'var(--usa-info)',
   green: 'var(--usa-success)',
   yellow: 'var(--usa-warning)',
   red: 'var(--usa-error)',

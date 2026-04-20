@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProjectStatusType, IssueCategory } from '../../types';
+import { Program, StatusProjectStatusType, IssueCategory, Application } from '../../types';
 import { RagBadge } from '../../components/RagBadge';
 import { Icon } from '../../components/Icon';
 
@@ -37,27 +37,36 @@ interface RollupAccomplishment {
   author?: { id: string; displayName: string };
 }
 
+interface StaffingRisk {
+  fteCount: number;
+  contractorCount: number;
+  overAllocated: { id: string; name: string; totalPercent: number }[];
+  popExpiring: { id: string; name: string; popEndDate: string; daysRemaining: number }[];
+}
+
 interface RollupProject {
   id: string;
   name: string;
   status: StatusProjectStatusType;
   previousStatus: StatusProjectStatusType | null;
+  nextUpdateDue: string | null;
   owner: { id: string; displayName: string } | null;
-  products: { id: string; product: { id: string; name: string } | null }[];
+  application: Application | null;
   updates: RollupUpdate[];
   accomplishments: RollupAccomplishment[];
   issues: RollupIssue[];
   risks: RollupIssue[];
   blockers: RollupIssue[];
   resolvedIssues: RollupIssue[];
+  staffing: StaffingRisk | null;
 }
 
 type TrendDirection = 'improving' | 'stable' | 'degrading';
 
-const STATUS_RANK: Record<StatusProjectStatusType, number> = { red: 0, yellow: 1, green: 2, gray: -1 };
+const STATUS_RANK: Record<StatusProjectStatusType, number> = { red: 0, yellow: 1, initiated: 1, green: 2, gray: -1 };
 
 function getTrend(current: StatusProjectStatusType, previous: StatusProjectStatusType | null): TrendDirection | null {
-  if (!previous || current === 'gray' || previous === 'gray') return null;
+  if (!previous || current === 'gray' || previous === 'gray' || current === 'initiated' || previous === 'initiated') return null;
   const diff = STATUS_RANK[current] - STATUS_RANK[previous];
   if (diff > 0) return 'improving';
   if (diff < 0) return 'degrading';
@@ -73,6 +82,82 @@ function TrendArrow({ trend }: { trend: TrendDirection | null }) {
   };
   const { symbol, className, title } = config[trend];
   return <span className={`trend-arrow ${className}`} title={title}>{symbol}</span>;
+}
+
+type AttentionFlagType = 'degraded' | 'blocker' | 'overdue' | 'noActivity' | 'overAllocated' | 'popExpiring';
+
+const FLAG_CONFIG: Record<AttentionFlagType, { label: string; bg: string; color: string; priority: number }> = {
+  degraded:      { label: '↓ Degraded',      bg: 'var(--usa-error)',          color: '#fff',                    priority: 0 },
+  blocker:       { label: '⊘ Blocker',       bg: 'var(--usa-error)',          color: '#fff',                    priority: 1 },
+  overdue:       { label: '⚠ Overdue',       bg: 'var(--usa-warning-dark)',   color: 'var(--usa-base-darkest)', priority: 2 },
+  overAllocated: { label: '⚠ Over-Allocated', bg: 'var(--usa-warning-dark)',  color: 'var(--usa-base-darkest)', priority: 2 },
+  popExpiring:   { label: '⏳ POP Expiring',  bg: 'var(--usa-warning)',        color: 'var(--usa-base-darkest)', priority: 2 },
+  noActivity:    { label: '○ No Activity',   bg: 'var(--usa-base-light)',     color: 'var(--usa-base-darkest)', priority: 3 },
+};
+
+interface AttentionItem {
+  project: RollupProject;
+  programName: string;
+  flags: AttentionFlagType[];
+}
+
+function buildAttentionItems(rollupPrograms: RollupProgram[], now: Date): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  for (const prog of rollupPrograms) {
+    for (const project of prog.projects) {
+      const flags: AttentionFlagType[] = [];
+      if (getTrend(project.status, project.previousStatus) === 'degrading') flags.push('degraded');
+      if (project.blockers.length > 0) flags.push('blocker');
+      if (project.nextUpdateDue && new Date(project.nextUpdateDue) < now) flags.push('overdue');
+      const hasActivity =
+        project.updates.length > 0 ||
+        project.accomplishments.length > 0 ||
+        project.issues.length > 0 ||
+        project.risks.length > 0 ||
+        project.blockers.length > 0 ||
+        (project.resolvedIssues?.length ?? 0) > 0;
+      if (!hasActivity) flags.push('noActivity');
+      if (project.staffing?.overAllocated.length) flags.push('overAllocated');
+      if (project.staffing?.popExpiring.length)   flags.push('popExpiring');
+      if (flags.length > 0) items.push({ project, programName: prog.name, flags });
+    }
+  }
+  items.sort((a, b) => {
+    const aPri = Math.min(...a.flags.map((f) => FLAG_CONFIG[f].priority));
+    const bPri = Math.min(...b.flags.map((f) => FLAG_CONFIG[f].priority));
+    return aPri - bPri;
+  });
+  return items;
+}
+
+function NeedsAttentionSection({ items }: { items: AttentionItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="rollup-attention">
+      <div className="rollup-attention__header">
+        <Icon name="flag" color="var(--usa-error)" size={15} />
+        <span className="rollup-attention__title">Needs Attention</span>
+        <span className="rollup-attention__count">{items.length} project{items.length !== 1 ? 's' : ''}</span>
+      </div>
+      {items.map(({ project, programName, flags }) => (
+        <div key={project.id} className="rollup-attention__row">
+          <RagBadge status={project.status} />
+          <Link to={`/status/projects/${project.id}`} className="rollup-attention__project">{project.name}</Link>
+          <span className="rollup-attention__program">{programName}</span>
+          <div className="rollup-attention__flags">
+            {flags.map((flag) => {
+              const cfg = FLAG_CONFIG[flag];
+              return (
+                <span key={flag} className="rollup-attention__flag" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                  {cfg.label}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 interface RollupProgram {
@@ -95,6 +180,8 @@ interface RollupSummary {
   openRisks: number;
   openBlockers: number;
   resolvedCount: number;
+  staffingOverAllocatedProjects: number;
+  staffingPopExpiringProjects: number;
 }
 
 interface RollupData {
@@ -205,16 +292,14 @@ function ProjectCard({ project }: { project: RollupProject }) {
         {project.updates.length === 0 && (
           <span className="rollup-no-update-badge" title="No status update submitted in this time window">No update</span>
         )}
-        {project.products && project.products.length > 0 && (
+        {project.application && (
           <span className="rollup-project-card__apps">
-            {project.products.map((pp) => pp.product && (
-              <span key={pp.id} className="app-pill">{pp.product.name}</span>
-            ))}
+            <span className="app-pill">{project.application.name}</span>
           </span>
         )}
         <span className="rollup-project-card__counts">
           {project.accomplishments.length > 0 && (
-            <span className="rollup-count rollup-count--success" title="Accomplishments">
+            <span className="rollup-count rollup-count--success" title="Successes">
               ✓ {project.accomplishments.length}
             </span>
           )}
@@ -254,7 +339,7 @@ function ProjectCard({ project }: { project: RollupProject }) {
           )}
 
           {project.accomplishments.length > 0 && (
-            <Section title="Accomplishments" color="var(--usa-success-dark)" icon="check_circle">
+            <Section title="Successes" color="var(--usa-success-dark)" icon="check_circle">
               {project.accomplishments.map((a) => (
                 <EntryRow key={a.id} text={a.text} date={a.createdAt} author={a.author?.displayName} />
               ))}
@@ -321,6 +406,42 @@ function ProjectCard({ project }: { project: RollupProject }) {
               ))}
             </Section>
           )}
+
+          {project.staffing && (
+            <Section title="Staffing" color="var(--usa-base-dark)" icon="group">
+              <div className="rollup-staffing__summary">
+                👤 {project.staffing.fteCount} federal · {project.staffing.contractorCount} contractor{project.staffing.contractorCount !== 1 ? 's' : ''}
+              </div>
+
+              {project.staffing.overAllocated.length > 0 && (
+                <div className="rollup-staffing__group">
+                  <span className="rollup-staffing__group-label">Over-Allocated</span>
+                  {project.staffing.overAllocated.map((r) => (
+                    <div key={r.id} className="rollup-staffing__row">
+                      <span className="rollup-staffing__name">{r.name}</span>
+                      <span className="rollup-staffing__badge rollup-staffing__badge--danger">
+                        {Math.round(r.totalPercent * 100)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {project.staffing.popExpiring.length > 0 && (
+                <div className="rollup-staffing__group">
+                  <span className="rollup-staffing__group-label">POP Expiring (within 60 days)</span>
+                  {project.staffing.popExpiring.map((r) => (
+                    <div key={r.id} className="rollup-staffing__row">
+                      <span className="rollup-staffing__name">{r.name}</span>
+                      <span className="rollup-staffing__badge rollup-staffing__badge--warning">
+                        {new Date(r.popEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {r.daysRemaining}d
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
         </div>
       )}
     </div>
@@ -333,7 +454,7 @@ export function ExecutiveRollup() {
   const [filterProductId, setFilterProductId] = useState('');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const [collapsedPrograms, setCollapsedPrograms] = useState<Set<string>>(new Set());
+  const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(new Set());
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
 
@@ -362,15 +483,15 @@ export function ExecutiveRollup() {
 
   const summary = data?.summary;
   const rawPrograms = data?.programs ?? [];
+  const now = new Date();
 
-  const allProducts = Array.from(
+  const allApplications = Array.from(
     new Map(
       rawPrograms
         .flatMap((prog) => prog.projects)
-        .flatMap((p) => p.products ?? [])
-        .map((pp) => pp.product)
-        .filter((prod): prod is { id: string; name: string } => prod != null)
-        .map((prod) => [prod.id, prod])
+        .map((project) => project.application)
+        .filter((application): application is Application => application != null)
+        .map((application) => [application.id, application])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -378,15 +499,13 @@ export function ExecutiveRollup() {
     ? rawPrograms
         .map((prog) => ({
           ...prog,
-          projects: prog.projects.filter((p) =>
-            p.products?.some((pp: { product: { id: string; name: string } | null }) => pp.product?.id === filterProductId)
-          ),
+          projects: prog.projects.filter((p) => p.application?.id === filterProductId),
         }))
         .filter((prog) => prog.projects.length > 0)
     : rawPrograms;
 
   function toggleProgram(id: string) {
-    setCollapsedPrograms((prev) => {
+    setExpandedPrograms((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -404,7 +523,7 @@ export function ExecutiveRollup() {
       <div className="usa-page-header">
         <div>
           <h1 className="usa-page-title">
-            Executive Rollup
+            Executive Summary
             {isFetching && !isLoading && (
               <span className="usa-spinner" aria-label="Refreshing" style={{ marginLeft: 10, width: 16, height: 16, verticalAlign: 'middle' }} />
             )}
@@ -467,8 +586,8 @@ export function ExecutiveRollup() {
           onChange={(e) => setFilterProductId(e.target.value)}
         >
           <option value="">All Applications</option>
-          {allProducts.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.name}</option>
+          {allApplications.map((application) => (
+            <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
       </div>
@@ -485,38 +604,54 @@ export function ExecutiveRollup() {
       {/* Summary stat cards */}
       {summary && (
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', marginBottom: 'var(--space-3)' }}>
-          <div className="stat-card" style={{ borderTopColor: 'var(--usa-success)' }}>
-            <div className="stat-card__value" style={{ color: 'var(--usa-success-dark)' }}>{summary.greenCount}</div>
-            <div className="stat-card__label">On Track</div>
-          </div>
-          <div className="stat-card" style={{ borderTopColor: 'var(--usa-warning-dark)' }}>
-            <div className="stat-card__value" style={{ color: 'var(--usa-warning-darker)' }}>{summary.yellowCount}</div>
-            <div className="stat-card__label">At Risk</div>
-          </div>
-          <div className="stat-card" style={{ borderTopColor: 'var(--usa-error)' }}>
-            <div className="stat-card__value" style={{ color: 'var(--usa-error)' }}>{summary.redCount}</div>
-            <div className="stat-card__label">Off Track</div>
-          </div>
-          <div className="stat-card" style={{ borderTopColor: 'var(--usa-primary)' }}>
-            <div className="stat-card__value" style={{ color: 'var(--usa-primary)' }}>{summary.newAccomplishments}</div>
-            <div className="stat-card__label">New Accomplishments</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card__value">{summary.newUpdates}</div>
-            <div className="stat-card__label">New Updates</div>
-          </div>
-          <div className={`stat-card${summary.openBlockers > 0 ? ' danger' : ''}`}>
-            <div className={`stat-card__value${summary.openBlockers > 0 ? ' danger' : ''}`}>{summary.openBlockers}</div>
-            <div className="stat-card__label">Open Blockers</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card__value">{summary.openRisks}</div>
-            <div className="stat-card__label">Open Risks</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-card__value">{summary.openIssues}</div>
-            <div className="stat-card__label">Open Issues</div>
-          </div>
+          {summary.greenCount > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-success)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-success-dark)' }}>{summary.greenCount}</div>
+              <div className="stat-card__label">On Track</div>
+            </div>
+          )}
+          {summary.yellowCount > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-warning-dark)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-warning-darker)' }}>{summary.yellowCount}</div>
+              <div className="stat-card__label">At Risk</div>
+            </div>
+          )}
+          {summary.redCount > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-error)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-error)' }}>{summary.redCount}</div>
+              <div className="stat-card__label">Off Track</div>
+            </div>
+          )}
+          {summary.newAccomplishments > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-primary)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-primary)' }}>{summary.newAccomplishments}</div>
+              <div className="stat-card__label">New Successes</div>
+            </div>
+          )}
+          {summary.newUpdates > 0 && (
+            <div className="stat-card">
+              <div className="stat-card__value">{summary.newUpdates}</div>
+              <div className="stat-card__label">New Updates</div>
+            </div>
+          )}
+          {summary.openBlockers > 0 && (
+            <div className="stat-card danger">
+              <div className="stat-card__value danger">{summary.openBlockers}</div>
+              <div className="stat-card__label">Open Blockers</div>
+            </div>
+          )}
+          {summary.openRisks > 0 && (
+            <div className="stat-card">
+              <div className="stat-card__value">{summary.openRisks}</div>
+              <div className="stat-card__label">Open Risks</div>
+            </div>
+          )}
+          {summary.openIssues > 0 && (
+            <div className="stat-card">
+              <div className="stat-card__value">{summary.openIssues}</div>
+              <div className="stat-card__label">Open Issues</div>
+            </div>
+          )}
           {(() => {
             const delinquent = rawPrograms.flatMap((prog) => prog.projects).filter((p) => p.updates.length === 0).length;
             return delinquent > 0 ? (
@@ -532,7 +667,24 @@ export function ExecutiveRollup() {
               <div className="stat-card__label">Resolved</div>
             </div>
           )}
+          {summary.staffingOverAllocatedProjects > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-warning-dark)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-warning-darker)' }}>{summary.staffingOverAllocatedProjects}</div>
+              <div className="stat-card__label">Over-Allocated</div>
+            </div>
+          )}
+          {summary.staffingPopExpiringProjects > 0 && (
+            <div className="stat-card" style={{ borderTopColor: 'var(--usa-warning)' }}>
+              <div className="stat-card__value" style={{ color: 'var(--usa-warning-darker)' }}>{summary.staffingPopExpiringProjects}</div>
+              <div className="stat-card__label">POP Expiring</div>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Needs Attention */}
+      {rollupPrograms.length > 0 && (
+        <NeedsAttentionSection items={buildAttentionItems(rollupPrograms, now)} />
       )}
 
       {/* Aggregated activity sections */}
@@ -564,7 +716,7 @@ export function ExecutiveRollup() {
         return (
           <div className="rollup-activity-sections">
             {allAccomplishments.length > 0 && (
-              <Section title={`Accomplishments (${allAccomplishments.length})`} color="var(--usa-success-dark)" icon="check_circle">
+              <Section title={`Successes (${allAccomplishments.length})`} color="var(--usa-success-dark)" icon="check_circle">
                 {allAccomplishments.map((a) => (
                   <EntryRow key={a.id} text={a.text} date={a.createdAt} author={a.author?.displayName} project={a.projectName} projectId={a.projectId} />
                 ))}
@@ -645,7 +797,7 @@ export function ExecutiveRollup() {
       )}
 
       {rollupPrograms.map((prog) => {
-        const isCollapsed = collapsedPrograms.has(prog.id);
+        const isCollapsed = !expandedPrograms.has(prog.id);
         const programAccomplishments = prog.projects.reduce((n, p) => n + p.accomplishments.length, 0);
         const programBlockers = prog.projects.reduce((n, p) => n + p.blockers.length, 0);
         const programRisks = prog.projects.reduce((n, p) => n + p.risks.length, 0);
@@ -653,12 +805,20 @@ export function ExecutiveRollup() {
         const trends = prog.projects.map((p) => getTrend(p.status, p.previousStatus)).filter(Boolean) as TrendDirection[];
         const improving = trends.filter((t) => t === 'improving').length;
         const degrading = trends.filter((t) => t === 'degrading').length;
+        const greenCount = prog.projects.filter((p) => p.status === 'green').length;
+        const yellowCount = prog.projects.filter((p) => p.status === 'yellow').length;
+        const redCount = prog.projects.filter((p) => p.status === 'red').length;
 
         return (
           <div key={prog.id} className="rollup-program">
             <button className="rollup-program__header" onClick={() => toggleProgram(prog.id)}>
-              <Icon name={isCollapsed ? 'expand_more' : 'expand_less'} color="#fff" size={18} />
+              <Icon name={isCollapsed ? 'chevron_right' : 'expand_more'} color="#fff" size={18} />
               <span className="rollup-program__name">{prog.name}</span>
+              <span className="rollup-program__rag-pills">
+                {greenCount > 0 && <span className="rollup-program__rag-pill rollup-program__rag-pill--green">{greenCount}</span>}
+                {yellowCount > 0 && <span className="rollup-program__rag-pill rollup-program__rag-pill--yellow">{yellowCount}</span>}
+                {redCount > 0 && <span className="rollup-program__rag-pill rollup-program__rag-pill--red">{redCount}</span>}
+              </span>
               <span className="rollup-program__meta">
                 {prog.projects.length} project{prog.projects.length !== 1 ? 's' : ''}
                 {improving > 0 && (

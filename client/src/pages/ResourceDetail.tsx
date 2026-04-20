@@ -15,6 +15,8 @@ export function ResourceDetail() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const canDelete = user?.role === 'admin';
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: resource, isLoading } = useQuery({
     queryKey: ['resource', id],
@@ -34,6 +36,11 @@ export function ResourceDetail() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({
     projectId: '', roleId: '', percentUtilized: '', startDate: '', endDate: '', notes: '',
+  });
+
+  const deleteResource = useMutation({
+    mutationFn: () => resourcesApi.remove(id!),
+    onSuccess: () => navigate('/staffing/resources'),
   });
 
   const removeAssignment = useMutation({
@@ -82,11 +89,18 @@ export function ResourceDetail() {
               {' '}{resource.primaryRole?.name || 'No role assigned'}
             </p>
           </div>
-          {canEdit && (
-            <button className="usa-button usa-button--outline" onClick={() => navigate(`/staffing/resources/${id}/edit`)}>
-              <Icon name="edit" size={16} /> Edit
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {canEdit && (
+              <button className="usa-button usa-button--outline" onClick={() => navigate(`/staffing/resources/${id}/edit`)}>
+                <Icon name="edit" size={16} /> Edit
+              </button>
+            )}
+            {canDelete && (
+              <button className="usa-button usa-button--secondary" onClick={() => setConfirmDelete(true)}>
+                <Icon name="delete" size={16} /> Deactivate
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -282,6 +296,27 @@ export function ResourceDetail() {
           </tbody>
         </table>
       </div>
+
+      {confirmDelete && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 className="modal-title">Deactivate Resource</h2>
+            <p>Are you sure you want to deactivate <strong>{resource.lastName}, {resource.firstName}</strong>? They will be hidden from the roster but their data will be preserved.</p>
+            <div className="modal-actions">
+              <button
+                className="usa-button usa-button--secondary"
+                onClick={() => deleteResource.mutate()}
+                disabled={deleteResource.isPending}
+              >
+                {deleteResource.isPending ? 'Deactivating…' : 'Yes, Deactivate'}
+              </button>
+              <button className="usa-button usa-button--outline" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
