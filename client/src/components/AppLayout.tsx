@@ -270,7 +270,7 @@ function SiteHeader() {
     <header className="usa-header" role="banner">
       <NavLink to="/dashboard" className="usa-header__title" style={{ textDecoration: 'none' }}>
         <img
-          src="/treasury-seal-white-simple.svg"
+          src="/treasury-seal_white-gear.svg"
           alt="U.S. Department of the Treasury seal"
           className="usa-header__seal"
         />
