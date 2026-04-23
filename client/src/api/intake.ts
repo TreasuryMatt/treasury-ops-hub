@@ -30,6 +30,9 @@ export const intakeApi = {
   submit: (id: string) =>
     api.post(`/intake/submissions/${id}/submit`).then((r) => r.data.data as IntakeSubmission),
 
+  deleteDraft: (id: string) =>
+    api.delete(`/intake/submissions/${id}`).then((r) => r.data),
+
   listVersions: (id: string) =>
     api.get(`/intake/submissions/${id}/versions`).then((r) => r.data.data as IntakeSubmissionVersion[]),
 

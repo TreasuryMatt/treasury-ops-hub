@@ -32,7 +32,7 @@ resourcesRouter.get('/supervisors', async (_req: AuthenticatedRequest, res: Resp
 
 // GET /api/resources
 resourcesRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
-  const { page = '1', limit = '50', search, division, resourceType, functionalAreaId, roleId, available } = req.query as Record<string, string>;
+  const { page = '1', limit = '50', search, division, resourceType, functionalAreaId, roleId, available, popEndWithinDays } = req.query as Record<string, string>;
   const pageNum = Math.max(1, parseInt(page));
   const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
   const skip = (pageNum - 1) * limitNum;
@@ -49,6 +49,13 @@ resourcesRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   if (functionalAreaId) where.functionalAreaId = functionalAreaId;
   if (roleId) where.primaryRoleId = roleId;
   if (available === 'true') where.availableForWork = true;
+  if (popEndWithinDays) {
+    const days = Math.max(0, parseInt(popEndWithinDays, 10) || 0);
+    const now = new Date();
+    const end = new Date(now);
+    end.setDate(end.getDate() + days);
+    where.popEndDate = { gte: now, lte: end };
+  }
 
   const { sortBy = 'lastName', sortDir = 'asc' } = req.query as Record<string, string>;
   const validSortFields: Record<string, any> = {
@@ -59,6 +66,7 @@ resourcesRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
     primaryRole: [{ primaryRole: { name: sortDir } }, { lastName: 'asc' }],
     supervisor: [{ supervisor: { lastName: sortDir } }, { lastName: 'asc' }],
     resourceType: [{ resourceType: sortDir }, { lastName: 'asc' }],
+    popEndDate: [{ popEndDate: sortDir }, { lastName: 'asc' }],
   };
 
   // Utilization/capacity are computed fields — sort in memory after fetching all matches

@@ -6,10 +6,12 @@ import { programsApi } from '../../api/programs';
 import { IntakeDetermination } from '../../types';
 import { Icon } from '../../components/Icon';
 import { IntakeStatusPill } from '../../components/IntakeStatusPill';
+import { Toast, useToast } from '../../components/Toast';
 
 export function IntakeReviewerDetail() {
   const { id = '' } = useParams();
   const qc = useQueryClient();
+  const { toast, show: showToast, dismiss: dismissToast } = useToast();
   const [determination, setDetermination] = useState<IntakeDetermination>('backlog');
   const [notes, setNotes] = useState('');
   const [denialReason, setDenialReason] = useState('');
@@ -44,7 +46,8 @@ export function IntakeReviewerDetail() {
 
   const determineMutation = useMutation({
     mutationFn: () => intakeApi.setDetermination(id, { determination, notes, denialReason, programId }),
-    onSuccess: refreshAll,
+    onSuccess: () => { refreshAll(); showToast('Determination saved successfully.'); },
+    onError: () => showToast('Failed to save determination. Please try again.', 'error'),
   });
 
   const designReviewMutation = useMutation({
@@ -212,6 +215,7 @@ export function IntakeReviewerDetail() {
           </div>
         </div>
       </div>
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

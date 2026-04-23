@@ -2,9 +2,9 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../api/admin';
-import { projectsApi } from '../api/projects';
 import { resourcesApi } from '../api/resources';
-import { Project, Resource } from '../types';
+import { statusProjectsApi } from '../api/statusProjects';
+import { Resource, StatusProject } from '../types';
 import { formatDivision } from '../utils/format';
 
 function QuickStat({ label, value, detail, tone = 'neutral', onClick }: { label: string; value: string | number; detail?: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
@@ -73,7 +73,21 @@ function ResourceListItem({ resource, metric, tone = 'neutral', onClick }: { res
   );
 }
 
-function ProjectListItem({ project, metric, subtitle, tone = 'neutral', onClick }: { project: Project; metric: string; subtitle: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
+function PopEndListItem({ resource, metric, tone = 'neutral', onClick }: { resource: Resource; metric: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
+  return (
+    <button className="dashboard-list-item" onClick={onClick}>
+      <div>
+        <div className="dashboard-list-item__title">{resource.lastName}, {resource.firstName}</div>
+        <div className="dashboard-list-item__meta">
+          PoP ends {formatShortDate(resource.popEndDate)} · {formatDivision(resource.division)} · {resource.primaryRole?.name || 'No primary role'}
+        </div>
+      </div>
+      <span className={`dashboard-pill dashboard-pill--${tone}`}>{metric}</span>
+    </button>
+  );
+}
+
+function StatusProjectListItem({ project, metric, subtitle, tone = 'neutral', onClick }: { project: StatusProject; metric: string; subtitle: string; tone?: 'neutral' | 'success' | 'warning' | 'danger'; onClick: () => void }) {
   return (
     <button className="dashboard-list-item" onClick={onClick}>
       <div>
@@ -120,9 +134,13 @@ export function Dashboard() {
     queryKey: ['dashboard-stretched-resources'],
     queryFn: () => resourcesApi.list({ page: '1', limit: '5', sortBy: 'totalPercentUtilized', sortDir: 'desc' }),
   });
-  const { data: endingSoonProjectsData, isLoading: isEndingSoonProjectsLoading } = useQuery({
-    queryKey: ['dashboard-ending-projects'],
-    queryFn: () => projectsApi.list({ page: '1', limit: '5', sortBy: 'endDate', sortDir: 'asc', status: 'in_progress' }),
+  const { data: statusProjectsData, isLoading: isStatusProjectsLoading } = useQuery({
+    queryKey: ['dashboard-status-projects'],
+    queryFn: () => statusProjectsApi.list(),
+  });
+  const { data: upcomingPopEndsData, isLoading: isUpcomingPopEndsLoading } = useQuery({
+    queryKey: ['dashboard-upcoming-pop-ends'],
+    queryFn: () => resourcesApi.list({ page: '1', limit: '5', resourceType: 'contractor', popEndWithinDays: '45', sortBy: 'popEndDate', sortDir: 'asc' }),
   });
 
   if (isLoading || !stats) {
@@ -136,8 +154,14 @@ export function Dashboard() {
 
   const availableResources = (availableResourcesData?.data ?? []).filter((resource) => resource.availableCapacity > 0);
   const stretchedResources = (stretchedResourcesData?.data ?? []).filter((resource) => resource.totalPercentUtilized > 1);
-  const upcomingProjectTransitions = (endingSoonProjectsData?.data ?? []).filter((project) => {
-    const days = daysUntil(project.endDate);
+  const upcomingProjectTransitions = (statusProjectsData ?? []).filter((project) => {
+    const days = daysUntil(project.plannedEndDate);
+    return days !== null && days >= 0 && days <= 45;
+  }).filter((project) => !project.actualEndDate).sort((a, b) => {
+    return new Date(a.plannedEndDate!).getTime() - new Date(b.plannedEndDate!).getTime();
+  }).slice(0, 5);
+  const upcomingPopEnds = (upcomingPopEndsData?.data ?? []).filter((resource) => {
+    const days = daysUntil(resource.popEndDate);
     return days !== null && days >= 0 && days <= 45;
   });
 
@@ -242,29 +266,53 @@ export function Dashboard() {
         </SectionCard>
       </div>
 
-      <div className="dashboard-section-grid dashboard-section-grid--single">
+      <div className="dashboard-section-grid">
         <SectionCard title="Upcoming Project Transitions" subtitle="In-progress work ending within the next 45 days">
-          {isEndingSoonProjectsLoading ? (
+          {isStatusProjectsLoading ? (
             <span className="usa-spinner" aria-label="Loading upcoming project transitions" />
           ) : upcomingProjectTransitions.length > 0 ? (
             <div className="dashboard-list">
               {upcomingProjectTransitions.map((project) => {
-                const days = daysUntil(project.endDate);
+                const days = daysUntil(project.plannedEndDate);
                 const tone = days !== null && days <= 14 ? 'danger' : 'warning';
                 return (
-                  <ProjectListItem
+                  <StatusProjectListItem
                     key={project.id}
                     project={project}
-                    subtitle={`${project.product?.name || 'No application'} · Team size ${project.teamSize}`}
-                    metric={days !== null ? `${days}d left` : formatShortDate(project.endDate)}
+                    subtitle={`${project.application?.name || 'No application'} · ${project.program?.name || 'No program'}`}
+                    metric={days !== null ? `${days}d left` : formatShortDate(project.plannedEndDate)}
                     tone={tone}
-                    onClick={() => navigate(`/projects/${project.id}`)}
+                    onClick={() => navigate(`/status/projects/${project.id}`)}
                   />
                 );
               })}
             </div>
           ) : (
             <EmptyListState message="No in-progress projects are ending in the next 45 days." />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Upcoming PoP Ends" subtitle="Contractor Periods of Performance ending within the next 45 days">
+          {isUpcomingPopEndsLoading ? (
+            <span className="usa-spinner" aria-label="Loading upcoming PoP ends" />
+          ) : upcomingPopEnds.length > 0 ? (
+            <div className="dashboard-list">
+              {upcomingPopEnds.map((resource) => {
+                const days = daysUntil(resource.popEndDate);
+                const tone = days !== null && days <= 14 ? 'danger' : 'warning';
+                return (
+                  <PopEndListItem
+                    key={resource.id}
+                    resource={resource}
+                    metric={days !== null ? `${days}d left` : formatShortDate(resource.popEndDate)}
+                    tone={tone}
+                    onClick={() => navigate(`/staffing/resources/${resource.id}`)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyListState message="No contractor PoPs are ending in the next 45 days." />
           )}
         </SectionCard>
       </div>

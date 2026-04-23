@@ -250,6 +250,39 @@ intakeRouter.post('/submissions/:id/submit', async (req: AuthenticatedRequest, r
   }
 });
 
+// ─── Delete draft submission ────────────────────────────────────────────────
+intakeRouter.delete('/submissions/:id', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const submission = await prisma.intakeSubmission.findUnique({
+      where: { id: req.params.id as string },
+      include: { documents: true },
+    });
+    if (!submission) {
+      next(new AppError('Submission not found', 404));
+      return;
+    }
+    if (submission.submitterId !== req.user!.id) {
+      next(new AppError('Only the submitter can delete this submission', 403));
+      return;
+    }
+    if (submission.status !== 'draft') {
+      next(new AppError('Only draft submissions can be deleted', 400));
+      return;
+    }
+
+    // Remove uploaded files from disk
+    for (const doc of submission.documents) {
+      if (fs.existsSync(doc.storagePath)) fs.unlinkSync(doc.storagePath);
+    }
+
+    await prisma.intakeSubmission.delete({ where: { id: submission.id } });
+    await logAction(req.user!.id, 'delete', 'intake_submission', submission.id, { title: submission.title }, req.ip);
+    res.json({ message: 'Submission deleted' });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
 // ─── List version history ───────────────────────────────────────────────────
 intakeRouter.get('/submissions/:id/versions', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {

@@ -1,5 +1,43 @@
 /* ─── Staffing App Styles ───────────────────────────────────────────────── */
 
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+  z-index: 9999;
+  animation: toast-in .2s ease;
+  max-width: 420px;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.toast--success { background: var(--usa-success); color: #fff; }
+.toast--error   { background: var(--usa-secondary); color: #fff; }
+.toast--info    { background: var(--usa-primary-darker); color: #fff; }
+.toast__dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  opacity: .75;
+  margin-left: auto;
+}
+.toast__dismiss:hover { opacity: 1; }
+
 /* ── Modal ───────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
@@ -494,6 +532,62 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-2);
+}
+
+/* ── Resource form: standardized vertical gaps ──────────────────────────── */
+.resource-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.resource-form .usa-form-group {
+  margin-bottom: 0;
+}
+
+/* ── Field tip tooltip ──────────────────────────────────────────────────── */
+.field-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.field-tip__btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--usa-primary);
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.55;
+  line-height: 1;
+}
+.field-tip__btn:hover { opacity: 1; }
+.field-tip__tooltip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 268px;
+  background: var(--usa-ink);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.22);
+  z-index: 200;
+  white-space: normal;
+  font-weight: 400;
+}
+
+/* ── Intake header account dropdown (light background override) ─────────── */
+.intake-account-dropdown .account-dropdown__btn {
+  padding: 5px;
+  border-radius: 50%;
+}
+.intake-account-dropdown .account-dropdown__btn:hover {
+  background: var(--usa-base-lightest);
 }
 
 /* ── Pagination ─────────────────────────────────────────────────────────── */
