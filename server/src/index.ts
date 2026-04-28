@@ -19,6 +19,7 @@ import { applicationsRouter } from './routes/applications';
 import { portfoliosRouter } from './routes/portfolios';
 import { statusAdminRouter } from './routes/statusAdmin';
 import { notificationsRouter } from './routes/notifications';
+import { risksRouter } from './routes/risks';
 import { intakeRouter } from './routes/intake';
 import { intakeAiRouter } from './routes/intakeAi';
 import { startPopAlertJob } from './jobs/popAlertJob';
@@ -57,6 +58,7 @@ app.use('/api/applications', applicationsRouter);
 app.use('/api/portfolios', portfoliosRouter);
 app.use('/api/status-admin', statusAdminRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/risks', risksRouter);
 app.use('/api/intake', intakeRouter);
 app.use('/api/intake/ai', intakeAiRouter);
 

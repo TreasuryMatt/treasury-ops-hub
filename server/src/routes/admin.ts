@@ -239,6 +239,54 @@ adminRouter.delete('/phases/:id', requireAdmin, async (req: AuthenticatedRequest
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
 
+// ─── Reference data: Risk Categories ────────────────────────────────────────
+adminRouter.get('/risk-categories', async (_req: AuthenticatedRequest, res: Response) => {
+  const categories = await prisma.riskCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+  res.json({ data: categories });
+});
+
+adminRouter.post('/risk-categories', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, sortOrder } = req.body;
+    const category = await prisma.riskCategory.create({
+      data: {
+        name,
+        sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : 0,
+      },
+    });
+    res.status(201).json({ data: category });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.get('/risk-categories/:id/usage', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const count = await prisma.risk.count({ where: { categoryId: req.params.id as string } });
+    res.json({ data: count > 0 ? [{ label: 'risks', count }] : [] });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.put('/risk-categories/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, sortOrder, isActive } = req.body;
+    const category = await prisma.riskCategory.update({
+      where: { id: req.params.id as string },
+      data: {
+        name,
+        sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : undefined,
+        isActive: isActive !== undefined ? Boolean(isActive) : undefined,
+      },
+    });
+    res.json({ data: category });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+adminRouter.delete('/risk-categories/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    await prisma.riskCategory.delete({ where: { id: req.params.id as string } });
+    res.json({ message: 'Deleted' });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 adminRouter.get('/users', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
   const users = await prisma.user.findMany({ orderBy: { displayName: 'asc' } });

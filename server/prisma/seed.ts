@@ -435,6 +435,24 @@ async function seedReferenceData() {
     });
   }
 
+  const riskCategories = [
+    'Funding',
+    'Compliance',
+    'Delivery',
+    'Requirement',
+    'Resources/Staffing',
+    'Schedule',
+    'Technical Complexity',
+    'Testing',
+  ];
+  for (let i = 0; i < riskCategories.length; i += 1) {
+    await prisma.riskCategory.upsert({
+      where: { name: riskCategories[i] },
+      update: { sortOrder: i, isActive: true },
+      create: { name: riskCategories[i], sortOrder: i, isActive: true },
+    });
+  }
+
   const portfolios = [
     { name: 'Demo Citizen Experience Portfolio', description: `${DEMO_TAG} Public-facing modernization work.` },
     { name: 'Demo Shared Services Portfolio', description: `${DEMO_TAG} Shared service delivery and automation.` },

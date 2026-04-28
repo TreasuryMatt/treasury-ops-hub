@@ -65,6 +65,25 @@ enum IntakeDetermination {
   approved
 }
 
+enum RiskProgress {
+  open
+  accepted
+  escalated_to_issue
+}
+
+enum RiskCriticality {
+  critical
+  high
+  moderate
+  low
+}
+
+enum RiskActionStatus {
+  red
+  yellow
+  green
+}
+
 // ─── Users (app login) ──────────────────────────────────────────────────────
 
 model User {
@@ -90,6 +109,8 @@ model User {
   resolvedIssues      IssueEntry[]     @relation("IssueEntryResolver")
   accomplishments     Accomplishment[] @relation("AccomplishmentAuthor")
   uploadedDocuments   Document[]       @relation("DocumentUploader")
+  submittedRisks           Risk[]                 @relation("RiskSubmitter")
+  riskComments             RiskComment[]          @relation("RiskCommentAuthor")
   notifications            Notification[]            @relation("NotificationRecipient")
   notificationPreferences  NotificationPreference[]  @relation("NotificationPreferenceUser")
   resource                 Resource?                 @relation("ResourceUser")
@@ -425,6 +446,7 @@ model Program {
 
   applications   Application[]
   statusProjects StatusProject[]
+  risks          Risk[]
 
   @@map("programs")
 }
@@ -482,6 +504,7 @@ model StatusProject {
   phases          ProjectPhase[]
   updates         StatusUpdate[]
   issues          IssueEntry[]
+  risks           Risk[]
   accomplishments Accomplishment[]
   documents       Document[]
   products        StatusProjectProduct[]
@@ -547,6 +570,75 @@ model IssueEntry {
   resolutionNotes String?       @map("resolution_notes")
 
   @@map("issue_entries")
+}
+
+model RiskCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  risks Risk[]
+
+  @@map("risk_categories")
+}
+
+model Risk {
+  id              String          @id @default(uuid())
+  riskCode        String          @unique @map("risk_code")
+  progress        RiskProgress    @default(open)
+  programId       String          @map("program_id")
+  program         Program         @relation(fields: [programId], references: [id])
+  statusProjectId String          @map("status_project_id")
+  statusProject   StatusProject   @relation(fields: [statusProjectId], references: [id], onDelete: Cascade)
+  categoryId      String          @map("category_id")
+  category        RiskCategory    @relation(fields: [categoryId], references: [id])
+  spmId           String?         @map("spm_id")
+  title           String
+  statement       String
+  criticality     RiskCriticality
+  submitterId     String          @map("submitter_id")
+  submitter       User            @relation("RiskSubmitter", fields: [submitterId], references: [id])
+  dateIdentified  DateTime?       @map("date_identified")
+  probability     Float?
+  impact          String?
+  impactDate      DateTime?       @map("impact_date")
+  closureCriteria String?         @map("closure_criteria")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  comments          RiskComment[]
+  mitigationActions RiskMitigationAction[]
+
+  @@map("risks")
+}
+
+model RiskComment {
+  id        String   @id @default(uuid())
+  riskId     String   @map("risk_id")
+  risk       Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  authorId   String   @map("author_id")
+  author     User     @relation("RiskCommentAuthor", fields: [authorId], references: [id])
+  text       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("risk_comments")
+}
+
+model RiskMitigationAction {
+  id        String           @id @default(uuid())
+  riskId    String           @map("risk_id")
+  risk      Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  title     String
+  dueDate   DateTime?        @map("due_date")
+  status    RiskActionStatus @default(yellow)
+  sortOrder Int              @default(0) @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@map("risk_mitigation_actions")
 }
 
 model Accomplishment {

@@ -225,6 +225,17 @@ export function ReferenceData() {
         usageFn={adminApi.phaseUsage}
         fields={[{ key: 'name', label: 'Name' }, { key: 'sortOrder', label: 'Sort Order' }]}
       />
+
+      <ReferenceTable
+        title="Risk Categories"
+        queryKey="risk-categories"
+        fetchFn={adminApi.riskCategories}
+        createFn={adminApi.createRiskCategory}
+        updateFn={adminApi.updateRiskCategory}
+        deleteFn={adminApi.deleteRiskCategory}
+        usageFn={adminApi.riskCategoryUsage}
+        fields={[{ key: 'name', label: 'Name' }, { key: 'sortOrder', label: 'Sort Order' }]}
+      />
     </div>
   );
 }
