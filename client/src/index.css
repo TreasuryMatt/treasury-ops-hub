@@ -1514,3 +1514,98 @@ code {
   padding: 1px 5px;
   color: var(--usa-primary-dark);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Token remapping when <html data-theme="dark">
+   ════════════════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Neutrals — true black/near-black scale */
+  --usa-white:              #141414;
+  --usa-base-lightest:      #080808;
+  --usa-base-lighter:       rgba(255,255,255,.07);
+  --usa-base-light:         #363d45;
+  --usa-base:               #626d78;
+  --usa-base-dark:          #97a3ae;
+  --usa-base-darker:        #bec6ce;
+  --usa-base-darkest:       #e2e6ea;
+  --usa-ink:                #e2e6ea;
+
+  /* Gov banner — true black strip */
+  --gov-banner-bg:          #030303;
+  --gov-banner-text:        #8f9ba5;
+
+  /* Primary — blue retained as accent only, not as surface */
+  --usa-primary-lighter:    rgba(80,154,224,.16);
+  --usa-primary-light:      #6aaee8;
+  --usa-primary:            #509ad4;
+  --usa-primary-vivid:      #5aaef0;
+  --usa-primary-dark:       #8bc2f5;
+  /* --usa-primary-darker stays #162e51 — used for header/footer chrome */
+
+  /* Status — muted translucent backgrounds */
+  --usa-success-lighter:    rgba(0,169,28,.18);
+  --usa-warning-lighter:    rgba(255,190,46,.14);
+  --usa-error-lighter:      rgba(213,67,9,.18);
+  --usa-accent-cool-lighter: rgba(0,189,227,.14);
+
+  /* Shadows — heavier on dark backgrounds */
+  --shadow-1: 0 1px 4px 0 rgba(0,0,0,.45);
+  --shadow-2: 0 4px 12px 0 rgba(0,0,0,.55);
+  --shadow-3: 0 8px 24px 0 rgba(0,0,0,.65);
+}
+
+/* ── Theme toggle button ──────────────────────────────────────────────────── */
+.usa-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--usa-base-darker);
+  background: var(--usa-base-lightest);
+  border: 1px solid var(--usa-base-lighter);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.usa-theme-toggle:hover {
+  background: var(--usa-primary-lighter);
+  border-color: var(--usa-primary-light);
+  color: var(--usa-primary-dark);
+}
+.usa-theme-toggle__icon {
+  flex-shrink: 0;
+}
+.usa-theme-toggle__icon--sun {
+  display: none;
+}
+.usa-theme-toggle__icon--moon {
+  display: block;
+}
+[data-theme="dark"] .usa-theme-toggle__icon--sun {
+  display: block;
+}
+[data-theme="dark"] .usa-theme-toggle__icon--moon {
+  display: none;
+}
+.usa-theme-toggle__label {
+  font-size: 13px;
+}
+
+/* ── Theme toggle in header ───────────────────────────────────────────────── */
+.usa-header__user .usa-theme-toggle {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.2);
+  color: var(--usa-primary-lighter);
+  font-size: 12px;
+}
+.usa-header__user .usa-theme-toggle:hover {
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.3);
+  color: var(--usa-white);
+}
+.usa-header__user .usa-theme-toggle__icon {
+  color: var(--usa-primary-lighter);
+}

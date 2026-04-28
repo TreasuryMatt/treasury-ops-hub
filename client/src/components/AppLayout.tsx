@@ -3,6 +3,7 @@ import { Outlet, Navigate, NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Icon } from './Icon';
+import { ThemeToggle } from './ThemeToggle';
 import { fetchNotifications, markAllRead, markRead } from '../api/notifications';
 import { AppNotification } from '../types';
 
@@ -285,6 +286,7 @@ function SiteHeader() {
             <Icon name="star" color="#fff" size={16} />
             Executive Summary
           </NavLink>
+          <ThemeToggle />
           <NotificationBell />
           <span className="usa-header__user-name">{user.displayName}</span>
           <span className="usa-header__user-role">{user.role}</span>
