@@ -1644,6 +1644,40 @@ code {
   color: var(--usa-primary-lighter);
 }
 
+/* Header icons and buttons in dark mode */
+[data-theme="dark"] .notif-bell__btn {
+  color: #fff;
+}
+
+[data-theme="dark"] .account-dropdown__btn {
+  color: #fff;
+}
+
+[data-theme="dark"] .exec-summary-btn {
+  background: var(--usa-success);
+  color: #fff;
+}
+
+[data-theme="dark"] .usa-theme-toggle {
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.3);
+  color: #fff;
+}
+
+[data-theme="dark"] .usa-theme-toggle:hover {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.4);
+  color: #fff;
+}
+
+[data-theme="dark"] .usa-theme-toggle__icon {
+  color: #fff;
+}
+
+[data-theme="dark"] .usa-theme-toggle__label {
+  color: #fff;
+}
+
 [data-theme="dark"] .account-dropdown__name,
 [data-theme="dark"] .account-dropdown__role,
 [data-theme="dark"] .account-dropdown__item {
@@ -1651,7 +1685,12 @@ code {
 }
 
 [data-theme="dark"] .usa-table thead {
-  color: var(--usa-base-darker);
+  background: var(--usa-primary-darker);
+  color: #fff;
+}
+
+[data-theme="dark"] .usa-table thead th {
+  color: #fff;
 }
 
 [data-theme="dark"] .usa-table tbody tr:hover {

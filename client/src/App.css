@@ -1063,8 +1063,13 @@
 }
 
 /* Detailed cards and content */
+[data-theme="dark"] .dashboard-action-card {
+  background: #2a2f37;
+  border-color: var(--usa-base-lighter);
+}
+
 [data-theme="dark"] .detail-stat-card {
-  background: var(--usa-white);
+  background: #2a2f37;
   border-color: var(--usa-base-lighter);
 }
 
