@@ -1065,8 +1065,15 @@
 /* Detailed cards and content */
 [data-theme="dark"] .dashboard-action-card {
   background: #2a2f37;
-  border-color: var(--usa-base-lighter);
+  border-top-color: var(--usa-base-lighter);
+  border-right-color: var(--usa-base-lighter);
+  border-bottom-color: var(--usa-base-lighter);
+  /* Preserve border-left accent color from the variant rules */
 }
+
+[data-theme="dark"] .dashboard-action-card--success { border-left-color: var(--usa-success); }
+[data-theme="dark"] .dashboard-action-card--warning { border-left-color: var(--usa-warning-dark); }
+[data-theme="dark"] .dashboard-action-card--danger  { border-left-color: var(--usa-error); }
 
 [data-theme="dark"] .detail-stat-card {
   background: #2a2f37;
@@ -1080,6 +1087,18 @@
 }
 
 /* Rollup content */
+[data-theme="dark"] .rollup-program__header {
+  color: #fff;
+}
+
+[data-theme="dark"] .rollup-program__name {
+  color: #fff;
+}
+
+[data-theme="dark"] .rollup-program__meta {
+  color: rgba(255,255,255,.7);
+}
+
 [data-theme="dark"] .rollup-program__title {
   color: var(--usa-base-darker);
 }

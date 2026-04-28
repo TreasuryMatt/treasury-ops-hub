@@ -3,8 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from './Icon';
 
-const COLOR_MAIN  = '#005ea2';
-const COLOR_ADMIN = '#3d4551';
+const COLOR_MAIN  = 'var(--usa-primary)';
+const COLOR_ADMIN = 'var(--usa-base-dark)';
 
 export function Sidebar() {
   const { user } = useAuth();

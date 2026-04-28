@@ -1641,7 +1641,8 @@ code {
 }
 
 [data-theme="dark"] .usa-header__user-role {
-  color: var(--usa-primary-lighter);
+  color: rgba(255,255,255,.7);
+  background: rgba(255,255,255,.15);
 }
 
 /* Header icons and buttons in dark mode */
