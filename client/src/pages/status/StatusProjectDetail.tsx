@@ -12,7 +12,7 @@ import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { GanttChart } from '../../components/GanttChart';
 
-type Tab = 'overview' | 'updates' | 'accomplishments' | 'roadmap' | 'issues' | 'documents' | 'staffing';
+type Tab = 'overview' | 'updates' | 'accomplishments' | 'issues' | 'documents' | 'staffing';
 
 export function StatusProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +37,7 @@ export function StatusProjectDetail() {
   const { data: phases = [] } = useQuery<ProjectPhase[]>({
     queryKey: ['status-project-phases', id],
     queryFn: () => statusProjectsApi.listPhases(id!),
-    enabled: !!id && (activeTab === 'roadmap' || activeTab === 'overview'),
+    enabled: !!id && activeTab === 'overview',
   });
 
   const { data: issues = [] } = useQuery<IssueEntry[]>({
@@ -68,7 +68,6 @@ export function StatusProjectDetail() {
     { key: 'overview', label: 'Overview' },
     { key: 'updates', label: 'Updates' },
     { key: 'accomplishments', label: 'Successes' },
-    { key: 'roadmap', label: 'Roadmap' },
     { key: 'issues', label: 'Issues' },
     { key: 'documents', label: 'Documents' },
     { key: 'staffing', label: 'Staffing' },
@@ -131,7 +130,6 @@ export function StatusProjectDetail() {
 
       {activeTab === 'overview' && <OverviewTab project={project} phases={phases} />}
       {activeTab === 'updates' && <UpdatesTab projectId={id!} updates={updates} canEdit={canEdit} />}
-      {activeTab === 'roadmap' && <RoadmapTab projectId={id!} phases={phases} canEdit={canEdit} />}
       {activeTab === 'accomplishments' && <AccomplishmentsTab projectId={id!} accomplishments={accomplishments} canEdit={canEdit} />}
       {activeTab === 'issues' && <IssuesTab projectId={id!} issues={issues} canEdit={canEdit} />}
       {activeTab === 'documents' && <DocumentsTab projectId={id!} documents={documents} canEdit={canEdit} />}
@@ -141,22 +139,70 @@ export function StatusProjectDetail() {
 }
 
 function OverviewTab({ project, phases }: { project: StatusProject; phases: ProjectPhase[] }) {
-  const fields = [
-    { label: 'Program', value: project.program?.name },
-    { label: 'Application', value: project.application?.name },
-    { label: 'Department', value: project.department?.name },
-    { label: 'Federal Product Owner', value: project.federalProductOwner },
-    { label: 'Customer Contact', value: project.customerContact },
-    { label: 'Priority', value: project.priority?.name },
-    { label: 'Execution Type', value: project.executionType?.name },
-    { label: 'Customer Category', value: project.customerCategory?.name },
-    { label: 'Phase', value: project.phase?.name },
-    { label: 'Funded', value: project.funded ? 'Yes' : 'No' },
-    { label: 'Update Cadence', value: project.updateCadence },
-    { label: 'Planned Start', value: project.plannedStartDate ? new Date(project.plannedStartDate).toLocaleDateString() : null },
-    { label: 'Planned End', value: project.plannedEndDate ? new Date(project.plannedEndDate).toLocaleDateString() : null },
-    { label: 'Actual Start', value: project.actualStartDate ? new Date(project.actualStartDate).toLocaleDateString() : null },
-    { label: 'Actual End', value: project.actualEndDate ? new Date(project.actualEndDate).toLocaleDateString() : null },
+  const { user } = useAuth();
+  const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const [editing, setEditing] = useState<ProjectPhase | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const qc = useQueryClient();
+  const projectId = project.id;
+
+  const createPhase = useMutation({
+    mutationFn: (data: any) => statusProjectsApi.createPhase(projectId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['status-project-phases', projectId] });
+      setShowForm(false);
+    },
+  });
+
+  const updatePhase = useMutation({
+    mutationFn: ({ phaseId, data }: { phaseId: string; data: any }) => statusProjectsApi.updatePhase(projectId, phaseId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['status-project-phases', projectId] });
+      setEditing(null);
+    },
+  });
+
+  const sections = [
+    {
+      title: 'Organization',
+      fields: [
+        { label: 'Program', value: project.program?.name },
+        { label: 'Application', value: project.application?.name },
+        { label: 'Department', value: project.department?.name },
+      ],
+    },
+    {
+      title: 'Leadership',
+      fields: [
+        { label: 'Federal Product Owner', value: project.federalProductOwner },
+        { label: 'Customer Contact', value: project.customerContact },
+      ],
+    },
+    {
+      title: 'Project Definition',
+      fields: [
+        { label: 'Priority', value: project.priority?.name },
+        { label: 'Execution Type', value: project.executionType?.name },
+        { label: 'Customer Category', value: project.customerCategory?.name },
+      ],
+    },
+    {
+      title: 'Status',
+      fields: [
+        { label: 'Phase', value: project.phase?.name },
+        { label: 'Funded', value: project.funded ? 'Yes' : 'No' },
+        { label: 'Update Cadence', value: project.updateCadence },
+      ],
+    },
+    {
+      title: 'Timeline',
+      fields: [
+        { label: 'Planned Start', value: project.plannedStartDate ? new Date(project.plannedStartDate).toLocaleDateString() : null },
+        { label: 'Planned End', value: project.plannedEndDate ? new Date(project.plannedEndDate).toLocaleDateString() : null },
+        { label: 'Actual Start', value: project.actualStartDate ? new Date(project.actualStartDate).toLocaleDateString() : null },
+        { label: 'Actual End', value: project.actualEndDate ? new Date(project.actualEndDate).toLocaleDateString() : null },
+      ],
+    },
   ];
 
   return (
@@ -165,23 +211,80 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
         <p style={{ marginBottom: 'var(--space-3)', color: 'var(--usa-base-dark)', fontSize: 15 }}>{project.description}</p>
       )}
 
-      <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-        <dl className="detail-list">
-          {fields.map((f) => (
-            <React.Fragment key={f.label}>
-              <dt>{f.label}</dt>
-              <dd>{f.value || '—'}</dd>
-            </React.Fragment>
-          ))}
-        </dl>
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+        {/* Left card: Organization, Leadership, Project Definition */}
+        <div className="detail-card">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
+            {sections.slice(0, 3).map((section) => (
+              <div key={section.title}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--usa-base)', margin: '0 0 var(--space-2) 0' }}>{section.title}</p>
+                <dl style={{ margin: 0, padding: 0 }}>
+                  {section.fields.map((f) => (
+                    <React.Fragment key={f.label}>
+                      <dt style={{ fontSize: 11, color: 'var(--usa-base)', margin: '0 0 2px 0', padding: 0 }}>{f.label}</dt>
+                      <dd style={{ fontSize: 14, fontWeight: 600, color: 'var(--usa-base-darkest)', margin: '0 0 12px 0', padding: 0 }}>{f.value || '—'}</dd>
+                    </React.Fragment>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Right card: Status, Timeline */}
+        <div className="detail-card">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)' }}>
+            {sections.slice(3).map((section) => (
+              <div key={section.title}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--usa-base)', margin: '0 0 var(--space-2) 0' }}>{section.title}</p>
+                <dl style={{ margin: 0, padding: 0 }}>
+                  {section.fields.map((f) => (
+                    <React.Fragment key={f.label}>
+                      <dt style={{ fontSize: 11, color: 'var(--usa-base)', margin: '0 0 2px 0', padding: 0 }}>{f.label}</dt>
+                      <dd style={{ fontSize: 14, fontWeight: 600, color: 'var(--usa-base-darkest)', margin: '0 0 12px 0', padding: 0 }}>{f.value || '—'}</dd>
+                    </React.Fragment>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {phases.length > 0 && (
-        <div className="detail-card">
-          <h3>Roadmap</h3>
-          <GanttChart phases={phases} />
+      <div className="detail-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: phases.length > 0 ? 'var(--space-3)' : 0 }}>
+          <h3 style={{ margin: 0 }}>Roadmap</h3>
+          {canEdit && !showForm && !editing && (
+            <button className="usa-button usa-button--outline" onClick={() => setShowForm(true)} style={{ fontSize: 13, padding: '6px 12px' }}>
+              <Icon name="add" size={14} /> Add Phase
+            </button>
+          )}
         </div>
-      )}
+
+        {phases.length > 0 && (
+          <GanttChart phases={phases} onPhaseClick={canEdit ? (p) => setEditing(p) : undefined} />
+        )}
+
+        {phases.length === 0 && !showForm && !editing && (
+          <div className="empty-state" style={{ padding: 'var(--space-2)' }}>
+            <p style={{ margin: 0, color: 'var(--usa-base)', fontSize: 14 }}>No phases defined yet{canEdit ? '.' : ''}</p>
+          </div>
+        )}
+
+        {(showForm || editing) && (
+          <PhaseForm
+            phase={editing}
+            onSubmit={(data) => {
+              if (editing) {
+                updatePhase.mutate({ phaseId: editing.id, data });
+              } else {
+                createPhase.mutate(data);
+              }
+            }}
+            onCancel={() => { setShowForm(false); setEditing(null); }}
+            isPending={createPhase.isPending || updatePhase.isPending}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -322,71 +425,6 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
               )}
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RoadmapTab({ projectId, phases, canEdit }: { projectId: string; phases: ProjectPhase[]; canEdit: boolean }) {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState<ProjectPhase | null>(null);
-  const [showForm, setShowForm] = useState(false);
-
-  const createPhase = useMutation({
-    mutationFn: (data: any) => statusProjectsApi.createPhase(projectId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['status-project-phases', projectId] });
-      setShowForm(false);
-    },
-  });
-
-  const updatePhase = useMutation({
-    mutationFn: ({ phaseId, data }: { phaseId: string; data: any }) => statusProjectsApi.updatePhase(projectId, phaseId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['status-project-phases', projectId] });
-      setEditing(null);
-    },
-  });
-
-  return (
-    <div>
-      {phases.length > 0 && (
-        <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-          <GanttChart phases={phases} onPhaseClick={canEdit ? (p) => setEditing(p) : undefined} />
-        </div>
-      )}
-
-      {phases.length === 0 && !showForm && (
-        <div className="empty-state">
-          <div className="empty-state__icon"><Icon name="timeline" size={48} /></div>
-          <h3>No phases defined</h3>
-          <p>Add phases to visualize this project's roadmap.</p>
-        </div>
-      )}
-
-      {canEdit && (
-        <div>
-          {!showForm && !editing && (
-            <button className="usa-button usa-button--outline" onClick={() => setShowForm(true)}>
-              <Icon name="add" size={16} /> Add Phase
-            </button>
-          )}
-
-          {(showForm || editing) && (
-            <PhaseForm
-              phase={editing}
-              onSubmit={(data) => {
-                if (editing) {
-                  updatePhase.mutate({ phaseId: editing.id, data });
-                } else {
-                  createPhase.mutate(data);
-                }
-              }}
-              onCancel={() => { setShowForm(false); setEditing(null); }}
-              isPending={createPhase.isPending || updatePhase.isPending}
-            />
-          )}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 # Treasury Capacity Management — Backlog
 
-> Last updated: 2026-04-06
+> Last updated: 2026-04-28
 
 ---
 
@@ -28,32 +28,20 @@
 - [x] **Resources — edit row icon** is white on white in light mode; use appropriate contrasting color
 - [x] **Dashboard — "View All Resources" button** style should match "View All Projects" button
 - [x] **Dashboard — Total Resources card** links to the Resources page
-- [ ] **Dashboard — Available Resources card** links to the Resources page filtered to available-only
 - [ ] **Dashboard — Division labels** show lowercase (e.g. "Pmso" → "PMSO"); capitalize correctly
 
 ### 🟡 Medium (1–4 hours)
 
-- [ ] **Executive rollup report** — configurable time window (weekly/monthly/custom) that aggregates Accomplishments, Updates, Issues, Risks, and Blockers across all projects into a single executive-friendly view; filterable by program or portfolio; exportable
 - [ ] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
-- [ ] **Projects list page** — filterable table (status, priority, product)
-- [ ] **Utilization calculation** — verify total % per resource sums correctly across assignments
-- [ ] **Search** — global name search across resources and projects
-- [ ] **Contractor POP dates** — fix date format variance so all rows parse correctly on import
 
 ### 🟠 Large (half day – full day)
 
-- [ ] **Project detail page** — team roster with roles and utilization, add/remove members
-- [ ] **Add / Edit Resource form** — all fields, role selector, supervisor lookup, division dropdown
-- [ ] **Add / Edit Project form** — product selector, priority, dates, status
 - [ ] **Import page UI** — drag-and-drop upload, preview before commit, validation errors
 - [ ] **Re-import idempotency** — add upsert logic so re-importing doesn't require manual DB truncate
-- [ ] **Some assignments missing** — role name mismatch on import; add fuzzy match or fallback
 
 ### 🔴 Extra Large (multi-day)
 
-- [ ] **Reference data admin** — manage Roles, Functional Areas, Products in the UI
 - [ ] **Bureaus reference data** — admin CRUD for Treasury Bureaus (IRS, OCC, FinCEN, etc.); link bureaus to projects, programs, and resources for filtering and reporting
-- [ ] **Phases reference data** — admin CRUD for standard project phase definitions (e.g. Planning, Execution, Closeout); used as a picklist when adding phases to project roadmaps
 - [ ] **Departments reference data** — admin CRUD for Departments; used as a picklist on projects and resources for filtering and reporting
 - [ ] **User management page** — list users, change roles, activate/deactivate
 - [ ] **Audit log viewer** — paginated table of all actions

@@ -118,6 +118,18 @@ const PATHS: Record<string, React.ReactNode> = {
   logout: (
     <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
   ),
+  insights: (
+    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+  ),
+  arrow_updown: (
+    <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z" />
+  ),
+  arrow_up: (
+    <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z" />
+  ),
+  arrow_down: (
+    <path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z" />
+  ),
 };
 
 interface IconProps {
@@ -125,9 +137,10 @@ interface IconProps {
   color?: string;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export function Icon({ name, color = 'currentColor', size = 18, className }: IconProps) {
+export function Icon({ name, color = 'currentColor', size = 18, className, style }: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -138,7 +151,7 @@ export function Icon({ name, color = 'currentColor', size = 18, className }: Ico
       aria-hidden="true"
       focusable="false"
       className={className}
-      style={{ flexShrink: 0 }}
+      style={{ flexShrink: 0, ...style }}
     >
       {PATHS[name]}
     </svg>

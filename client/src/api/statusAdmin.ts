@@ -34,4 +34,7 @@ export const statusAdminApi = {
 
   trends: () =>
     api.get('/status-admin/trends').then((r) => r.data.data as Record<string, StatusTrendPoint[]>),
+
+  aiSummary: (params: { window?: string; programId?: string; startDate?: string; endDate?: string }) =>
+    api.post('/status-admin/ai-summary', params).then((r) => r.data.data as { summary: string }),
 };

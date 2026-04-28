@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
@@ -6,6 +6,45 @@ import { programsApi } from '../../api/programs';
 import { Program, StatusProject, ProjectPhase, StatusProjectStatusType, Application } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
+
+type WindowOption = 'all' | 'this-month' | 'next-3' | 'next-6' | 'this-year' | 'custom';
+
+const WINDOW_LABELS: Record<WindowOption, string> = {
+  all: 'All Time',
+  'this-month': 'This Month',
+  'next-3': 'Next 3 Months',
+  'next-6': 'Next 6 Months',
+  'this-year': 'This Year',
+  custom: 'Custom',
+};
+
+function getPresetRange(option: WindowOption): { start: Date; end: Date } | null {
+  const now = new Date();
+  switch (option) {
+    case 'this-month':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+      };
+    case 'next-3':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 3, 0),
+      };
+    case 'next-6':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 6, 0),
+      };
+    case 'this-year':
+      return {
+        start: new Date(now.getFullYear(), 0, 1),
+        end: new Date(now.getFullYear(), 11, 31),
+      };
+    default:
+      return null;
+  }
+}
 
 const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
   initiated: 'var(--usa-info)',
@@ -26,8 +65,26 @@ export function Roadmap() {
   const [searchParams] = useSearchParams();
   const [filterProgramId, setFilterProgramId] = useState(searchParams.get('programId') || '');
   const [filterApplicationId, setFilterApplicationId] = useState('');
+  const [windowOption, setWindowOption] = useState<WindowOption>('all');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [collapsedPrograms, setCollapsedPrograms] = useState<Set<string>>(new Set());
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+
+  function applyCustomRange() {
+    setCustomStart(startRef.current?.value ?? '');
+    setCustomEnd(endRef.current?.value ?? '');
+  }
+
+  function toggleProgram(name: string) {
+    setCollapsedPrograms((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
 
   const { data: projects = [], isLoading } = useQuery<RoadmapProject[]>({
     queryKey: ['roadmap'],
@@ -65,10 +122,20 @@ export function Roadmap() {
   const autoMin = allDates.length ? Math.min(...allDates) : Date.now();
   const autoMax = allDates.length ? Math.max(...allDates) : Date.now() + 1;
 
-  // Use custom date range if both dates are set, otherwise auto-compute
-  const hasCustomRange = !!customStart && !!customEnd;
-  const minTime = hasCustomRange ? new Date(customStart).getTime() : autoMin;
-  const maxTime = hasCustomRange ? new Date(customEnd).getTime() : autoMax;
+  const presetRange = windowOption !== 'all' && windowOption !== 'custom' ? getPresetRange(windowOption) : null;
+  const hasCustomRange = windowOption === 'custom' && !!customStart && !!customEnd;
+  const hasActiveRange = !!presetRange || hasCustomRange;
+
+  const minTime = presetRange
+    ? presetRange.start.getTime()
+    : hasCustomRange
+      ? new Date(customStart).getTime()
+      : autoMin;
+  const maxTime = presetRange
+    ? presetRange.end.getTime()
+    : hasCustomRange
+      ? new Date(customEnd).getTime()
+      : autoMax;
   const range = maxTime - minTime || 1;
 
   const formatDate = (d: string) =>
@@ -78,9 +145,9 @@ export function Roadmap() {
   const pctWidth = (start: string, end: string) =>
     ((new Date(end).getTime() - new Date(start).getTime()) / range) * 100;
 
-  // Adaptive tick marks — weekly for short ranges, biweekly for medium, monthly for long
+  // Adaptive tick marks — weekly for short ranges, biweekly for medium, monthly/quarterly for long
   const tickMonths: { label: string; left: number }[] = [];
-  if (allDates.length || hasCustomRange) {
+  if (allDates.length || hasActiveRange) {
     const rangeDays = range / (1000 * 60 * 60 * 24);
     const cursor = new Date(minTime);
 
@@ -128,7 +195,7 @@ export function Roadmap() {
         }
         cursor.setMonth(cursor.getMonth() + 1);
       }
-    } else {
+    } else if (rangeDays <= 365) {
       // Monthly ticks
       cursor.setDate(1);
       cursor.setMonth(cursor.getMonth() + 1);
@@ -142,7 +209,30 @@ export function Roadmap() {
         }
         cursor.setMonth(cursor.getMonth() + 1);
       }
+    } else {
+      // Quarterly ticks for long ranges (> 1 year)
+      cursor.setDate(1);
+      const qStart = Math.ceil((cursor.getMonth() + 1) / 3) * 3;
+      cursor.setMonth(qStart);
+      while (cursor.getTime() <= maxTime) {
+        const left = ((cursor.getTime() - minTime) / range) * 100;
+        if (left >= 0 && left <= 100) {
+          tickMonths.push({
+            label: cursor.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+            left,
+          });
+        }
+        cursor.setMonth(cursor.getMonth() + 3);
+      }
     }
+  }
+
+  // Pre-compute grouped map for today-line height and rendering
+  const grouped = new Map<string, RoadmapProject[]>();
+  for (const p of withPhases) {
+    const key = p.program.name;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(p);
   }
 
   if (isLoading) {
@@ -161,6 +251,27 @@ export function Roadmap() {
       </div>
 
       <div className="filter-bar" style={{ marginBottom: 'var(--space-3)' }}>
+        <select
+          className="usa-select"
+          value={windowOption}
+          onChange={(e) => setWindowOption(e.target.value as WindowOption)}
+        >
+          {(Object.entries(WINDOW_LABELS) as [WindowOption, string][]).map(([val, label]) => (
+            <option key={val} value={val}>{label}</option>
+          ))}
+        </select>
+
+        {windowOption === 'custom' && (
+          <>
+            <input ref={startRef} type="date" className="usa-input" style={{ width: 160 }} />
+            <span style={{ alignSelf: 'center', color: 'var(--usa-base-dark)', fontSize: 13 }}>to</span>
+            <input ref={endRef} type="date" className="usa-input" style={{ width: 160 }} />
+            <button className="usa-button" style={{ background: 'var(--usa-success)', color: '#fff' }} onClick={applyCustomRange}>
+              Apply
+            </button>
+          </>
+        )}
+
         <select
           className="usa-select"
           value={filterProgramId}
@@ -183,31 +294,6 @@ export function Roadmap() {
             <option key={application.id} value={application.id}>{application.name}</option>
           ))}
         </select>
-        <input
-          type="date"
-          className="usa-input"
-          value={customStart}
-          onChange={(e) => setCustomStart(e.target.value)}
-          style={{ width: 160 }}
-          placeholder="Start date"
-        />
-        <input
-          type="date"
-          className="usa-input"
-          value={customEnd}
-          onChange={(e) => setCustomEnd(e.target.value)}
-          style={{ width: 160 }}
-          placeholder="End date"
-        />
-        {hasCustomRange && (
-          <button
-            className="usa-button usa-button--unstyled"
-            style={{ fontSize: 12, color: 'var(--usa-primary)' }}
-            onClick={() => { setCustomStart(''); setCustomEnd(''); }}
-          >
-            Reset dates
-          </button>
-        )}
       </div>
 
       {withPhases.length === 0 ? (
@@ -244,8 +330,7 @@ export function Roadmap() {
             {(() => {
               const todayPct = ((Date.now() - minTime) / range) * 100;
               if (todayPct < 0 || todayPct > 100) return null;
-              // Total rows = one project-header row (20px) + one phase row (32px) per phase, per project
-              const totalHeight = withPhases.reduce((sum, p) => sum + 20 + p.phases.length * 32, 0);
+              const totalHeight = withPhases.reduce((sum, p) => sum + 28 + p.phases.length * 32, 0) + grouped.size * 50;
               return (
                 <div style={{ display: 'flex', paddingLeft: 220, position: 'relative' }}>
                   <div style={{ flex: 1, position: 'relative', height: 0 }}>
@@ -281,32 +366,23 @@ export function Roadmap() {
               );
             })()}
 
-            {/* Rows grouped by program — each phase on its own row */}
-            {(() => {
-              const grouped = new Map<string, RoadmapProject[]>();
-              for (const p of withPhases) {
-                const key = p.program.name;
-                if (!grouped.has(key)) grouped.set(key, []);
-                grouped.get(key)!.push(p);
-              }
-
-              return Array.from(grouped.entries()).map(([progName, progProjects]) => (
-                <div key={progName} style={{ marginBottom: 'var(--space-2)' }}>
-                  {/* Program label */}
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: 'var(--usa-base)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      marginBottom: 4,
-                    }}
+            {/* Rows grouped by program — accordion per program */}
+            {Array.from(grouped.entries()).map(([progName, progProjects]) => {
+              const isCollapsed = collapsedPrograms.has(progName);
+              return (
+                <div key={progName} className="rollup-program">
+                  {/* Program accordion header */}
+                  <button
+                    className="rollup-program__header"
+                    style={{ width: '100%', borderRadius: isCollapsed ? 4 : '4px 4px 0 0', marginBottom: isCollapsed ? 0 : 4 }}
+                    onClick={() => toggleProgram(progName)}
                   >
-                    {progName}
-                  </div>
+                    <Icon name={isCollapsed ? 'chevron_right' : 'expand_more'} color="#fff" size={18} />
+                    <span className="rollup-program__name">{progName}</span>
+                    <span className="rollup-program__meta">{progProjects.length} project{progProjects.length !== 1 ? 's' : ''}</span>
+                  </button>
 
-                  {progProjects.map((proj) => {
+                  {!isCollapsed && progProjects.map((proj) => {
                     // Filter to phases visible in the current range
                     const visiblePhases = proj.phases.filter((ph) => {
                       const rawLeft = pctLeft(ph.startDate);
@@ -317,31 +393,34 @@ export function Roadmap() {
 
                     return (
                       <div key={proj.id} style={{ marginBottom: 6 }}>
-                        {/* Project name subheader */}
+                        {/* Project name — primary, status dot subordinate */}
                         <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            cursor: 'pointer',
-                            marginBottom: 2,
-                            height: 20,
-                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', marginBottom: 2 }}
                           onClick={() => navigate(`/status/projects/${proj.id}`)}
                           title={proj.name}
                         >
-                          <div style={{ width: 210, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <RagBadge status={proj.status} size="small" />
-                            <div style={{ overflow: 'hidden' }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                          <div style={{ width: 210, flexShrink: 0, paddingRight: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                                 {proj.name}
                               </span>
-                              {proj.application && (
-                                <div className="app-pills" style={{ marginTop: 2 }}>
-                                  <span className="app-pill" style={{ fontSize: 10, padding: '0 4px' }}>{proj.application.name}</span>
-                                </div>
-                              )}
+                              <span
+                                style={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  background: STATUS_COLORS[proj.status],
+                                  flexShrink: 0,
+                                  border: '1px solid rgba(0,0,0,0.12)',
+                                }}
+                                title={proj.status}
+                              />
                             </div>
+                            {proj.application && (
+                              <span className="app-pill" style={{ fontSize: 10, padding: '0 4px', marginTop: 2, display: 'inline-block' }}>
+                                {proj.application.name}
+                              </span>
+                            )}
                           </div>
                           {/* Faint rule across the bar area */}
                           <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
@@ -354,8 +433,8 @@ export function Roadmap() {
                           const clippedLeft = Math.max(0, rawLeft);
                           const clippedRight = Math.min(100, rawRight);
                           const clippedWidth = clippedRight - clippedLeft;
-                          const fadeLeft = hasCustomRange && rawLeft < 0;
-                          const fadeRight = hasCustomRange && rawRight > 100;
+                          const fadeLeft = hasActiveRange && rawLeft < 0;
+                          const fadeRight = hasActiveRange && rawRight > 100;
                           const barColor = ph.color || STATUS_COLORS[proj.status] || 'var(--usa-primary)';
                           let background: string = barColor;
                           if (fadeLeft && fadeRight) {
@@ -400,8 +479,8 @@ export function Roadmap() {
                     );
                   })}
                 </div>
-              ));
-            })()}
+              );
+            })}
           </div>
         </div>
       )}

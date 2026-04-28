@@ -384,3 +384,31 @@ statusAdminRouter.get('/trends', async (_req: AuthenticatedRequest, res: Respons
 
   res.json({ data: trends });
 });
+
+// POST /api/status-admin/ai-summary — placeholder for AI-generated exec summary
+statusAdminRouter.post('/ai-summary', async (req: AuthenticatedRequest, res: Response) => {
+  const { window: win, programId, startDate, endDate } = req.body as Record<string, string>;
+
+  // TODO: Integrate with Claude API or other AI service
+  // For now, return a placeholder response
+  const summary = `
+# Executive Summary
+
+**Window:** ${startDate && endDate ? `${startDate} to ${endDate}` : win || 'This Week'}
+${programId ? `**Program:** [Selected]` : ''}
+
+## Key Highlights
+- Portfolio status: Primarily on track with 3 areas at risk
+- Staffing: 2 contractors approaching end of period
+- Critical blockers identified in Infrastructure modernization
+
+## Recommendations
+- Schedule risk mitigation meeting for At Risk projects
+- Begin contractor replacement planning
+- Escalate blocker resolution in timeline
+
+*This is a placeholder summary. Full AI integration coming soon.*
+  `.trim();
+
+  res.json({ data: { summary } });
+});

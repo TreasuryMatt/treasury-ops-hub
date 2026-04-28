@@ -455,6 +455,8 @@ export function ExecutiveRollup() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(new Set());
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
 
@@ -463,6 +465,73 @@ export function ExecutiveRollup() {
     const end = endRef.current?.value ?? '';
     setCustomStart(start);
     setCustomEnd(end);
+  }
+
+  async function generateAiSummary() {
+    setAiSummaryLoading(true);
+    try {
+      const summaryParams =
+        windowOption === 'custom'
+          ? { window: 'custom', programId: filterProgramId || undefined, startDate: customStart || undefined, endDate: customEnd || undefined }
+          : { window: windowOption, programId: filterProgramId || undefined };
+      const result = await statusAdminApi.aiSummary(summaryParams);
+      setAiSummary(result.summary);
+    } catch (error) {
+      console.error('Failed to generate AI summary:', error);
+      setAiSummary('Error generating summary. Please try again.');
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  }
+
+  function downloadAsPdf() {
+    if (!aiSummary) return;
+    const element = document.getElementById('ai-summary-content');
+    if (!element) return;
+
+    const html = element.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Executive Summary</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; line-height: 1.6; color: #1e1e1e; margin: 0; padding: 40px; max-width: 900px; }
+          h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px 0; color: #1e1e1e; }
+          .subtitle { font-size: 14px; color: #666; margin-bottom: 32px; }
+          h2 { font-size: 18px; font-weight: 700; margin: 32px 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #e31c1c; color: #1e1e1e; }
+          .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; page-break-inside: avoid; }
+          .metric-card { padding: 16px; background: #f5f5f5; border-radius: 4px; }
+          .metric-value { font-size: 32px; font-weight: 700; color: #1e1e1e; }
+          .metric-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+          .status-green { color: #07a41e; }
+          .status-yellow { color: #ffb81c; }
+          .status-red { color: #e31c1c; }
+          .section-item { margin: 12px 0; padding: 12px; background: #fafafa; border-left: 4px solid #005ea2; }
+          .section-item strong { display: block; margin-bottom: 4px; }
+          .action-item { margin: 12px 0; padding: 12px 12px 12px 36px; background: #e7f6f8; border-left: 4px solid #00bcd4; position: relative; }
+          .action-item::before { content: '→'; position: absolute; left: 12px; font-weight: bold; color: #00bcd4; }
+          ul { margin: 8px 0; padding-left: 20px; }
+          li { margin: 6px 0; }
+          .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+          @media print { body { padding: 20px; } .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        ${html}
+        <div class="footer">
+          Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   }
 
   const queryParams =
@@ -534,6 +603,15 @@ export function ExecutiveRollup() {
             </p>
           )}
         </div>
+        <button
+          className="usa-button usa-button--outline"
+          onClick={generateAiSummary}
+          disabled={aiSummaryLoading || isLoading}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+        >
+          <Icon name="insights" size={18} />
+          {aiSummaryLoading ? 'Generating...' : 'Generate AI Summary'}
+        </button>
       </div>
 
       {/* Filters */}
@@ -846,6 +924,139 @@ export function ExecutiveRollup() {
           </div>
         );
       })}
+
+      {/* AI Summary Modal */}
+      {aiSummary && (
+        <div className="usa-modal" style={{ display: 'block' }} onClick={() => setAiSummary(null)}>
+          <div className="usa-modal__dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div className="usa-modal__heading">Executive Summary</div>
+            <div className="usa-modal__body" id="ai-summary-content" style={{ padding: '32px', background: '#fff' }}>
+              <div style={{ marginBottom: '32px' }}>
+                <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: 700 }}>Portfolio Status Summary</h1>
+                <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                  {formatDate(summary?.windowStart || new Date().toISOString())} – {formatDate(summary?.windowEnd || new Date().toISOString())}
+                </p>
+              </div>
+
+              {/* Key Metrics */}
+              <div style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', paddingBottom: '8px', borderBottom: '2px solid #e31c1c' }}>
+                  Portfolio Health
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 700, color: '#07a41e' }}>{summary?.greenCount || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>On Track</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 700, color: '#ffb81c' }}>{summary?.yellowCount || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>At Risk</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 700, color: '#e31c1c' }}>{summary?.redCount || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>Off Track</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '32px', fontWeight: 700, color: '#1e1e1e' }}>{summary?.totalProjects || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>Total Projects</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Summary */}
+              <div style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', paddingBottom: '8px', borderBottom: '2px solid #e31c1c' }}>
+                  Recent Activity
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#1e1e1e' }}>{summary?.newAccomplishments || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>New Accomplishments</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#1e1e1e' }}>{summary?.newUpdates || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Status Updates</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#e31c1c' }}>{summary?.openBlockers || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Active Blockers</div>
+                  </div>
+                  <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffb81c' }}>{summary?.openRisks || 0}</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>Open Risks</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Critical Issues */}
+              {summary && (summary.redCount > 0 || summary.openBlockers > 0) && (
+                <div style={{ marginBottom: '32px' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', paddingBottom: '8px', borderBottom: '2px solid #e31c1c' }}>
+                    Critical Attention Required
+                  </h2>
+                  <div style={{ padding: '16px', background: '#fff8f7', border: '1px solid #e31c1c', borderRadius: '4px', marginBottom: '12px' }}>
+                    <strong style={{ display: 'block', color: '#e31c1c', marginBottom: '8px' }}>🚨 {summary.redCount} Project{summary.redCount !== 1 ? 's' : ''} Off Track</strong>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#1e1e1e' }}>
+                      Immediate intervention needed. Recommend scheduling crisis meetings within 24 hours to identify root causes and mitigation strategies.
+                    </p>
+                  </div>
+                  {summary.openBlockers > 0 && (
+                    <div style={{ padding: '16px', background: '#fff8f7', border: '1px solid #e31c1c', borderRadius: '4px' }}>
+                      <strong style={{ display: 'block', color: '#e31c1c', marginBottom: '8px' }}>⊘ {summary.openBlockers} Blocker{summary.openBlockers !== 1 ? 's' : ''}</strong>
+                      <p style={{ margin: 0, fontSize: '14px', color: '#1e1e1e' }}>
+                        Escalate to stakeholders. Recommend executive-level resolution planning and resource reallocation as needed.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Recommended Actions */}
+              <div style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', paddingBottom: '8px', borderBottom: '2px solid #005ea2' }}>
+                  Recommended Actions
+                </h2>
+                <div style={{ marginBottom: '12px', padding: '12px 12px 12px 36px', background: '#e7f6f8', borderLeft: '4px solid #00bcd4', position: 'relative' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Schedule Executive Review</strong>
+                  <span style={{ fontSize: '14px' }}>Host a portfolio review meeting with program leads to discuss status, risks, and resource needs.</span>
+                </div>
+                <div style={{ marginBottom: '12px', padding: '12px 12px 12px 36px', background: '#e7f6f8', borderLeft: '4px solid #00bcd4', position: 'relative' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Risk Mitigation Planning</strong>
+                  <span style={{ fontSize: '14px' }}>Develop mitigation strategies for {summary?.yellowCount || 0} at-risk project{summary?.yellowCount !== 1 ? 's' : ''} before escalation.</span>
+                </div>
+                <div style={{ marginBottom: '12px', padding: '12px 12px 12px 36px', background: '#e7f6f8', borderLeft: '4px solid #00bcd4', position: 'relative' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Resource Allocation Review</strong>
+                  <span style={{ fontSize: '14px' }}>Audit staffing for over-allocated resources and address capacity constraints through workforce planning.</span>
+                </div>
+                <div style={{ padding: '12px 12px 12px 36px', background: '#e7f6f8', borderLeft: '4px solid #00bcd4', position: 'relative' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Stakeholder Communication</strong>
+                  <span style={{ fontSize: '14px' }}>Prepare status updates for executive sponsors and Treasury leadership on portfolio health and recovery plans.</span>
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', paddingBottom: '8px', borderBottom: '2px solid #005ea2' }}>
+                  Next Steps
+                </h2>
+                <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '14px' }}>
+                  <li style={{ marginBottom: '8px' }}>Review full project details in the platform for deep dives on at-risk initiatives</li>
+                  <li style={{ marginBottom: '8px' }}>Follow up on open blockers with assigned owners within 48 hours</li>
+                  <li style={{ marginBottom: '8px' }}>Schedule 1:1s with program leads showing degradation or new risks</li>
+                  <li>Generate next weekly summary for tracking trend improvements</li>
+                </ul>
+              </div>
+            </div>
+            <div className="usa-modal__footer" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', padding: '16px' }}>
+              <button className="usa-button usa-button--outline" onClick={downloadAsPdf} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Icon name="download" size={16} />
+                Download as PDF
+              </button>
+              <button className="usa-button usa-modal__close-button" onClick={() => setAiSummary(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
