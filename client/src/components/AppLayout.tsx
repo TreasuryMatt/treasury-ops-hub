@@ -151,7 +151,7 @@ function NotificationBell() {
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon name="notifications" color="var(--usa-white)" size={20} />
+        <Icon name="notifications" color="#ffffff" size={20} />
         {unreadCount > 0 && (
           <span className="notif-bell__badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}
@@ -236,7 +236,7 @@ function AccountDropdown() {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <Icon name="account_circle" color="var(--usa-white)" size={22} />
+        <Icon name="account_circle" color="#ffffff" size={22} />
       </button>
 
       {open && (
