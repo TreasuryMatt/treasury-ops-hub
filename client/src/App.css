@@ -1038,3 +1038,194 @@
   background: var(--usa-warning-lighter);
   color: var(--usa-warning-darker);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES — App.css
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* RAG status colors */
+[data-theme="dark"] .rag-badge--green,
+[data-theme="dark"] .rollup-program__rag-pill--green {
+  color: #a6e9d0;
+  background: rgba(0, 169, 28, 0.25);
+}
+
+[data-theme="dark"] .rag-badge--yellow,
+[data-theme="dark"] .rollup-program__rag-pill--yellow {
+  color: #ffd960;
+  background: rgba(255, 190, 46, 0.25);
+}
+
+[data-theme="dark"] .rag-badge--red,
+[data-theme="dark"] .rollup-program__rag-pill--red {
+  color: #ffb8ae;
+  background: rgba(213, 67, 9, 0.25);
+}
+
+/* Detailed cards and content */
+[data-theme="dark"] .detail-stat-card {
+  background: var(--usa-white);
+  border-color: var(--usa-base-lighter);
+}
+
+[data-theme="dark"] .detail-stat-card.danger,
+[data-theme="dark"] .detail-stat-card.warn,
+[data-theme="dark"] .detail-stat-card.success {
+  border-left-color: inherit;
+}
+
+/* Rollup content */
+[data-theme="dark"] .rollup-program__title {
+  color: var(--usa-base-darker);
+}
+
+[data-theme="dark"] .rollup-section__title {
+  color: var(--usa-primary-light);
+}
+
+[data-theme="dark"] .rollup-staffing__name {
+  color: var(--usa-base-darker);
+}
+
+[data-theme="dark"] .rollup-trend-count {
+  color: var(--usa-base-dark);
+}
+
+[data-theme="dark"] .rollup-trend-count--improving {
+  color: #a6e9d0;
+}
+
+[data-theme="dark"] .rollup-trend-count--degrading {
+  color: #ffb8ae;
+}
+
+[data-theme="dark"] .rollup-trend-count--delinquent {
+  color: #ffcba3;
+}
+
+/* Resource/project cards */
+[data-theme="dark"] .resource-card {
+  background: var(--usa-white);
+  border-color: var(--usa-base-lighter);
+}
+
+[data-theme="dark"] .resource-card__name,
+[data-theme="dark"] .project-card__name {
+  color: var(--usa-ink);
+}
+
+[data-theme="dark"] .resource-card__meta,
+[data-theme="dark"] .project-card__meta {
+  color: var(--usa-base-dark);
+}
+
+/* Form labels and help text */
+[data-theme="dark"] .form-group__label {
+  color: var(--usa-base-darker);
+}
+
+[data-theme="dark"] .form-group__help {
+  color: var(--usa-base-dark);
+}
+
+/* Toast notifications */
+[data-theme="dark"] .toast {
+  background: var(--usa-white);
+  color: var(--usa-ink);
+  border: 1px solid var(--usa-base-lighter);
+}
+
+[data-theme="dark"] .toast--success {
+  background: rgba(0, 169, 28, 0.15);
+  color: #a6e9d0;
+  border-color: rgba(0, 169, 28, 0.3);
+}
+
+[data-theme="dark"] .toast--error {
+  background: rgba(213, 67, 9, 0.15);
+  color: #ffb8ae;
+  border-color: rgba(213, 67, 9, 0.3);
+}
+
+[data-theme="dark"] .toast--info {
+  background: rgba(80, 154, 224, 0.15);
+  color: #6aaee8;
+  border-color: rgba(80, 154, 224, 0.3);
+}
+
+/* Alerts */
+[data-theme="dark"] .usa-alert {
+  background: var(--usa-white);
+  border-color: var(--usa-base-lighter);
+  color: var(--usa-ink);
+}
+
+[data-theme="dark"] .usa-alert strong {
+  color: var(--usa-ink);
+}
+
+[data-theme="dark"] .usa-alert--success {
+  background: rgba(0, 169, 28, 0.1);
+  border-left-color: var(--usa-success);
+}
+
+[data-theme="dark"] .usa-alert--error {
+  background: rgba(213, 67, 9, 0.1);
+  border-left-color: var(--usa-error);
+}
+
+[data-theme="dark"] .usa-alert--warning {
+  background: rgba(255, 190, 46, 0.15);
+  border-left-color: var(--usa-warning);
+}
+
+[data-theme="dark"] .usa-alert--info {
+  background: rgba(80, 154, 224, 0.1);
+  border-left-color: var(--usa-primary);
+}
+
+/* Table rows */
+[data-theme="dark"] tbody tr {
+  border-color: var(--usa-base-lighter);
+}
+
+[data-theme="dark"] tbody td {
+  color: var(--usa-base-darker);
+}
+
+/* Mini stat cards */
+[data-theme="dark"] .mini-stat-card {
+  background: var(--usa-white);
+  border-color: var(--usa-base-lighter);
+  color: var(--usa-ink);
+}
+
+[data-theme="dark"] .mini-stat-value {
+  color: var(--usa-base-darkest);
+}
+
+[data-theme="dark"] .mini-stat-sublabel {
+  color: var(--usa-base-dark);
+}
+
+/* Bar chart elements */
+[data-theme="dark"] .bar-chart__label {
+  color: var(--usa-base-darker);
+}
+
+[data-theme="dark"] .bar-chart__value {
+  color: var(--usa-base-darker);
+}
+
+[data-theme="dark"] .bar-chart__axis-tick {
+  color: var(--usa-base-dark);
+}
+
+/* Link styling */
+[data-theme="dark"] a {
+  color: var(--usa-primary-light);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--usa-primary-dark);
+}
