@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
 import { SortIcon, SortDir } from '../../components/SortIcon';
+import { Icon } from '../../components/Icon';
 
 function getField(row: any, key: string) {
   if (key === 'createdAt') return row.createdAt;
@@ -33,7 +34,10 @@ export function AuditLog() {
   return (
     <div className="usa-page">
       <div className="usa-page-header">
-        <h1 className="usa-page-title">Audit Log</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="history" color="var(--usa-base-dark)" size={26} />
+          Audit Log
+        </h1>
         <p className="usa-page-subtitle">Track all changes made in the system</p>
       </div>
 

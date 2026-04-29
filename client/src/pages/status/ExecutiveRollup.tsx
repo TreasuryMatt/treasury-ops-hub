@@ -591,7 +591,8 @@ export function ExecutiveRollup() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="insights" color="var(--usa-primary)" size={26} />
             Executive Summary
             {isFetching && !isLoading && (
               <span className="usa-spinner" aria-label="Refreshing" style={{ marginLeft: 10, width: 16, height: 16, verticalAlign: 'middle' }} />

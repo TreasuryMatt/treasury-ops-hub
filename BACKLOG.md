@@ -1,6 +1,6 @@
 # Treasury Capacity Management — Backlog
 
-> Last updated: 2026-04-28
+> Last updated: 2026-04-29
 
 ---
 
@@ -125,6 +125,26 @@
 ### ✨ Polish
 - [ ] **Exec Rollup — Section headers use ALL CAPS** — "ACCOMPLISHMENTS (2)" doesn't match app-wide title case convention; normalize to title case
 - [ ] **Program Detail — Test data typo** — "Thsi is a test propgram" visible in demo; fix if shown to stakeholders
+
+---
+
+---
+
+## 🗂️ Risks & Issues Module — 2026-04-29
+
+### 🟠 Large (half day – full day)
+
+- [ ] **Issues page — data model + full CRUD workflow** — The Issues page is a placeholder. No `Issue` type, no server routes, no list/detail/form pages. Issues were scoped as a parallel track to Risks with the same field structure (title, severity, status, owner, due date). Remaining work: `Issue` type in `types/index.ts`; `server/src/routes/issues.ts` CRUD routes; `Issues`, `IssueDetail`, and `IssueForm` pages mirroring the Risks pages; sidebar link + API client in `client/src/api/`.
+
+- [ ] **Escalate Risk → Issue workflow** — The Risk form captures an Impact Date field but there is no mechanism to promote a Risk to an Issue. Intent: a one-click "Escalate to Issue" action on `RiskDetail` that creates a linked Issue pre-populated from the Risk record. Remaining work: add `escalatedToIssueId` FK to the Risk model; `POST /api/issues` call from `RiskDetail`; read-only "Escalated" badge on the Risk once promoted; block re-escalation.
+
+### 🟡 Medium (1–4 hours)
+
+- [ ] **Probability calculation** — The `probability` field is stored as raw user input; nothing derives or validates it. Intent was to calculate probability from likelihood × exposure (or similar) and surface a computed `riskScore` (probability × impact) in the list and detail views. Remaining work: decide the formula; auto-derive `probability` in the form or on the server; optionally expose `riskScore` in `Risks.tsx` and `RiskDetail.tsx`.
+
+### 🟢 Small (< 1 hour)
+
+- [ ] **Remove legacy risk/issue code from Status module** — The Status module contains project-attached risk/issue scaffolding that predates the standalone Risks & Issues module. Identified early but skipped. Remaining work: locate and remove risk/issue fields, components, and routes scoped to a project in the Status module; confirm no Status views reference the old model before deleting; regression-check the Status page.
 
 ---
 

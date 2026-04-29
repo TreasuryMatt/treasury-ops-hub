@@ -57,7 +57,10 @@ export function StatusProjects() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Projects</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="work" color="var(--usa-primary)" size={26} />
+            Projects
+          </h1>
           <p className="usa-page-subtitle">{visibleProjects.length} project{visibleProjects.length !== 1 ? 's' : ''}</p>
         </div>
         {canEdit && (

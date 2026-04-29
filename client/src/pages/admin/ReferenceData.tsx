@@ -189,7 +189,10 @@ export function ReferenceData() {
   return (
     <div className="usa-page">
       <div className="usa-page-header">
-        <h1 className="usa-page-title">Reference Data</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="settings" color="var(--usa-base-dark)" size={26} />
+          Reference Data
+        </h1>
         <p className="usa-page-subtitle">Manage reference data for the application</p>
       </div>
 

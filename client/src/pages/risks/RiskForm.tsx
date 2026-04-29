@@ -102,7 +102,10 @@ export function RiskForm() {
           >
             <Icon name="arrow_back" size={16} /> Back to Risks
           </button>
-          <h1 className="usa-page-title">Create Risk</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="shield" color="#c9a227" size={26} />
+            Create Risk
+          </h1>
           <p className="usa-page-subtitle">Log a new risk, attach it to a program and project, and capture the initial mitigation path.</p>
         </div>
       </div>
@@ -180,13 +183,13 @@ export function RiskForm() {
           </div>
 
           <div>
-            <label className="usa-label">Submitter</label>
-            <input className="usa-input" value={user?.displayName || ''} readOnly />
+            <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Submitter <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+            <input className="usa-input" value={user?.displayName || ''} readOnly style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
           </div>
 
           <div>
-            <label className="usa-label">Program Owner</label>
-            <input className="usa-input" value={selectedProgram?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" />
+            <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+            <input className="usa-input" value={selectedProgram?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
           </div>
 
           <div>
@@ -228,7 +231,7 @@ export function RiskForm() {
             <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'var(--usa-base-dark)' }}>Add action steps now if you have them. We can expand this workflow later.</p>
           </div>
           <button
-            className="usa-button usa-button--outline usa-button--sm"
+            className="usa-button usa-button--success usa-button--sm"
             type="button"
             onClick={() => setMitigationActions((prev) => [...prev, { title: '', dueDate: '', status: 'yellow' }])}
           >
@@ -274,7 +277,7 @@ export function RiskForm() {
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 'var(--space-3)' }}>
         <button className="usa-button usa-button--outline" type="button" onClick={() => navigate('/risks/risks')}>Cancel</button>
-        <button className="usa-button" type="submit" disabled={createRisk.isPending}>
+        <button className="usa-button usa-button--primary" type="submit" disabled={createRisk.isPending}>
           {createRisk.isPending ? 'Creating...' : 'Create Risk'}
         </button>
       </div>

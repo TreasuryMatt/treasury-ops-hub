@@ -69,6 +69,7 @@ enum RiskProgress {
   open
   accepted
   escalated_to_issue
+  mitigated
 }
 
 enum RiskCriticality {
@@ -606,6 +607,7 @@ model Risk {
   impact          String?
   impactDate      DateTime?       @map("impact_date")
   closureCriteria String?         @map("closure_criteria")
+  escalatedAt     DateTime?       @map("escalated_at")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
@@ -631,12 +633,13 @@ model RiskMitigationAction {
   id        String           @id @default(uuid())
   riskId    String           @map("risk_id")
   risk      Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  title     String
-  dueDate   DateTime?        @map("due_date")
-  status    RiskActionStatus @default(yellow)
-  sortOrder Int              @default(0) @map("sort_order")
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
+  title      String
+  dueDate    DateTime?        @map("due_date")
+  status     RiskActionStatus @default(yellow)
+  isComplete Boolean          @default(false) @map("is_complete")
+  sortOrder  Int              @default(0) @map("sort_order")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
 
   @@map("risk_mitigation_actions")
 }

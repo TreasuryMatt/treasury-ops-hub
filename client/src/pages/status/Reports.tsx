@@ -125,7 +125,10 @@ export function Reports() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Portfolio Reports</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="description" color="var(--usa-primary)" size={26} />
+            Portfolio Reports
+          </h1>
           <p className="usa-page-subtitle">{projects.length} project{projects.length !== 1 ? 's' : ''} total</p>
         </div>
       </div>

@@ -73,7 +73,10 @@ export function IntakeReviewerDetail() {
       <div className="usa-page-header">
         <div>
           <Link to="/intake/review/submissions" className="usa-button usa-button--unstyled">← Back to queue</Link>
-          <h1 className="usa-page-title" style={{ marginTop: 8 }}>{submission.title}</h1>
+          <h1 className="usa-page-title" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="summarize" color="#2e8b57" size={24} />
+            {submission.title}
+          </h1>
           <p className="usa-page-subtitle">Submitted by {submission.submitter?.displayName || 'Unknown'} on {new Date(submission.createdAt).toLocaleString()}</p>
         </div>
       </div>

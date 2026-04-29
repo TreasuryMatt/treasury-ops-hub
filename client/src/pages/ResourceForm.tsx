@@ -112,7 +112,10 @@ export function ResourceForm() {
         <button className="usa-button usa-button--unstyled" onClick={() => navigate(-1)} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
           <Icon name="arrow_back" size={16} /> Back
         </button>
-        <h1 className="usa-page-title">{isEdit ? 'Edit Resource' : 'Add Resource'}</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="people" color="var(--usa-primary)" size={24} />
+          {isEdit ? 'Edit Resource' : 'Add Resource'}
+        </h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="resource-form">

@@ -84,7 +84,10 @@ export function ResourceDetail() {
         </button>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
-            <h1 className="usa-page-title">{resource.lastName}, {resource.firstName}</h1>
+            <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="people" color="var(--usa-primary)" size={24} />
+              {resource.lastName}, {resource.firstName}
+            </h1>
             <p className="usa-page-subtitle">
               <span className={`badge badge--${resource.resourceType}`}>{resource.resourceType === 'federal' ? 'Federal' : 'Contractor'}</span>
               {' '}{resource.primaryRole?.name || 'No role assigned'}

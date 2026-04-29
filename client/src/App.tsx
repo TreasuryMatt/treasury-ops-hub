@@ -39,6 +39,7 @@ import { Risks } from './pages/risks/Risks';
 import { RiskForm } from './pages/risks/RiskForm';
 import { RiskDetail } from './pages/risks/RiskDetail';
 import { Issues } from './pages/risks/Issues';
+import { IssueDetail } from './pages/risks/IssueDetail';
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="risks/risks/new" element={<RiskForm />} />
               <Route path="risks/risks/:id" element={<RiskDetail />} />
               <Route path="risks/issues" element={<Issues />} />
+              <Route path="risks/issues/:id" element={<IssueDetail />} />
               {/* Executive */}
               <Route path="exec/summary" element={<ExecutiveRollup />} />
               <Route path="exec/rollup" element={<Navigate to="/exec/summary" replace />} />

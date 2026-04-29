@@ -71,7 +71,10 @@ export function ResourceRequestForm() {
         >
           <Icon name="arrow_back" size={16} /> Back to Resource Requests
         </button>
-        <h1 className="usa-page-title">New Resource Request</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="pending_actions" color="var(--usa-primary)" size={24} />
+          New Resource Request
+        </h1>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="resource-form">

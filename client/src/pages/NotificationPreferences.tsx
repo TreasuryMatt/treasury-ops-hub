@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from '../components/Icon';
 import { Link } from 'react-router-dom';
 import { fetchPreferences, savePreferences } from '../api/notifications';
 import { NotificationType, NotificationPreference } from '../types';
@@ -75,7 +76,10 @@ export function NotificationPreferences() {
               ← Back to Notifications
             </Link>
           </div>
-          <h1 className="usa-page-title">Notification Preferences</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="notifications" color="var(--usa-primary)" size={26} />
+            Notification Preferences
+          </h1>
           <p className="usa-page-subtitle">Choose which events notify you and through which channels.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>

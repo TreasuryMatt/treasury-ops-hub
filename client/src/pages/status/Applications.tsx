@@ -30,7 +30,10 @@ export function Applications() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Applications</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="tune" color="var(--usa-primary)" size={26} />
+            Applications
+          </h1>
           <p className="usa-page-subtitle">{applications.length} application{applications.length !== 1 ? 's' : ''}</p>
         </div>
         {canEdit && (

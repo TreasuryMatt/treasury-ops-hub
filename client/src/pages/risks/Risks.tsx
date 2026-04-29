@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { risksApi } from '../../api/risks';
@@ -7,7 +7,7 @@ import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/Icon';
-import { Program, Risk, RiskCategory, RiskCriticality, RiskProgress, StatusProject } from '../../types';
+import { Program, Risk, RiskCategory, RiskCriticality, RiskProgress, RisksDashboardStats, StatusProject } from '../../types';
 import { RISK_CRITICALITY_LABELS, RISK_CRITICALITY_STYLES, RISK_PROGRESS_LABELS, RISK_PROGRESS_STYLES } from './riskUi';
 
 function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
@@ -29,11 +29,28 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
   );
 }
 
-type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'category' | 'progress' | 'criticality' | 'dateIdentified';
+type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'impactDate' | 'progress' | 'criticality' | 'dateIdentified';
+
+function SortTh({ col, label, sort, onSort }: { col: SortColumn; label: string; sort: { col: SortColumn; dir: 'asc' | 'desc' }; onSort: (col: SortColumn) => void }) {
+  const active = sort.col === col;
+  return (
+    <th onClick={() => onSort(col)} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {label}
+        <Icon
+          name={active ? (sort.dir === 'asc' ? 'arrow_up' : 'arrow_down') : 'arrow_updown'}
+          size={14}
+          color={active ? '#fff' : 'rgba(255,255,255,0.5)'}
+        />
+      </span>
+    </th>
+  );
+}
 
 export function Risks() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const tableRef = useRef<HTMLDivElement>(null);
   const canCreate = !!user;
   const [sort, setSort] = useState<{ col: SortColumn; dir: 'asc' | 'desc' }>({ col: 'dateIdentified', dir: 'desc' });
   const [filters, setFilters] = useState({
@@ -63,6 +80,10 @@ export function Risks() {
     queryKey: ['risks', queryParams],
     queryFn: () => risksApi.list(queryParams),
   });
+  const { data: stats } = useQuery<RisksDashboardStats>({
+    queryKey: ['risks-dashboard'],
+    queryFn: risksApi.dashboard,
+  });
   const { data: programs = [] } = useQuery<Program[]>({
     queryKey: ['programs'],
     queryFn: programsApi.list,
@@ -84,22 +105,6 @@ export function Risks() {
     setSort((prev) => (prev.col === col ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }));
   }
 
-  function SortTh({ col, label }: { col: SortColumn; label: string }) {
-    const active = sort.col === col;
-    return (
-      <th onClick={() => handleSort(col)} style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          {label}
-          <Icon
-            name={active ? (sort.dir === 'asc' ? 'arrow_up' : 'arrow_down') : 'arrow_updown'}
-            size={14}
-            color={active ? 'var(--usa-primary)' : 'var(--usa-base)'}
-          />
-        </span>
-      </th>
-    );
-  }
-
   if (isLoading) {
     return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
   }
@@ -108,7 +113,10 @@ export function Risks() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Risks</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="shield" color="#c9a227" size={26} />
+            Risks
+          </h1>
           <p className="usa-page-subtitle">{risks.length} risk{risks.length !== 1 ? 's' : ''} tracked across the portfolio</p>
         </div>
         {canCreate && (
@@ -117,6 +125,123 @@ export function Risks() {
           </button>
         )}
       </div>
+
+      {/* Progress mini cards */}
+      {stats && (
+        <>
+          <div className="dashboard-quick-stats">
+            <button className="dashboard-quick-stat" onClick={() => setFilters((f) => ({ ...f, progress: '' }))}>
+              <div className="dashboard-quick-stat__label">Total Risks</div>
+              <div className="dashboard-quick-stat__value">{stats.totalRisks}</div>
+            </button>
+            <button
+              className="dashboard-quick-stat"
+              style={{ borderLeftColor: RISK_PROGRESS_STYLES.open.bg }}
+              onClick={() => setFilters((f) => ({ ...f, progress: 'open' }))}
+            >
+              <div className="dashboard-quick-stat__label">Open</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.open}</div>
+            </button>
+            <button
+              className="dashboard-quick-stat"
+              onClick={() => setFilters((f) => ({ ...f, progress: 'accepted' }))}
+            >
+              <div className="dashboard-quick-stat__label">Accepted</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.accepted}</div>
+            </button>
+            <button
+              className="dashboard-quick-stat"
+              style={{ borderLeftColor: RISK_PROGRESS_STYLES.mitigated.bg }}
+              onClick={() => setFilters((f) => ({ ...f, progress: 'mitigated' }))}
+            >
+              <div className="dashboard-quick-stat__label">Mitigated</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.mitigated}</div>
+            </button>
+            <button
+              className={`dashboard-quick-stat${stats.byProgress.escalated_to_issue > 0 ? ' dashboard-quick-stat--danger' : ''}`}
+              onClick={() => setFilters((f) => ({ ...f, progress: 'escalated_to_issue' }))}
+            >
+              <div className="dashboard-quick-stat__label">Escalated to Issue</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.escalated_to_issue}</div>
+            </button>
+          </div>
+
+          {/* Action cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)', margin: 'var(--space-3) 0' }}>
+            <div className={`dashboard-action-card dashboard-action-card--${stats.impactingSoon > 0 ? 'danger' : 'success'}`}>
+              <div className="dashboard-action-card__eyebrow">Suggested Focus</div>
+              <div className="dashboard-action-card__metric">{stats.impactingSoon} Impacting Soon</div>
+              <p className="dashboard-action-card__detail">
+                This is the number of open risks whose Impact Date is approaching in the next 14 days.
+              </p>
+              <button className="usa-button usa-button--outline" onClick={() => {
+                setFilters((f) => ({ ...f, progress: 'open' }));
+                setSort({ col: 'impactDate', dir: 'asc' });
+                setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}>
+                Sort by Impact Date
+              </button>
+            </div>
+            <div className="dashboard-action-card" style={{ borderLeftColor: '#1b1b1b' }}>
+              <div className="dashboard-action-card__eyebrow">Suggested Focus</div>
+              <div className="dashboard-action-card__metric">{stats.byCriticality.critical} Critical Risks</div>
+              <p className="dashboard-action-card__detail">
+                This is the number of open risks currently rated Critical — the highest severity level.
+              </p>
+              <button className="usa-button usa-button--outline" onClick={() => {
+                setFilters((f) => ({ ...f, criticality: 'critical' }));
+                setSort({ col: 'impactDate', dir: 'asc' });
+                setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}>
+                View Critical Risks
+              </button>
+            </div>
+            <div className={`dashboard-action-card dashboard-action-card--${stats.withoutMitigationPlan > 0 ? 'warning' : 'success'}`}>
+              <div className="dashboard-action-card__eyebrow">Suggested Focus</div>
+              <div className="dashboard-action-card__metric">{stats.withoutMitigationPlan} Without a Mitigation Plan</div>
+              <p className="dashboard-action-card__detail">
+                This is the number of open risks that have no mitigation action steps recorded yet.
+              </p>
+              <button className="usa-button usa-button--outline" onClick={() => {
+                setFilters((f) => ({ ...f, criticality: '', progress: 'open' }));
+                setSort({ col: 'dateIdentified', dir: 'desc' });
+              }}>
+                View Open Risks
+              </button>
+            </div>
+          </div>
+
+
+          {/* By program cards */}
+          {stats.byProgram.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+              {stats.byProgram.map((prog) => (
+                <div
+                  key={prog.id}
+                  className="detail-card"
+                  style={{ cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                  onClick={() => setFilters((f) => ({ ...f, programId: prog.id, projectId: '' }))}
+                  onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-1)')}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--usa-primary-darker)', marginBottom: 6 }}>
+                    {prog.name}
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', fontSize: 13 }}>
+                    <span><strong>{prog.totalCount}</strong> total</span>
+                    {prog.openCount > 0 && (
+                      <span style={{ color: 'var(--usa-primary)' }}><strong>{prog.openCount}</strong> open</span>
+                    )}
+                    {prog.criticalCount > 0 && (
+                      <span style={{ color: 'var(--usa-error)' }}><strong>{prog.criticalCount}</strong> critical</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       <div className="filter-bar">
         <div className="filter-bar__search">
@@ -178,6 +303,15 @@ export function Risks() {
             <option key={criticality} value={criticality}>{RISK_CRITICALITY_LABELS[criticality]}</option>
           ))}
         </select>
+        {(filters.search || filters.programId || filters.projectId || filters.categoryId || filters.progress || filters.criticality) && (
+          <button
+            className="usa-button usa-button--unstyled"
+            style={{ fontSize: 13, color: 'var(--usa-base-dark)', whiteSpace: 'nowrap' }}
+            onClick={() => setFilters({ search: '', programId: '', projectId: '', categoryId: '', progress: '', criticality: '' })}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {risks.length === 0 ? (
@@ -187,20 +321,18 @@ export function Risks() {
           <p>{canCreate ? 'Create the first risk to begin tracking it here.' : 'No risks match the current filters.'}</p>
         </div>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" ref={tableRef}>
           <table className="usa-table">
             <thead>
               <tr>
-                <SortTh col="riskCode" label="ID" />
-                <SortTh col="title" label="Title" />
-                <SortTh col="program" label="Program" />
-                <SortTh col="project" label="Project" />
-                <SortTh col="category" label="Category" />
-                <SortTh col="criticality" label="Criticality" />
-                <SortTh col="progress" label="Progress" />
-                <SortTh col="dateIdentified" label="Date Identified" />
-                <th>Owner</th>
-                <th>Comments</th>
+                <SortTh col="riskCode" label="ID" sort={sort} onSort={handleSort} />
+                <SortTh col="title" label="Title" sort={sort} onSort={handleSort} />
+                <SortTh col="program" label="Program" sort={sort} onSort={handleSort} />
+                <SortTh col="project" label="Project" sort={sort} onSort={handleSort} />
+                <SortTh col="impactDate" label="Impact Date" sort={sort} onSort={handleSort} />
+                <SortTh col="criticality" label="Criticality" sort={sort} onSort={handleSort} />
+                <SortTh col="progress" label="Progress" sort={sort} onSort={handleSort} />
+                <SortTh col="dateIdentified" label="Date Identified" sort={sort} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>
@@ -213,7 +345,7 @@ export function Risks() {
                   </td>
                   <td>{risk.program?.name || '—'}</td>
                   <td>{risk.statusProject?.name || '—'}</td>
-                  <td>{risk.category?.name || '—'}</td>
+                  <td>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</td>
                   <td>
                     <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>
                       {RISK_CRITICALITY_LABELS[risk.criticality]}
@@ -225,8 +357,6 @@ export function Risks() {
                     </Pill>
                   </td>
                   <td>{risk.dateIdentified ? new Date(risk.dateIdentified).toLocaleDateString() : '—'}</td>
-                  <td>{risk.program?.federalOwner || '—'}</td>
-                  <td>{risk._count?.comments ?? 0}</td>
                 </tr>
               ))}
             </tbody>

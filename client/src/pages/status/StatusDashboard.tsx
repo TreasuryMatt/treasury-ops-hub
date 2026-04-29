@@ -54,7 +54,10 @@ export function StatusDashboard() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Project Status Dashboard</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="bar_chart" color="var(--usa-primary)" size={26} />
+            Project Status Dashboard
+          </h1>
           <p className="usa-page-subtitle">{stats.totalProjects} project{stats.totalProjects !== 1 ? 's' : ''} tracked</p>
         </div>
         <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/projects')}>

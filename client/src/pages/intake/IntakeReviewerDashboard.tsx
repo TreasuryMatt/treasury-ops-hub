@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { intakeApi } from '../../api/intake';
 import { IntakeStatusPill } from '../../components/IntakeStatusPill';
+import { Icon } from '../../components/Icon';
 
 export function IntakeReviewerDashboard() {
   const navigate = useNavigate();
@@ -30,7 +31,10 @@ export function IntakeReviewerDashboard() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Intake review dashboard</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="assessment" color="#2e8b57" size={26} />
+            Intake review dashboard
+          </h1>
           <p className="usa-page-subtitle">Review pipeline health, recent submissions, and AI scoring activity.</p>
         </div>
         <button className="usa-button usa-button--outline" onClick={() => navigate('/intake/review/submissions')}>

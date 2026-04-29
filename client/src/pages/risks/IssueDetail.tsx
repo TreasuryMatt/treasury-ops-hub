@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { risksApi } from '../../api/risks';
+import { issuesApi } from '../../api/issues';
 import { programsApi } from '../../api/programs';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
 import { Icon } from '../../components/Icon';
-import { Program, Risk, RiskActionStatus, RiskCategory, RiskCriticality, RiskMitigationAction, RiskProgress, StatusProject } from '../../types';
+import {
+  Program,
+  Risk,
+  RiskActionStatus,
+  RiskCategory,
+  RiskCriticality,
+  RiskMitigationAction,
+  RiskProgress,
+  StatusProject,
+} from '../../types';
 import {
   RISK_ACTION_STATUS_LABELS,
   RISK_ACTION_STATUS_STYLES,
@@ -16,15 +25,25 @@ import {
   RISK_PROGRESS_STYLES,
 } from './riskUi';
 
-// ─── Mitigation row ───────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, backgroundColor: bg, color, fontSize: 12, fontWeight: 700 }}>
+      {children}
+    </span>
+  );
+}
 
 type ActionDraft = { title: string; dueDate: string; status: RiskActionStatus; isComplete: boolean };
 const EMPTY_DRAFT: ActionDraft = { title: '', dueDate: '', status: 'yellow', isComplete: false };
 
-function MitigationRow({ action, impactDate, riskId, onSaved }: {
+// ─── Mitigation row ───────────────────────────────────────────────────────────
+
+function MitigationRow({ action, impactDate, issueId, onSaved }: {
   action: RiskMitigationAction;
   impactDate: string | null;
-  riskId: string;
+  issueId: string;
   onSaved: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -37,18 +56,18 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
   const [error, setError] = useState('');
 
   const update = useMutation({
-    mutationFn: () => risksApi.updateMitigationAction(riskId, action.id, draft),
+    mutationFn: () => issuesApi.updateMitigationAction(issueId, action.id, draft),
     onSuccess: () => { setEditing(false); setError(''); onSaved(); },
     onError: (e: any) => setError(e?.response?.data?.error || e.message || 'Failed to save'),
   });
 
   const toggleComplete = useMutation({
-    mutationFn: () => risksApi.updateMitigationAction(riskId, action.id, { isComplete: !action.isComplete }),
+    mutationFn: () => issuesApi.updateMitigationAction(issueId, action.id, { isComplete: !action.isComplete }),
     onSuccess: onSaved,
   });
 
   const remove = useMutation({
-    mutationFn: () => risksApi.deleteMitigationAction(riskId, action.id),
+    mutationFn: () => issuesApi.deleteMitigationAction(issueId, action.id),
     onSuccess: onSaved,
   });
 
@@ -120,8 +139,8 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
   );
 }
 
-function AddActionRow({ riskId, impactDate, onSaved, onCancel }: {
-  riskId: string;
+function AddActionRow({ issueId, impactDate, onSaved, onCancel }: {
+  issueId: string;
   impactDate: string | null;
   onSaved: () => void;
   onCancel: () => void;
@@ -130,7 +149,7 @@ function AddActionRow({ riskId, impactDate, onSaved, onCancel }: {
   const [error, setError] = useState('');
 
   const add = useMutation({
-    mutationFn: () => risksApi.addMitigationAction(riskId, draft),
+    mutationFn: () => issuesApi.addMitigationAction(issueId, draft),
     onSuccess: onSaved,
     onError: (e: any) => setError(e?.response?.data?.error || e.message || 'Failed to save'),
   });
@@ -175,19 +194,9 @@ function AddActionRow({ riskId, impactDate, onSaved, onCancel }: {
   );
 }
 
-// ─── Pill ─────────────────────────────────────────────────────────────────────
-
-function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, backgroundColor: bg, color, fontSize: 12, fontWeight: 700 }}>
-      {children}
-    </span>
-  );
-}
-
 // ─── Edit draft type ──────────────────────────────────────────────────────────
 
-type RiskDraft = {
+type IssueDraft = {
   progress: RiskProgress;
   programId: string;
   statusProjectId: string;
@@ -202,38 +211,38 @@ type RiskDraft = {
   closureCriteria: string;
 };
 
-function riskToDraft(risk: Risk): RiskDraft {
+function issueToDraft(issue: Risk): IssueDraft {
   return {
-    progress: risk.progress,
-    programId: risk.programId,
-    statusProjectId: risk.statusProjectId,
-    categoryId: risk.categoryId,
-    spmId: risk.spmId || '',
-    title: risk.title,
-    statement: risk.statement,
-    criticality: risk.criticality,
-    dateIdentified: risk.dateIdentified ? risk.dateIdentified.slice(0, 10) : '',
-    impact: risk.impact || '',
-    impactDate: risk.impactDate ? risk.impactDate.slice(0, 10) : '',
-    closureCriteria: risk.closureCriteria || '',
+    progress: issue.progress,
+    programId: issue.programId,
+    statusProjectId: issue.statusProjectId,
+    categoryId: issue.categoryId,
+    spmId: issue.spmId || '',
+    title: issue.title,
+    statement: issue.statement,
+    criticality: issue.criticality,
+    dateIdentified: issue.dateIdentified ? issue.dateIdentified.slice(0, 10) : '',
+    impact: issue.impact || '',
+    impactDate: issue.impactDate ? issue.impactDate.slice(0, 10) : '',
+    closureCriteria: issue.closureCriteria || '',
   };
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function RiskDetail() {
+export function IssueDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [comment, setComment] = useState('');
   const [addingAction, setAddingAction] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<RiskDraft | null>(null);
+  const [draft, setDraft] = useState<IssueDraft | null>(null);
   const [editError, setEditError] = useState('');
 
-  const { data: risk, isLoading } = useQuery<Risk>({
-    queryKey: ['risk', id],
-    queryFn: () => risksApi.get(id!),
+  const { data: issue, isLoading } = useQuery<Risk>({
+    queryKey: ['issue', id],
+    queryFn: () => issuesApi.get(id!),
     enabled: !!id,
   });
 
@@ -244,7 +253,7 @@ export function RiskDetail() {
   });
 
   const { data: allProjects = [] } = useQuery<StatusProject[]>({
-    queryKey: ['status-projects', 'risk-edit'],
+    queryKey: ['status-projects', 'issue-edit'],
     queryFn: () => statusProjectsApi.list({}),
     enabled: editing,
   });
@@ -259,11 +268,11 @@ export function RiskDetail() {
   const selectedProgram = programs.find((p) => p.id === draft?.programId);
 
   useEffect(() => {
-    if (risk && editing && !draft) setDraft(riskToDraft(risk));
-  }, [risk, editing, draft]);
+    if (issue && editing && !draft) setDraft(issueToDraft(issue));
+  }, [issue, editing, draft]);
 
-  const updateRisk = useMutation({
-    mutationFn: () => risksApi.update(id!, {
+  const updateIssue = useMutation({
+    mutationFn: () => issuesApi.update(id!, {
       ...draft,
       spmId: draft?.spmId || null,
       dateIdentified: draft?.dateIdentified || null,
@@ -275,39 +284,25 @@ export function RiskDetail() {
       setEditing(false);
       setDraft(null);
       setEditError('');
-      qc.invalidateQueries({ queryKey: ['risk', id] });
-      qc.invalidateQueries({ queryKey: ['risks'] });
+      qc.invalidateQueries({ queryKey: ['issue', id] });
+      qc.invalidateQueries({ queryKey: ['issues'] });
     },
     onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to save changes.'),
   });
 
-  const escalateToIssue = useMutation({
-    mutationFn: () => risksApi.update(id!, { progress: 'escalated_to_issue' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['risks'] });
-      navigate(`/risks/issues/${id}`);
-    },
-    onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to escalate.'),
-  });
-
   const addComment = useMutation({
-    mutationFn: () => risksApi.addComment(id!, comment),
+    mutationFn: () => issuesApi.addComment(id!, comment),
     onSuccess: () => {
       setComment('');
-      qc.invalidateQueries({ queryKey: ['risk', id] });
-      qc.invalidateQueries({ queryKey: ['risks'] });
+      qc.invalidateQueries({ queryKey: ['issue', id] });
     },
   });
 
   function startEdit() {
-    if (risk) { setDraft(riskToDraft(risk)); setEditing(true); setEditError(''); }
+    if (issue) { setDraft(issueToDraft(issue)); setEditing(true); setEditError(''); }
   }
 
-  function cancelEdit() {
-    setEditing(false);
-    setDraft(null);
-    setEditError('');
-  }
+  function cancelEdit() { setEditing(false); setDraft(null); setEditError(''); }
 
   function validateEdit() {
     if (!draft) return 'No changes to save.';
@@ -320,10 +315,14 @@ export function RiskDetail() {
   }
 
   if (isLoading) return <div className="page-loading"><span className="usa-spinner" aria-label="Loading" /> Loading...</div>;
-  if (!risk) return <div className="usa-page"><p>Risk not found.</p></div>;
+  if (!issue) return <div className="usa-page"><p>Issue not found.</p></div>;
 
   const DT_STYLE: React.CSSProperties = { fontSize: 12, color: 'var(--usa-base)', textTransform: 'uppercase', fontWeight: 700 };
   const DD_STYLE: React.CSSProperties = { margin: '4px 0 0 0' };
+
+  const escalatedReason = issue.escalatedAt && issue.impactDate && new Date(issue.escalatedAt) >= new Date(issue.impactDate)
+    ? 'Impact date passed without resolution'
+    : 'Manually escalated';
 
   return (
     <div className="usa-page">
@@ -331,43 +330,40 @@ export function RiskDetail() {
       {/* ── Header ── */}
       <div className="usa-page-header">
         <div style={{ flex: 1 }}>
-          <button className="usa-button usa-button--unstyled" onClick={() => navigate('/risks/risks')}
+          <button className="usa-button usa-button--unstyled" onClick={() => navigate('/risks/issues')}
             style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="arrow_back" size={16} /> Back to Risks
+            <Icon name="arrow_back" size={16} /> Back to Issues
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <h1 className="usa-page-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="shield" color="#c9a227" size={24} />
-              {risk.title}
+              <Icon name="report" color="#c9a227" size={24} />
+              {issue.title}
             </h1>
-            <Pill {...RISK_PROGRESS_STYLES[risk.progress]}>{RISK_PROGRESS_LABELS[risk.progress]}</Pill>
-            <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>{RISK_CRITICALITY_LABELS[risk.criticality]}</Pill>
+            <Pill bg="var(--usa-error)" color="#fff">Issue</Pill>
+            <Pill {...RISK_CRITICALITY_STYLES[issue.criticality]}>{RISK_CRITICALITY_LABELS[issue.criticality]}</Pill>
           </div>
           <p className="usa-page-subtitle" style={{ marginTop: 8 }}>
-            {risk.riskCode}{risk.spmId ? ` · SPM ${risk.spmId}` : ''}{risk.program ? ` · ${risk.program.name}` : ''}{risk.statusProject ? ` · ${risk.statusProject.name}` : ''}
+            {issue.riskCode}{issue.spmId ? ` · SPM ${issue.spmId}` : ''}{issue.program ? ` · ${issue.program.name}` : ''}{issue.statusProject ? ` · ${issue.statusProject.name}` : ''}
           </p>
         </div>
         {!editing && (
-          <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-start' }}>
-            {risk.progress !== 'escalated_to_issue' && (
-              <button
-                className="usa-button usa-button--danger"
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                disabled={escalateToIssue.isPending}
-                onClick={() => {
-                  if (window.confirm('Escalate this risk to an issue? It will move to the Issues list and no longer appear under Risks.')) {
-                    escalateToIssue.mutate();
-                  }
-                }}
-              >
-                <Icon name="report" size={15} /> Escalate to Issue
-              </button>
-            )}
-            <button className="usa-button usa-button--outline" onClick={startEdit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="edit" size={15} /> Edit Risk
-            </button>
-          </div>
+          <button className="usa-button usa-button--outline" onClick={startEdit} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="edit" size={15} /> Edit Issue
+          </button>
         )}
+      </div>
+
+      {/* ── Escalation Banner ── */}
+      <div style={{ marginBottom: 'var(--space-3)', padding: '12px 16px', borderRadius: 8, background: '#fff0f0', border: '1px solid var(--usa-error-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Icon name="report" size={20} color="var(--usa-error)" />
+        <div>
+          <strong style={{ color: 'var(--usa-error-dark)' }}>Escalated to Issue</strong>
+          <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--usa-base-dark)' }}>
+            {issue.escalatedAt
+              ? `${new Date(issue.escalatedAt).toLocaleDateString()} — ${escalatedReason}`
+              : escalatedReason}
+          </span>
+        </div>
       </div>
 
       {/* ── Edit mode ── */}
@@ -378,9 +374,8 @@ export function RiskDetail() {
               {editError}
             </div>
           )}
-
           <div className="detail-card">
-            <h2 style={{ marginTop: 0 }}>Edit Risk</h2>
+            <h2 style={{ marginTop: 0 }}>Edit Issue</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-3)' }}>
 
               <div>
@@ -390,6 +385,11 @@ export function RiskDetail() {
                     <option key={v} value={v}>{RISK_PROGRESS_LABELS[v]}</option>
                   ))}
                 </select>
+                {draft.progress !== 'escalated_to_issue' && (
+                  <p style={{ fontSize: 12, color: 'var(--usa-warning-dark)', marginTop: 4 }}>
+                    Changing progress away from "Escalated to Issue" will remove this record from the Issues list.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -436,7 +436,7 @@ export function RiskDetail() {
 
               <div>
                 <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
-                <input className="usa-input" value={selectedProgram?.federalOwner || risk.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
+                <input className="usa-input" value={selectedProgram?.federalOwner || issue.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
               </div>
 
               <div>
@@ -480,9 +480,9 @@ export function RiskDetail() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 'var(--space-3)' }}>
             <button className="usa-button usa-button--outline" type="button" onClick={cancelEdit}>Cancel</button>
-            <button className="usa-button usa-button--primary" type="button" disabled={updateRisk.isPending}
-              onClick={() => { const err = validateEdit(); if (err) { setEditError(err); return; } updateRisk.mutate(); }}>
-              {updateRisk.isPending ? 'Saving…' : 'Save Changes'}
+            <button className="usa-button usa-button--primary" type="button" disabled={updateIssue.isPending}
+              onClick={() => { const err = validateEdit(); if (err) { setEditError(err); return; } updateIssue.mutate(); }}>
+              {updateIssue.isPending ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </>
@@ -491,26 +491,26 @@ export function RiskDetail() {
         /* ── Read mode ── */
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-3)' }}>
           <div className="detail-card">
-            <h2 style={{ marginTop: 0 }}>Risk Summary</h2>
+            <h2 style={{ marginTop: 0 }}>Issue Summary</h2>
             <dl style={{ margin: 0 }}>
               <dt style={DT_STYLE}>Statement</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{risk.statement}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.statement}</dd>
               <dt style={DT_STYLE}>Impact</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{risk.impact || '—'}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.impact || '—'}</dd>
               <dt style={DT_STYLE}>Closure Criteria</dt>
-              <dd style={DD_STYLE}>{risk.closureCriteria || '—'}</dd>
+              <dd style={DD_STYLE}>{issue.closureCriteria || '—'}</dd>
             </dl>
           </div>
 
           <div className="detail-card">
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
-              <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{risk.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{risk.submitter?.displayName || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{risk.dateIdentified ? new Date(risk.dateIdentified).toLocaleDateString() : '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Probability</dt><dd style={DD_STYLE}>{risk.probability != null ? `${risk.probability}` : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{issue.category?.name || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{issue.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{issue.submitter?.displayName || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{issue.dateIdentified ? new Date(issue.dateIdentified).toLocaleDateString() : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{issue.impactDate ? new Date(issue.impactDate).toLocaleDateString() : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Escalated On</dt><dd style={DD_STYLE}>{issue.escalatedAt ? new Date(issue.escalatedAt).toLocaleDateString() : '—'}</dd></div>
             </dl>
           </div>
         </div>
@@ -521,9 +521,9 @@ export function RiskDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <h2 style={{ margin: 0 }}>Mitigation Plan</h2>
-            {risk.impactDate && (
+            {issue.impactDate && (
               <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--usa-base-dark)' }}>
-                Action steps must be due on or before the impact date: <strong>{new Date(risk.impactDate).toLocaleDateString()}</strong>
+                Action steps must be due on or before the impact date: <strong>{new Date(issue.impactDate).toLocaleDateString()}</strong>
               </p>
             )}
           </div>
@@ -532,7 +532,7 @@ export function RiskDetail() {
           </button>
         </div>
 
-        {(risk.mitigationActions && risk.mitigationActions.length > 0) || addingAction ? (
+        {(issue.mitigationActions && issue.mitigationActions.length > 0) || addingAction ? (
           <table className="usa-table" style={{ width: '100%' }}>
             <thead>
               <tr>
@@ -544,19 +544,19 @@ export function RiskDetail() {
               </tr>
             </thead>
             <tbody>
-              {risk.mitigationActions?.map((action) => (
-                <MitigationRow key={action.id} action={action} impactDate={risk.impactDate} riskId={risk.id}
-                  onSaved={() => qc.invalidateQueries({ queryKey: ['risk', id] })} />
+              {issue.mitigationActions?.map((action) => (
+                <MitigationRow key={action.id} action={action} impactDate={issue.impactDate} issueId={issue.id}
+                  onSaved={() => qc.invalidateQueries({ queryKey: ['issue', id] })} />
               ))}
               {addingAction && (
-                <AddActionRow riskId={risk.id} impactDate={risk.impactDate}
-                  onSaved={() => { setAddingAction(false); qc.invalidateQueries({ queryKey: ['risk', id] }); }}
+                <AddActionRow issueId={issue.id} impactDate={issue.impactDate}
+                  onSaved={() => { setAddingAction(false); qc.invalidateQueries({ queryKey: ['issue', id] }); }}
                   onCancel={() => setAddingAction(false)} />
               )}
             </tbody>
           </table>
         ) : (
-          <p style={{ margin: 0, color: 'var(--usa-base-dark)' }}>No mitigation actions recorded yet. Use the button above to add one.</p>
+          <p style={{ margin: 0, color: 'var(--usa-base-dark)' }}>No mitigation actions recorded yet.</p>
         )}
       </div>
 
@@ -564,12 +564,12 @@ export function RiskDetail() {
       <div className="detail-card" style={{ marginTop: 'var(--space-3)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Comments</h2>
-          <span style={{ fontSize: 13, color: 'var(--usa-base-dark)' }}>{risk.comments?.length || 0} comment{risk.comments?.length === 1 ? '' : 's'}</span>
+          <span style={{ fontSize: 13, color: 'var(--usa-base-dark)' }}>{issue.comments?.length || 0} comment{issue.comments?.length === 1 ? '' : 's'}</span>
         </div>
 
         <div style={{ marginBottom: 16 }}>
           <label className="usa-label">Add Comment</label>
-          <textarea className="usa-textarea" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add context, new findings, or a status note" />
+          <textarea className="usa-textarea" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add context, resolution steps, or a status note" />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
             <button className="usa-button usa-button--outline usa-button--sm" onClick={() => addComment.mutate()} disabled={addComment.isPending || !comment.trim()}>
               {addComment.isPending ? 'Posting...' : 'Post Comment'}
@@ -577,9 +577,9 @@ export function RiskDetail() {
           </div>
         </div>
 
-        {risk.comments && risk.comments.length > 0 ? (
+        {issue.comments && issue.comments.length > 0 ? (
           <div style={{ display: 'grid', gap: 12 }}>
-            {risk.comments.map((entry) => (
+            {issue.comments.map((entry) => (
               <div key={entry.id} style={{ border: '1px solid var(--usa-base-lighter)', borderRadius: 8, padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
                   <strong>{entry.author?.displayName || 'Unknown user'}</strong>

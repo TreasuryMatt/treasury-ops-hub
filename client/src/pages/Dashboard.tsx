@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '../components/Icon';
 import { adminApi } from '../api/admin';
 import { resourcesApi } from '../api/resources';
 import { statusProjectsApi } from '../api/statusProjects';
@@ -146,7 +147,7 @@ export function Dashboard() {
   if (isLoading || !stats) {
     return (
       <div className="usa-page">
-        <div className="usa-page-header"><h1 className="usa-page-title">Dashboard</h1></div>
+        <div className="usa-page-header"><h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="dashboard" color="var(--usa-primary)" size={26} /> Dashboard</h1></div>
         <span className="usa-spinner" aria-label="Loading" />
       </div>
     );
@@ -168,7 +169,10 @@ export function Dashboard() {
   return (
     <div className="usa-page">
       <div className="usa-page-header">
-        <h1 className="usa-page-title">Dashboard</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="dashboard" color="var(--usa-primary)" size={26} />
+          Dashboard
+        </h1>
         <p className="usa-page-subtitle">Staffing coordination and near-term actions</p>
       </div>
 

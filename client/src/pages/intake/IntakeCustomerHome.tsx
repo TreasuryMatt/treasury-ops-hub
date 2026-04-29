@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { intakeApi } from '../../api/intake';
 import { IntakeStatusPill } from '../../components/IntakeStatusPill';
+import { Icon } from '../../components/Icon';
 import { Toast, useToast } from '../../components/Toast';
 
 export function IntakeCustomerHome() {
@@ -30,7 +31,10 @@ export function IntakeCustomerHome() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">My intake submissions</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="summarize" color="#2e8b57" size={26} />
+            My intake submissions
+          </h1>
           <p className="usa-page-subtitle">Start a request, save drafts, and track leadership determinations.</p>
         </div>
         <button className="usa-button usa-button--primary" onClick={() => navigate('/intake/new')}>

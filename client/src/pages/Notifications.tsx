@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Icon } from '../components/Icon';
 import { Link } from 'react-router-dom';
 import {
   fetchNotifications,
@@ -119,7 +120,10 @@ export function Notifications() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Notifications</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="notifications" color="var(--usa-primary)" size={26} />
+            Notifications
+          </h1>
           <p className="usa-page-subtitle">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>

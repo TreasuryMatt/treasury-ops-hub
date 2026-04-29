@@ -43,6 +43,22 @@ async function validateProgramProject(programId: string, statusProjectId: string
   }
 }
 
+async function syncRiskProgress(riskId: string) {
+  const actions = await prisma.riskMitigationAction.findMany({
+    where: { riskId },
+    select: { isComplete: true },
+  });
+  const risk = await prisma.risk.findUnique({ where: { id: riskId }, select: { progress: true } });
+  if (!risk) return;
+
+  const allComplete = actions.length > 0 && actions.every((a) => a.isComplete);
+  if (allComplete && risk.progress !== 'mitigated') {
+    await prisma.risk.update({ where: { id: riskId }, data: { progress: 'mitigated' } });
+  } else if (!allComplete && risk.progress === 'mitigated') {
+    await prisma.risk.update({ where: { id: riskId }, data: { progress: 'open' } });
+  }
+}
+
 function normalizeMitigationActions(actions: any[] | undefined) {
   if (!Array.isArray(actions)) return [];
   return actions
@@ -91,7 +107,11 @@ risksRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
   if (programId) where.programId = programId;
   if (projectId) where.statusProjectId = projectId;
-  if (progress) where.progress = progress;
+  if (progress) {
+    where.progress = progress;
+  } else {
+    where.progress = { not: 'escalated_to_issue' };
+  }
   if (criticality) where.criticality = criticality;
   if (categoryId) where.categoryId = categoryId;
 
@@ -102,6 +122,7 @@ risksRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
     program: { program: { name: sortOrder } },
     project: { statusProject: { name: sortOrder } },
     category: { category: { name: sortOrder } },
+    impactDate: { impactDate: sortOrder },
     progress: { progress: sortOrder },
     criticality: { criticality: sortOrder },
     dateIdentified: { dateIdentified: sortOrder },
@@ -115,6 +136,65 @@ risksRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   });
 
   res.json({ data: risks });
+});
+
+// GET /api/risks/dashboard
+risksRouter.get('/dashboard', async (_req: AuthenticatedRequest, res: Response) => {
+  const NON_ESCALATED = { not: 'escalated_to_issue' as const };
+
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 14);
+
+  const [totalRisks, progressGroups, criticalityGroups, programGroups, impactingSoon, withoutMitigationPlan] = await Promise.all([
+    prisma.risk.count({ where: { progress: NON_ESCALATED } }),
+    prisma.risk.groupBy({ by: ['progress'], _count: { id: true } }),
+    prisma.risk.groupBy({ by: ['criticality'], where: { progress: NON_ESCALATED }, _count: { id: true } }),
+    prisma.program.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        risks: { where: { progress: NON_ESCALATED }, select: { criticality: true, progress: true } },
+      },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.risk.count({ where: { progress: 'open', impactDate: { gte: new Date(), lte: soon } } }),
+    prisma.risk.count({ where: { progress: NON_ESCALATED, mitigationActions: { none: {} } } }),
+  ]);
+
+  const byProgress = Object.fromEntries(progressGroups.map((g) => [g.progress, g._count.id]));
+  const byCriticality = Object.fromEntries(criticalityGroups.map((g) => [g.criticality, g._count.id]));
+
+  const byProgram = programGroups
+    .filter((p) => p.risks.length > 0)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      totalCount: p.risks.length,
+      criticalCount: p.risks.filter((r) => r.criticality === 'critical').length,
+      openCount: p.risks.filter((r) => r.progress === 'open').length,
+    }));
+
+  res.json({
+    data: {
+      totalRisks,
+      impactingSoon,
+      withoutMitigationPlan,
+      byProgress: {
+        open: byProgress['open'] ?? 0,
+        accepted: byProgress['accepted'] ?? 0,
+        escalated_to_issue: byProgress['escalated_to_issue'] ?? 0,
+        mitigated: byProgress['mitigated'] ?? 0,
+      },
+      byCriticality: {
+        critical: byCriticality['critical'] ?? 0,
+        high: byCriticality['high'] ?? 0,
+        moderate: byCriticality['moderate'] ?? 0,
+        low: byCriticality['low'] ?? 0,
+      },
+      byProgram,
+    },
+  });
 });
 
 // GET /api/risks/:id
@@ -194,10 +274,20 @@ risksRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Re
         await tx.riskMitigationAction.deleteMany({ where: { riskId: existing.id } });
       }
 
+      const wasEscalated = b.progress === 'escalated_to_issue';
+      const currentRisk = await tx.risk.findUnique({ where: { id: existing.id }, select: { progress: true, escalatedAt: true } });
+      const escalatedAt =
+        wasEscalated && currentRisk?.progress !== 'escalated_to_issue'
+          ? new Date()
+          : !wasEscalated && b.progress !== undefined
+          ? null
+          : undefined;
+
       return tx.risk.update({
         where: { id: existing.id },
         data: {
           progress: b.progress ?? undefined,
+          escalatedAt,
           programId: b.programId ?? undefined,
           statusProjectId: b.statusProjectId ?? undefined,
           categoryId: b.categoryId ?? undefined,
@@ -218,6 +308,101 @@ risksRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Re
 
     await logAction(req.user!.id, 'update', 'risk', risk.id, { riskCode: risk.riskCode }, req.ip);
     res.json({ data: risk });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// POST /api/risks/:id/mitigation-actions
+risksRouter.post('/:id/mitigation-actions', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const risk = await prisma.risk.findUnique({
+      where: { id: req.params.id as string },
+      select: { id: true, impactDate: true },
+    });
+    if (!risk) throw new AppError('Risk not found', 404);
+
+    const { title, dueDate, status, isComplete } = req.body;
+    if (!title || !String(title).trim()) throw new AppError('Title is required', 400);
+
+    if (dueDate && risk.impactDate && new Date(dueDate) > new Date(risk.impactDate)) {
+      throw new AppError('Due date cannot be after the risk\'s impact date', 400);
+    }
+
+    const count = await prisma.riskMitigationAction.count({ where: { riskId: risk.id } });
+    const action = await prisma.riskMitigationAction.create({
+      data: {
+        riskId: risk.id,
+        title: String(title).trim(),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        status: status || 'yellow',
+        isComplete: Boolean(isComplete),
+        sortOrder: count,
+      },
+    });
+
+    await syncRiskProgress(risk.id);
+    res.status(201).json({ data: action });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// PUT /api/risks/:id/mitigation-actions/:actionId
+risksRouter.put('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const risk = await prisma.risk.findUnique({
+      where: { id: req.params.id as string },
+      select: { id: true, impactDate: true },
+    });
+    if (!risk) throw new AppError('Risk not found', 404);
+
+    const existing = await prisma.riskMitigationAction.findFirst({
+      where: { id: req.params.actionId as string, riskId: risk.id },
+    });
+    if (!existing) throw new AppError('Mitigation action not found', 404);
+
+    const { title, dueDate, status, isComplete } = req.body;
+
+    const nextDueDate = dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existing.dueDate;
+    if (nextDueDate && risk.impactDate && nextDueDate > new Date(risk.impactDate)) {
+      throw new AppError('Due date cannot be after the risk\'s impact date', 400);
+    }
+
+    const action = await prisma.riskMitigationAction.update({
+      where: { id: existing.id },
+      data: {
+        title: title !== undefined ? String(title).trim() : undefined,
+        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
+        status: status ?? undefined,
+        isComplete: isComplete !== undefined ? Boolean(isComplete) : undefined,
+      },
+    });
+
+    await syncRiskProgress(risk.id);
+    res.json({ data: action });
+  } catch (err: any) {
+    next(new AppError(err.message, 400));
+  }
+});
+
+// DELETE /api/risks/:id/mitigation-actions/:actionId
+risksRouter.delete('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const risk = await prisma.risk.findUnique({
+      where: { id: req.params.id as string },
+      select: { id: true },
+    });
+    if (!risk) throw new AppError('Risk not found', 404);
+
+    const existing = await prisma.riskMitigationAction.findFirst({
+      where: { id: req.params.actionId as string, riskId: risk.id },
+    });
+    if (!existing) throw new AppError('Mitigation action not found', 404);
+
+    await prisma.riskMitigationAction.delete({ where: { id: existing.id } });
+    await syncRiskProgress(risk.id);
+    res.json({ data: { id: existing.id } });
   } catch (err: any) {
     next(new AppError(err.message, 400));
   }

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { intakeApi } from '../../api/intake';
 import { IntakeSubmission } from '../../types';
 import { IntakeStatusPill } from '../../components/IntakeStatusPill';
+import { Icon } from '../../components/Icon';
 import { Toast, useToast } from '../../components/Toast';
 
 type IntakeFormState = {
@@ -195,7 +196,10 @@ export function IntakeSubmissionForm() {
       <div className="usa-page-header">
         <div>
           <Link to="/intake" className="usa-button usa-button--unstyled">← Back to my submissions</Link>
-          <h1 className="usa-page-title" style={{ marginTop: 8 }}>{isNew ? 'New intake submission' : form.title || 'Edit submission'}</h1>
+          <h1 className="usa-page-title" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="summarize" color="#2e8b57" size={24} />
+            {isNew ? 'New intake submission' : form.title || 'Edit submission'}
+          </h1>
           <p className="usa-page-subtitle">Capture enough detail for reviewers to assess feasibility and leadership priority.</p>
         </div>
       </div>

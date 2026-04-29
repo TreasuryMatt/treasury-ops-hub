@@ -185,7 +185,10 @@ export function Programs() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Programs</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="folder" color="var(--usa-primary)" size={26} />
+            Programs
+          </h1>
           <p className="usa-page-subtitle">{programs.length} program{programs.length !== 1 ? 's' : ''}</p>
         </div>
         {canEdit && (

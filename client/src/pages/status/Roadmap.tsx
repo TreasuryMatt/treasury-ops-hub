@@ -243,7 +243,10 @@ export function Roadmap() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Portfolio Roadmap</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="timeline" color="var(--usa-primary)" size={26} />
+            Portfolio Roadmap
+          </h1>
           <p className="usa-page-subtitle">
             {withPhases.length} project{withPhases.length !== 1 ? 's' : ''} with phases
           </p>
