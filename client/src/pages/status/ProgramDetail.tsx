@@ -38,7 +38,10 @@ export function ProgramDetail() {
           >
             <Icon name="arrow_back" size={16} /> Back to Programs
           </button>
-          <h1 className="usa-page-title">{program.name}</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="folder" color="var(--usa-primary)" size={24} />
+            {program.name}
+          </h1>
           {program.portfolio && (
             <p className="usa-page-subtitle">Portfolio: {program.portfolio.name}</p>
           )}

@@ -36,6 +36,13 @@ export interface Product {
   isActive: boolean;
 }
 
+export interface RiskCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface Resource {
   id: string;
   resourceType: ResourceType;
@@ -226,6 +233,9 @@ export interface StatusTrendPoint {
   date: string;
 }
 export type IssueCategory = 'risk' | 'issue' | 'blocker';
+export type RiskProgress = 'open' | 'accepted' | 'escalated_to_issue' | 'mitigated';
+export type RiskCriticality = 'critical' | 'high' | 'moderate' | 'low';
+export type RiskActionStatus = 'red' | 'yellow' | 'green';
 export type NotificationType =
   | 'update_due'
   | 'update_overdue'
@@ -344,6 +354,71 @@ export interface StatusProject {
   updates?: StatusUpdate[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RiskMitigationAction {
+  id: string;
+  riskId: string;
+  title: string;
+  dueDate: string | null;
+  status: RiskActionStatus;
+  isComplete: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RiskComment {
+  id: string;
+  riskId: string;
+  authorId: string;
+  author?: { id: string; displayName: string };
+  text: string;
+  createdAt: string;
+}
+
+export interface Risk {
+  id: string;
+  riskCode: string;
+  progress: RiskProgress;
+  programId: string;
+  program?: Program;
+  statusProjectId: string;
+  statusProject?: { id: string; name: string; programId?: string };
+  categoryId: string;
+  category?: RiskCategory;
+  spmId: string | null;
+  title: string;
+  statement: string;
+  criticality: RiskCriticality;
+  submitterId: string;
+  submitter?: { id: string; displayName: string; email?: string };
+  dateIdentified: string | null;
+  probability: number | null;
+  impact: string | null;
+  impactDate: string | null;
+  closureCriteria: string | null;
+  escalatedAt: string | null;
+  mitigationActions?: RiskMitigationAction[];
+  comments?: RiskComment[];
+  _count?: { comments: number; mitigationActions: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RisksDashboardStats {
+  totalRisks: number;
+  impactingSoon: number;
+  withoutMitigationPlan: number;
+  byProgress: { open: number; accepted: number; escalated_to_issue: number; mitigated: number };
+  byCriticality: { critical: number; high: number; moderate: number; low: number };
+  byProgram: Array<{ id: string; name: string; totalCount: number; criticalCount: number; openCount: number }>;
+}
+
+export interface IssuesDashboardStats {
+  totalIssues: number;
+  byCriticality: { critical: number; high: number; moderate: number; low: number };
+  byProgram: Array<{ id: string; name: string; count: number }>;
 }
 
 export interface ProjectPhase {

@@ -35,7 +35,10 @@ export function Import() {
   return (
     <div className="usa-page">
       <div className="usa-page-header">
-        <h1 className="usa-page-title">Import Data</h1>
+        <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="file_upload" color="var(--usa-base-dark)" size={26} />
+          Import Data
+        </h1>
         <p className="usa-page-subtitle">Upload the Capacity Management Tracker Excel file</p>
       </div>
 

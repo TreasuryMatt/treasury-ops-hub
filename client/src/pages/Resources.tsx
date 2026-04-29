@@ -79,7 +79,10 @@ export function Resources() {
     <div className="usa-page">
       <div className="usa-page-header">
         <div>
-          <h1 className="usa-page-title">Resources</h1>
+          <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="people" color="var(--usa-primary)" size={26} />
+            Resources
+          </h1>
           <p className="usa-page-subtitle">{data?.meta.total ?? '...'} total resources</p>
         </div>
         {canEdit && (

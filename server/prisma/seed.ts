@@ -435,6 +435,24 @@ async function seedReferenceData() {
     });
   }
 
+  const riskCategories = [
+    'Funding',
+    'Compliance',
+    'Delivery',
+    'Requirement',
+    'Resources/Staffing',
+    'Schedule',
+    'Technical Complexity',
+    'Testing',
+  ];
+  for (let i = 0; i < riskCategories.length; i += 1) {
+    await prisma.riskCategory.upsert({
+      where: { name: riskCategories[i] },
+      update: { sortOrder: i, isActive: true },
+      create: { name: riskCategories[i], sortOrder: i, isActive: true },
+    });
+  }
+
   const portfolios = [
     { name: 'Demo Citizen Experience Portfolio', description: `${DEMO_TAG} Public-facing modernization work.` },
     { name: 'Demo Shared Services Portfolio', description: `${DEMO_TAG} Shared service delivery and automation.` },
@@ -1550,6 +1568,580 @@ async function seedIntake(refs: RefMaps) {
   }
 }
 
+async function seedRisksAndIssues(refs: RefMaps) {
+  const today = new Date();
+
+  // Look up status projects by name
+  const statusProjects = await prisma.statusProject.findMany({
+    select: { id: true, name: true, programId: true },
+  });
+  const sp = Object.fromEntries(statusProjects.map((p) => [p.name, { id: p.id, programId: p.programId }]));
+
+  const riskCategories = await prisma.riskCategory.findMany({ select: { id: true, name: true } });
+  const cat = Object.fromEntries(riskCategories.map((c) => [c.name, c.id]));
+
+  const admin = refs.users['ADMIN001'];
+  const editor = refs.users['EDIT001'];
+  const reviewer = refs.users['REVIEW01'];
+
+  type RiskSeed = {
+    riskCode: string;
+    projectName: string;
+    categoryName: string;
+    progress: 'open' | 'accepted' | 'mitigated' | 'escalated_to_issue';
+    criticality: 'critical' | 'high' | 'moderate' | 'low';
+    title: string;
+    statement: string;
+    impact?: string;
+    closureCriteria?: string;
+    spmId?: string;
+    dateIdentified: Date;
+    impactDate?: Date;
+    escalatedAt?: Date;
+    submitterKey: string;
+    mitigationActions?: { title: string; dueDate?: Date; status: 'green' | 'yellow' | 'red'; isComplete: boolean }[];
+  };
+
+  const risks: RiskSeed[] = [
+    // ── Demo Treasury Intake Modernization ──────────────────────────────────
+    {
+      riskCode: 'RISK-0001',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Resources/Staffing',
+      progress: 'open',
+      criticality: 'high',
+      title: 'Key analyst vacancies may delay pilot expansion',
+      statement: 'Three senior analyst positions remain unfilled on the intake modernization team. If not filled before the pilot expansion phase, throughput will drop and review SLAs will not be met.',
+      impact: 'Pilot expansion delayed by up to 6 weeks; increased backlog for intake reviewers.',
+      closureCriteria: 'All three vacancies are filled and new hires have completed onboarding.',
+      spmId: 'SPM-2201',
+      dateIdentified: withDayOffset(today, -90),
+      impactDate: withDayOffset(today, 45),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Submit requisitions for all three positions', dueDate: withDayOffset(today, -60), status: 'green', isComplete: true },
+        { title: 'Identify interim contractor coverage', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Schedule hiring panel and interviews', dueDate: withDayOffset(today, 20), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0002',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Schedule',
+      progress: 'accepted',
+      criticality: 'moderate',
+      title: 'Bureau sign-off on routing rules may slip one sprint',
+      statement: 'Two bureaus have not yet reviewed and approved the routing rule matrix required for the next release. Approval is on the critical path but bureaus have competing priorities.',
+      impact: 'Next release delayed by one sprint (two weeks).',
+      closureCriteria: 'Formal routing rule approval received from all participating bureaus.',
+      dateIdentified: withDayOffset(today, -55),
+      impactDate: withDayOffset(today, 14),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Send formal approval request to bureau leads', dueDate: withDayOffset(today, -40), status: 'green', isComplete: true },
+        { title: 'Schedule 30-min review call if no response by deadline', dueDate: withDayOffset(today, 5), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0003',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Technical Complexity',
+      progress: 'mitigated',
+      criticality: 'high',
+      title: 'Legacy API incompatibility with new intake workflow engine',
+      statement: 'The existing intake routing API uses a SOAP-based contract that is incompatible with the new event-driven workflow engine. An adapter layer must be built before integration testing can begin.',
+      impact: 'Integration testing phase delayed; additional engineering effort of ~3 weeks.',
+      closureCriteria: 'Adapter layer is deployed and integration test suite passes end-to-end.',
+      spmId: 'SPM-2202',
+      dateIdentified: withDayOffset(today, -130),
+      impactDate: withDayOffset(today, -20),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Design adapter layer architecture', dueDate: withDayOffset(today, -110), status: 'green', isComplete: true },
+        { title: 'Build and unit test adapter', dueDate: withDayOffset(today, -60), status: 'green', isComplete: true },
+        { title: 'Run integration regression suite', dueDate: withDayOffset(today, -30), status: 'green', isComplete: true },
+      ],
+    },
+    {
+      riskCode: 'RISK-0004',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Compliance',
+      progress: 'open',
+      criticality: 'critical',
+      title: 'Privacy impact assessment not started for new intake data fields',
+      statement: 'The new intake form captures additional PII fields that were not included in the original PIA. A revised PIA must be completed and approved by the Privacy Office before any data is collected in production.',
+      impact: 'Production launch blocked until PIA is approved; potential regulatory exposure.',
+      closureCriteria: 'Revised PIA submitted, reviewed, and approved by the Privacy Office.',
+      spmId: 'SPM-2203',
+      dateIdentified: withDayOffset(today, -30),
+      impactDate: withDayOffset(today, 30),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Draft revised PIA with new data fields', dueDate: withDayOffset(today, 5), status: 'yellow', isComplete: false },
+        { title: 'Submit PIA to Privacy Office for review', dueDate: withDayOffset(today, 15), status: 'yellow', isComplete: false },
+      ],
+    },
+
+    // ── Demo Vendor Oversight Portal ─────────────────────────────────────────
+    {
+      riskCode: 'RISK-0005',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Delivery',
+      progress: 'escalated_to_issue',
+      criticality: 'critical',
+      title: 'Vendor master data reconciliation blocking go-live',
+      statement: 'Inconsistent vendor identifiers across source systems have prevented a clean data load into the portal. Manual reconciliation is required across roughly 800 records before go-live can proceed.',
+      impact: 'Portal launch delayed by at least 3 weeks; business users unable to access vendor SLA data.',
+      closureCriteria: 'All vendor records reconciled, validated by the data steward, and successfully loaded into production.',
+      spmId: 'SPM-3101',
+      dateIdentified: withDayOffset(today, -85),
+      impactDate: withDayOffset(today, -5),
+      escalatedAt: withDayOffset(today, -10),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Map identifier crosswalk from all three source systems', dueDate: withDayOffset(today, -60), status: 'green', isComplete: true },
+        { title: 'Run automated reconciliation script on test data', dueDate: withDayOffset(today, -30), status: 'green', isComplete: true },
+        { title: 'Complete manual review of unmatched records', dueDate: withDayOffset(today, 5), status: 'red', isComplete: false },
+        { title: 'Obtain data steward sign-off on reconciled dataset', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0006',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Resources/Staffing',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Single point of failure for portal data integration ownership',
+      statement: 'Only one engineer has full knowledge of the vendor data pipeline and transformation logic. If this person becomes unavailable, integration maintenance and incident response would be severely impacted.',
+      impact: 'Integration incidents could take 3–5x longer to resolve without a backup owner.',
+      closureCriteria: 'A second engineer has been trained and has independently resolved at least one integration issue.',
+      dateIdentified: withDayOffset(today, -40),
+      impactDate: withDayOffset(today, 60),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Document all pipeline components and runbooks', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Cross-train backup engineer on data pipeline', dueDate: withDayOffset(today, 30), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0007',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Testing',
+      progress: 'open',
+      criticality: 'high',
+      title: 'UAT participant availability limited during government travel season',
+      statement: 'Ten of twelve planned UAT participants have notified the team of travel conflicts in the planned UAT window. Insufficient participation could result in inadequate coverage of critical business workflows.',
+      impact: 'UAT sign-off delayed or conducted with insufficient coverage; defects may reach production.',
+      closureCriteria: 'At least 8 of 12 planned UAT participants complete structured test scenarios.',
+      dateIdentified: withDayOffset(today, -20),
+      impactDate: withDayOffset(today, 25),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Reschedule UAT window to avoid peak travel conflicts', dueDate: withDayOffset(today, 5), status: 'yellow', isComplete: false },
+        { title: 'Identify backup participants from adjacent teams', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0008',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Funding',
+      progress: 'accepted',
+      criticality: 'low',
+      title: 'Optional analytics module may not be funded in current fiscal year',
+      statement: 'The advanced SLA analytics module is scoped as an optional enhancement. Current budget projections show a shortfall that may prevent its inclusion in this fiscal year.',
+      impact: 'Analytics module deferred to next fiscal year; core portal features unaffected.',
+      closureCriteria: 'Supplemental funding is secured or module is formally deferred to the next release cycle.',
+      dateIdentified: withDayOffset(today, -50),
+      submitterKey: 'ADMIN001',
+    },
+
+    // ── Demo AI Help Desk Assistant ──────────────────────────────────────────
+    {
+      riskCode: 'RISK-0009',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Compliance',
+      progress: 'escalated_to_issue',
+      criticality: 'critical',
+      title: 'AI governance approval workflow not finalized — pilot blocked',
+      statement: 'The governance review for publishing knowledge sources to the AI assistant has not been approved. Without an approved workflow, no production content can be loaded and the pilot cannot proceed.',
+      impact: 'Pilot launch blocked indefinitely; program credibility at risk with leadership.',
+      closureCriteria: 'Governance workflow approved by security and knowledge management stakeholders; pilot corpus loaded.',
+      spmId: 'SPM-4201',
+      dateIdentified: withDayOffset(today, -60),
+      impactDate: withDayOffset(today, -15),
+      escalatedAt: withDayOffset(today, -15),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Draft governance workflow proposal', dueDate: withDayOffset(today, -45), status: 'green', isComplete: true },
+        { title: 'Present proposal to security review board', dueDate: withDayOffset(today, -20), status: 'green', isComplete: true },
+        { title: 'Incorporate security feedback into revised workflow', dueDate: withDayOffset(today, 5), status: 'red', isComplete: false },
+        { title: 'Obtain final sign-off from knowledge management lead', dueDate: withDayOffset(today, 12), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0010',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Technical Complexity',
+      progress: 'open',
+      criticality: 'high',
+      title: 'LLM response hallucination rate exceeds acceptable threshold in testing',
+      statement: 'During controlled testing the assistant produced responses that included plausible but incorrect policy citations in roughly 8% of test cases. The acceptable threshold for production is under 2%.',
+      impact: 'Pilot delayed until hallucination rate is reduced; user trust risk if rate persists in production.',
+      closureCriteria: 'Hallucination rate is below 2% on a representative test set of 500 queries.',
+      spmId: 'SPM-4202',
+      dateIdentified: withDayOffset(today, -45),
+      impactDate: withDayOffset(today, 30),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Narrow knowledge corpus to high-confidence authoritative sources', dueDate: withDayOffset(today, -20), status: 'green', isComplete: true },
+        { title: 'Add citation grounding layer to response pipeline', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Re-run test suite and measure hallucination rate', dueDate: withDayOffset(today, 20), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0011',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Resources/Staffing',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'No dedicated prompt engineer to maintain knowledge base quality',
+      statement: 'The current staffing plan does not include a dedicated prompt engineer or knowledge curator. Ongoing quality degradation of the knowledge base is likely without a clear ownership model.',
+      impact: 'Response quality will degrade over time; no clear escalation path for poor outputs.',
+      closureCriteria: 'A knowledge curation role is defined, staffed, and operating with a documented quality cadence.',
+      dateIdentified: withDayOffset(today, -25),
+      impactDate: withDayOffset(today, 90),
+      submitterKey: 'REVIEW01',
+    },
+    {
+      riskCode: 'RISK-0012',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Schedule',
+      progress: 'open',
+      criticality: 'high',
+      title: 'Broader rollout timeline at risk if controlled beta slips',
+      statement: 'The broader rollout milestone depends on a 4-week controlled beta window. Any slip in governance approval or corpus readiness will compress or eliminate buffer before the planned broader rollout date.',
+      impact: 'Broader rollout delayed by one to two months; executive dashboard milestone affected.',
+      closureCriteria: 'Controlled beta starts on schedule with full governance and corpus readiness confirmed.',
+      dateIdentified: withDayOffset(today, -15),
+      impactDate: withDayOffset(today, 60),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Finalize governance approval by current target date', dueDate: withDayOffset(today, 12), status: 'red', isComplete: false },
+        { title: 'Prepare beta user communications and onboarding materials', dueDate: withDayOffset(today, 20), status: 'yellow', isComplete: false },
+      ],
+    },
+
+    // ── Demo Records Automation Rollout ──────────────────────────────────────
+    {
+      riskCode: 'RISK-0013',
+      projectName: 'Demo Records Automation Rollout',
+      categoryName: 'Funding',
+      progress: 'open',
+      criticality: 'high',
+      title: 'Phase 2 implementation funding not yet approved',
+      statement: 'The discovery phase is proceeding under existing budget, but the build phase requires a separate funding approval that has not been obtained. Without it, the project will stall after requirements.',
+      impact: 'Build phase cannot begin; project timeline pushed out by 3–6 months pending approval.',
+      closureCriteria: 'Phase 2 funding formally approved and obligation authority issued.',
+      spmId: 'SPM-2301',
+      dateIdentified: withDayOffset(today, -9),
+      impactDate: withDayOffset(today, 60),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Prepare funding justification package for leadership', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Brief program sponsor on funding gap and timeline impact', dueDate: withDayOffset(today, 15), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0014',
+      projectName: 'Demo Records Automation Rollout',
+      categoryName: 'Requirement',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Incomplete stakeholder participation in discovery interviews',
+      statement: 'Two key records offices have not participated in discovery interviews. Requirements gaps in their workflows could surface late and require expensive rework during the build phase.',
+      impact: 'Rework risk in build phase; potential missed compliance controls for those offices.',
+      closureCriteria: 'All identified records offices have completed discovery interviews and reviewed draft requirements.',
+      dateIdentified: withDayOffset(today, -5),
+      impactDate: withDayOffset(today, 30),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Re-engage missing offices through program sponsor channel', dueDate: withDayOffset(today, 7), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0015',
+      projectName: 'Demo Records Automation Rollout',
+      categoryName: 'Compliance',
+      progress: 'open',
+      criticality: 'critical',
+      title: 'Records retention rules not yet mapped to automated workflow triggers',
+      statement: 'The automation design does not yet account for legally mandated retention schedules. If automation triggers do not align with NARA requirements, the agency could be in violation of federal records law.',
+      impact: 'Legal non-compliance; potential audit finding; mandatory rework to records workflow engine.',
+      closureCriteria: 'All retention rules reviewed with Records Officer and mapped to workflow triggers in the design document.',
+      spmId: 'SPM-2302',
+      dateIdentified: withDayOffset(today, -3),
+      impactDate: withDayOffset(today, 45),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Schedule records retention review session with Records Officer', dueDate: withDayOffset(today, 7), status: 'yellow', isComplete: false },
+        { title: 'Map retention schedule to workflow design document', dueDate: withDayOffset(today, 21), status: 'yellow', isComplete: false },
+      ],
+    },
+
+    // ── Demo Grants Analytics Pilot ──────────────────────────────────────────
+    {
+      riskCode: 'RISK-0016',
+      projectName: 'Demo Grants Analytics Pilot',
+      categoryName: 'Delivery',
+      progress: 'mitigated',
+      criticality: 'moderate',
+      title: 'Source data feed missed two weeks of historical grant records',
+      statement: 'A configuration issue in one of the source ETL feeds caused a gap in historical grant data loaded into the pilot dashboards. Impacted records covered fiscal quarters Q1 and Q2.',
+      impact: 'Dashboard metrics for Q1–Q2 were inaccurate for approximately two weeks; pilot user trust impacted.',
+      closureCriteria: 'Historical backfill completed, validated, and data freshness checks added to the pipeline.',
+      dateIdentified: withDayOffset(today, -200),
+      impactDate: withDayOffset(today, -185),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Diagnose root cause of ETL feed gap', dueDate: withDayOffset(today, -198), status: 'green', isComplete: true },
+        { title: 'Run one-time historical backfill load', dueDate: withDayOffset(today, -190), status: 'green', isComplete: true },
+        { title: 'Add row-count validation check to ETL pipeline', dueDate: withDayOffset(today, -185), status: 'green', isComplete: true },
+      ],
+    },
+    {
+      riskCode: 'RISK-0017',
+      projectName: 'Demo Grants Analytics Pilot',
+      categoryName: 'Resources/Staffing',
+      progress: 'escalated_to_issue',
+      criticality: 'high',
+      title: 'No sustainment owner identified after pilot closeout',
+      statement: 'The pilot team disbanded at closeout without formally transitioning dashboard ownership to an operations team. The dashboards are live but unmonitored, and no one is accountable for data quality or user support.',
+      impact: 'Dashboard data quality will degrade without ownership; user requests unanswered; potential decommission.',
+      closureCriteria: 'A named sustainment owner is designated, trained, and has accepted an operating agreement.',
+      spmId: 'SPM-5101',
+      dateIdentified: withDayOffset(today, -40),
+      impactDate: withDayOffset(today, -10),
+      escalatedAt: withDayOffset(today, -10),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Identify candidate sustainment team from program operations', dueDate: withDayOffset(today, -20), status: 'green', isComplete: true },
+        { title: 'Conduct handoff session with pilot team lead', dueDate: withDayOffset(today, 5), status: 'yellow', isComplete: false },
+        { title: 'Execute operating agreement and document support contacts', dueDate: withDayOffset(today, 15), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0018',
+      projectName: 'Demo Grants Analytics Pilot',
+      categoryName: 'Technical Complexity',
+      progress: 'mitigated',
+      criticality: 'low',
+      title: 'Dashboard query performance degraded under concurrent user load',
+      statement: 'During user acceptance testing with 15 simultaneous users, several dashboard queries exceeded the 5-second response threshold. Performance was acceptable with fewer than 8 concurrent users.',
+      impact: 'User frustration during peak reporting periods; potential adoption risk.',
+      closureCriteria: 'Dashboard p95 query response time is under 3 seconds with 20 simulated concurrent users.',
+      dateIdentified: withDayOffset(today, -180),
+      impactDate: withDayOffset(today, -160),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Profile slow queries and add missing indexes', dueDate: withDayOffset(today, -175), status: 'green', isComplete: true },
+        { title: 'Implement query result caching for summary metrics', dueDate: withDayOffset(today, -165), status: 'green', isComplete: true },
+        { title: 'Re-run load test and confirm p95 threshold met', dueDate: withDayOffset(today, -160), status: 'green', isComplete: true },
+      ],
+    },
+
+    // ── Additional cross-program variety ─────────────────────────────────────
+    {
+      riskCode: 'RISK-0019',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Funding',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Operating budget covers only 70% of enterprise rollout cost',
+      statement: 'The current approved budget covers the pilot and partial rollout but is insufficient for full enterprise adoption across all bureaus. A supplemental funding request is in progress but not yet approved.',
+      impact: 'Enterprise rollout scope reduced or delayed pending additional funds.',
+      closureCriteria: 'Supplemental funding approved or scope formally adjusted to match available budget.',
+      dateIdentified: withDayOffset(today, -35),
+      impactDate: withDayOffset(today, 90),
+      submitterKey: 'REVIEW01',
+      mitigationActions: [
+        { title: 'Submit supplemental funding request to CFO office', dueDate: withDayOffset(today, -10), status: 'green', isComplete: true },
+        { title: 'Prepare reduced-scope fallback plan', dueDate: withDayOffset(today, 20), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0020',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Compliance',
+      progress: 'escalated_to_issue',
+      criticality: 'high',
+      title: 'System security plan not updated to reflect new portal data flows',
+      statement: 'The portal introduces new data flows between three systems that are not reflected in the current system security plan. ATO boundary changes require a formal SSP update and ISSM review before production launch.',
+      impact: 'Production launch blocked; ATO may lapse if SSP is not updated within 30 days.',
+      closureCriteria: 'SSP updated, ISSM review complete, and ATO boundary change approved.',
+      spmId: 'SPM-3102',
+      dateIdentified: withDayOffset(today, -25),
+      impactDate: withDayOffset(today, -3),
+      escalatedAt: withDayOffset(today, -3),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Draft SSP addendum covering new data flows', dueDate: withDayOffset(today, 5), status: 'red', isComplete: false },
+        { title: 'Submit SSP update to ISSM for review', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Receive ATO boundary approval', dueDate: withDayOffset(today, 20), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0021',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Requirement',
+      progress: 'accepted',
+      criticality: 'low',
+      title: 'Edge-case multilingual queries not in scope for initial release',
+      statement: 'Approximately 3% of historical help desk queries are in languages other than English. The initial release will not support multilingual queries; users will receive a fallback message directing them to call the service desk.',
+      impact: 'Minimal user impact in initial release; potential equity concerns if not addressed in follow-on.',
+      closureCriteria: 'Multilingual support added in a follow-on release or a policy decision is documented to defer indefinitely.',
+      dateIdentified: withDayOffset(today, -20),
+      submitterKey: 'REVIEW01',
+    },
+    {
+      riskCode: 'RISK-0022',
+      projectName: 'Demo Records Automation Rollout',
+      categoryName: 'Schedule',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Dependency on shared integration platform creates scheduling conflict',
+      statement: 'The records automation workflow requires changes to a shared integration platform also being modified by two other programs. Competing change requests could delay the records automation configuration window.',
+      impact: 'Build phase delayed by 4–6 weeks if integration platform changes are not sequenced correctly.',
+      closureCriteria: 'Change request is sequenced and approved on the shared platform roadmap with adequate window for records automation.',
+      dateIdentified: withDayOffset(today, -7),
+      impactDate: withDayOffset(today, 75),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Meet with platform team to review change request queue', dueDate: withDayOffset(today, 7), status: 'yellow', isComplete: false },
+        { title: 'Escalate scheduling conflict to program steering committee if needed', dueDate: withDayOffset(today, 14), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0023',
+      projectName: 'Demo Treasury Intake Modernization',
+      categoryName: 'Delivery',
+      progress: 'open',
+      criticality: 'high',
+      title: 'Third-party integration vendor behind on API delivery',
+      statement: 'The external integration vendor contracted for document classification services has delivered only 40% of the agreed API endpoints by the midpoint checkpoint. At current pace, the full API will not be ready before integration testing begins.',
+      impact: 'Integration testing phase delayed by 3–4 weeks; downstream release milestone at risk.',
+      closureCriteria: 'All contracted API endpoints are delivered, documented, and passing acceptance tests.',
+      spmId: 'SPM-2204',
+      dateIdentified: withDayOffset(today, -18),
+      impactDate: withDayOffset(today, 35),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Issue formal cure notice to integration vendor', dueDate: withDayOffset(today, 3), status: 'yellow', isComplete: false },
+        { title: 'Evaluate in-house stub implementation as fallback', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Brief COR on vendor delivery status', dueDate: withDayOffset(today, 5), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0024',
+      projectName: 'Demo Vendor Oversight Portal',
+      categoryName: 'Delivery',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Launch communications plan not drafted',
+      statement: 'No communications plan exists for the portal go-live. Without advance notice to vendor managers and bureau liaisons, adoption may be slow and support volumes could spike unexpectedly.',
+      impact: 'Low adoption in first 30 days; elevated help desk volume at launch.',
+      closureCriteria: 'Launch communications plan approved and distribution list confirmed 2 weeks before go-live.',
+      dateIdentified: withDayOffset(today, -10),
+      impactDate: withDayOffset(today, 20),
+      submitterKey: 'EDIT001',
+      mitigationActions: [
+        { title: 'Draft communications plan and distribution list', dueDate: withDayOffset(today, 8), status: 'yellow', isComplete: false },
+        { title: 'Review with program office and get approval', dueDate: withDayOffset(today, 14), status: 'yellow', isComplete: false },
+      ],
+    },
+    {
+      riskCode: 'RISK-0025',
+      projectName: 'Demo AI Help Desk Assistant',
+      categoryName: 'Funding',
+      progress: 'open',
+      criticality: 'moderate',
+      title: 'Ongoing LLM API costs not included in steady-state budget',
+      statement: 'The program budget covers development costs but does not include ongoing API usage fees for the language model. Usage costs in production are projected to exceed $40K/year, which has no current funding source.',
+      impact: 'Operational funding gap after launch; service may need to be throttled or suspended.',
+      closureCriteria: 'Ongoing LLM API costs are baselined and included in the program\'s operations budget.',
+      dateIdentified: withDayOffset(today, -12),
+      impactDate: withDayOffset(today, 120),
+      submitterKey: 'ADMIN001',
+      mitigationActions: [
+        { title: 'Prepare cost projection model for steady-state operations', dueDate: withDayOffset(today, 10), status: 'yellow', isComplete: false },
+        { title: 'Submit operations budget amendment to include LLM costs', dueDate: withDayOffset(today, 25), status: 'yellow', isComplete: false },
+      ],
+    },
+  ];
+
+  for (const r of risks) {
+    const proj = sp[r.projectName];
+    if (!proj) { console.warn(`  Skipping risk ${r.riskCode}: project "${r.projectName}" not found`); continue; }
+    const categoryId = cat[r.categoryName];
+    if (!categoryId) { console.warn(`  Skipping risk ${r.riskCode}: category "${r.categoryName}" not found`); continue; }
+    const submitterId = refs.users[r.submitterKey];
+    if (!submitterId) { console.warn(`  Skipping risk ${r.riskCode}: user "${r.submitterKey}" not found`); continue; }
+
+    const risk = await prisma.risk.upsert({
+      where: { riskCode: r.riskCode },
+      update: {
+        progress: r.progress,
+        programId: proj.programId,
+        statusProjectId: proj.id,
+        categoryId,
+        spmId: r.spmId ?? null,
+        title: r.title,
+        statement: r.statement,
+        criticality: r.criticality,
+        submitterId,
+        dateIdentified: r.dateIdentified,
+        impact: r.impact ?? null,
+        impactDate: r.impactDate ?? null,
+        closureCriteria: r.closureCriteria ?? null,
+        escalatedAt: r.escalatedAt ?? null,
+      },
+      create: {
+        riskCode: r.riskCode,
+        progress: r.progress,
+        programId: proj.programId,
+        statusProjectId: proj.id,
+        categoryId,
+        spmId: r.spmId ?? null,
+        title: r.title,
+        statement: r.statement,
+        criticality: r.criticality,
+        submitterId,
+        dateIdentified: r.dateIdentified,
+        impact: r.impact ?? null,
+        impactDate: r.impactDate ?? null,
+        closureCriteria: r.closureCriteria ?? null,
+        escalatedAt: r.escalatedAt ?? null,
+      },
+      select: { id: true },
+    });
+
+    if (r.mitigationActions?.length) {
+      await prisma.riskMitigationAction.deleteMany({ where: { riskId: risk.id } });
+      await prisma.riskMitigationAction.createMany({
+        data: r.mitigationActions.map((a, i) => ({
+          riskId: risk.id,
+          title: a.title,
+          dueDate: a.dueDate ?? null,
+          status: a.status,
+          isComplete: a.isComplete,
+          sortOrder: i,
+        })),
+      });
+    }
+  }
+
+  console.log(`  Seeded ${risks.length} risks/issues.`);
+}
+
 async function main() {
   console.log('Seeding database...');
   await seedReferenceData();
@@ -1557,6 +2149,7 @@ async function main() {
   await seedProjectsAndStatusData(refs);
   await seedResourcesAndAssignments(refs);
   await seedIntake(refs);
+  await seedRisksAndIssues(refs);
   console.log('Seeding complete!');
 }
 

@@ -60,19 +60,37 @@ export function Sidebar() {
             <ul className="usa-sidenav">
               <li>
                 <NavLink to="/intake/review" end>
-                  <Icon name="assessment" color={COLOR_MAIN} />
+                  <Icon name="assessment" color="#2e8b57" />
                   Dashboard
                 </NavLink>
               </li>
               <li>
                 <NavLink to="/intake/review/submissions">
-                  <Icon name="summarize" color={COLOR_MAIN} />
+                  <Icon name="summarize" color="#2e8b57" />
                   Submission Queue
                 </NavLink>
               </li>
             </ul>
           </div>
         )}
+
+        <div className="sidenav-section">
+          <div className="sidenav-section-label">Risks & Issues</div>
+          <ul className="usa-sidenav">
+            <li>
+              <NavLink to="/risks/risks">
+                <Icon name="shield" color="#c9a227" />
+                Risks
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/risks/issues">
+                <Icon name="report" color="#c9a227" />
+                Issues
+              </NavLink>
+            </li>
+          </ul>
+        </div>
 
         <div className="sidenav-section">
           <div className="sidenav-section-label">Staffing</div>

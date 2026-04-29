@@ -1,5 +1,5 @@
 import api from './client';
-import { DashboardStats, Role, FunctionalArea, Product, StatusPhase } from '../types';
+import { DashboardStats, Role, FunctionalArea, Product, StatusPhase, RiskCategory } from '../types';
 
 export const adminApi = {
   stats: () =>
@@ -48,6 +48,17 @@ export const adminApi = {
     api.delete(`/admin/phases/${id}`).then((r) => r.data),
   phaseUsage: (id: string) =>
     api.get(`/admin/phases/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
+
+  riskCategories: () =>
+    api.get('/admin/risk-categories').then((r) => r.data.data as RiskCategory[]),
+  createRiskCategory: (data: Partial<RiskCategory>) =>
+    api.post('/admin/risk-categories', data).then((r) => r.data.data as RiskCategory),
+  updateRiskCategory: (id: string, data: Partial<RiskCategory>) =>
+    api.put(`/admin/risk-categories/${id}`, data).then((r) => r.data.data as RiskCategory),
+  deleteRiskCategory: (id: string) =>
+    api.delete(`/admin/risk-categories/${id}`).then((r) => r.data),
+  riskCategoryUsage: (id: string) =>
+    api.get(`/admin/risk-categories/${id}/usage`).then((r) => r.data.data as { label: string; count: number }[]),
 
   users: () =>
     api.get('/admin/users').then((r) => r.data.data),
