@@ -46,6 +46,7 @@ export function ResourceForm() {
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: () => adminApi.roles() });
   const { data: functionalAreas } = useQuery({ queryKey: ['functional-areas'], queryFn: () => adminApi.functionalAreas() });
   const { data: supervisors } = useQuery({ queryKey: ['supervisors'], queryFn: () => resourcesApi.supervisors() });
+  const { data: linkableUsers } = useQuery({ queryKey: ['linkable-users'], queryFn: () => resourcesApi.linkableUsers() });
 
   useEffect(() => {
     if (existing) {
@@ -228,13 +229,16 @@ export function ResourceForm() {
             </>
           )}
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="userId">Linked system user ID</label>
-            <input
-              id="userId"
-              className="usa-input"
-              placeholder="(optional — enables targeted notifications)"
-              {...register('userId')}
-            />
+            <label className="usa-label" htmlFor="userId">Linked system user</label>
+            <select id="userId" className="usa-select" {...register('userId')}>
+              <option value="">None</option>
+              {linkableUsers
+                ?.filter((u) => !u.resource || u.resource.id === id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>
+                ))}
+            </select>
+            <span className="usa-hint">Links this resource to a login account for targeted notifications.</span>
           </div>
         </div>
 

@@ -409,6 +409,8 @@ export interface Risk {
   categoryId: string;
   category?: RiskCategory;
   spmId: string | null;
+  riskOwnerId: string | null;
+  riskOwner?: { id: string; firstName: string; lastName: string } | null;
   title: string;
   statement: string;
   criticality: RiskCriticality;

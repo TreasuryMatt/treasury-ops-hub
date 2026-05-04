@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
-import { AppLayout, AdminOnly, EditorOnly, IntakeReviewerOnly } from './components/AppLayout';
+import { AppLayout, AdminOnly, EditorOnly, IntakeReviewerOnly, ResourceRequestorOnly } from './components/AppLayout';
 import { IntakePortalLayout } from './components/IntakePortalLayout';
 
 import { Login } from './pages/Login';
@@ -20,6 +20,9 @@ import { StatusDashboard } from './pages/status/StatusDashboard';
 import { StatusProjects } from './pages/status/StatusProjects';
 import { StatusProjectDetail } from './pages/status/StatusProjectDetail';
 import { StatusProjectForm } from './pages/status/StatusProjectForm';
+import { Portfolios } from './pages/status/Portfolios';
+import { PortfolioDetail } from './pages/status/PortfolioDetail';
+import { PortfolioForm } from './pages/status/PortfolioForm';
 import { Programs } from './pages/status/Programs';
 import { Applications } from './pages/status/Applications';
 import { ProgramDetail } from './pages/status/ProgramDetail';
@@ -62,8 +65,11 @@ export default function App() {
               <Route path="staffing/dashboard" element={<Dashboard />} />
               <Route path="staffing/resources" element={<Resources />} />
               <Route path="staffing/resources/:id" element={<ResourceDetail />} />
-              <Route path="staffing/requests" element={<ResourceRequests />} />
-              <Route path="staffing/requests/new" element={<ResourceRequestForm />} />
+
+              <Route element={<ResourceRequestorOnly />}>
+                <Route path="staffing/requests" element={<ResourceRequests />} />
+                <Route path="staffing/requests/new" element={<ResourceRequestForm />} />
+              </Route>
               {/* Legacy redirects */}
               <Route path="dashboard" element={<Navigate to="/staffing/dashboard" replace />} />
               <Route path="resources" element={<Navigate to="/staffing/resources" replace />} />
@@ -76,6 +82,8 @@ export default function App() {
               <Route path="status/dashboard" element={<StatusDashboard />} />
               <Route path="status/projects" element={<StatusProjects />} />
               <Route path="status/projects/:id" element={<StatusProjectDetail />} />
+              <Route path="status/portfolios" element={<Portfolios />} />
+              <Route path="status/portfolios/:id" element={<PortfolioDetail />} />
               <Route path="status/programs" element={<Programs />} />
               <Route path="status/applications" element={<Applications />} />
               <Route path="status/programs/:id" element={<ProgramDetail />} />
@@ -107,6 +115,8 @@ export default function App() {
                 <Route path="staffing/resources/:id/edit" element={<ResourceForm />} />
                 <Route path="status/projects/new" element={<StatusProjectForm />} />
                 <Route path="status/projects/:id/edit" element={<StatusProjectForm />} />
+                <Route path="status/portfolios/new" element={<PortfolioForm />} />
+                <Route path="status/portfolios/:id/edit" element={<PortfolioForm />} />
                 <Route path="status/programs/new" element={<ProgramForm />} />
                 <Route path="status/programs/:id/edit" element={<ProgramForm />} />
                 <Route path="status/applications/new" element={<ApplicationForm />} />

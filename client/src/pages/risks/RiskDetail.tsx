@@ -5,8 +5,9 @@ import { risksApi } from '../../api/risks';
 import { programsApi } from '../../api/programs';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
+import { resourcesApi } from '../../api/resources';
 import { Icon } from '../../components/Icon';
-import { Program, Risk, RiskActionStatus, RiskCategory, RiskCriticality, RiskMitigationAction, RiskProgress, StatusProject } from '../../types';
+import { Program, Resource, Risk, RiskActionStatus, RiskCategory, RiskCriticality, RiskMitigationAction, RiskProgress, StatusProject } from '../../types';
 import {
   RISK_ACTION_STATUS_LABELS,
   RISK_ACTION_STATUS_STYLES,
@@ -196,6 +197,7 @@ type RiskDraft = {
   statusProjectId: string;
   categoryId: string;
   spmId: string;
+  riskOwnerId: string;
   title: string;
   statement: string;
   criticality: RiskCriticality;
@@ -212,6 +214,7 @@ function riskToDraft(risk: Risk): RiskDraft {
     statusProjectId: risk.statusProjectId,
     categoryId: risk.categoryId,
     spmId: risk.spmId || '',
+    riskOwnerId: risk.riskOwnerId || '',
     title: risk.title,
     statement: risk.statement,
     criticality: risk.criticality,
@@ -257,6 +260,12 @@ export function RiskDetail() {
     queryFn: adminApi.riskCategories,
     enabled: editing,
   });
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+    enabled: editing,
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   const visibleProjects = allProjects.filter((p) => !draft?.programId || p.programId === draft.programId);
   const selectedProgram = programs.find((p) => p.id === draft?.programId);
@@ -269,6 +278,7 @@ export function RiskDetail() {
     mutationFn: () => risksApi.update(id!, {
       ...draft,
       spmId: draft?.spmId || null,
+      riskOwnerId: draft?.riskOwnerId || null,
       dateIdentified: draft?.dateIdentified || null,
       impactDate: draft?.impactDate || null,
       impact: draft?.impact || null,
@@ -447,8 +457,19 @@ export function RiskDetail() {
               </div>
 
               <div>
-                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
                 <input className="usa-input" value={selectedProgram?.federalOwner || risk.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
+              </div>
+
+              <div>
+                <label className="usa-label">Risk Owner</label>
+                <select className="usa-select" value={draft.riskOwnerId}
+                  onChange={(e) => setDraft((p) => p && ({ ...p, riskOwnerId: e.target.value }))}>
+                  <option value="">Select a resource</option>
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -518,7 +539,8 @@ export function RiskDetail() {
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
               <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{risk.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Program Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.riskOwner ? `${risk.riskOwner.firstName} ${risk.riskOwner.lastName}` : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{risk.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{risk.dateIdentified ? new Date(risk.dateIdentified).toLocaleDateString() : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</dd></div>

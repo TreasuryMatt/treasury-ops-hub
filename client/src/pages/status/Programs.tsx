@@ -171,7 +171,7 @@ export function Programs() {
 
   const filteredPrograms = React.useMemo(() => {
     return [...programs]
-      .filter((program) => !portfolioFilter || (portfolioFilter === '__none__' ? !program.portfolioId : program.portfolioId === portfolioFilter))
+      .filter((program) => !portfolioFilter || program.portfolioId === portfolioFilter)
       .filter((program) => !statusFilter || getProgramStatus(program) === statusFilter)
       .filter((program) => !ownerFilter || (ownerFilter === '__none__' ? !program.federalOwner : program.federalOwner === ownerFilter))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -212,7 +212,6 @@ export function Programs() {
               {portfolios.map((portfolio) => (
                 <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
               ))}
-              <option value="__none__">No Portfolio</option>
             </select>
 
             <select className="usa-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -243,7 +242,7 @@ export function Programs() {
             <div className="empty-state">
               <div className="empty-state__icon"><Icon name="tune" size={48} /></div>
               <h3>No programs match these filters</h3>
-              <p>Try a different portfolio, program health, or owner combination.</p>
+              <p>Try a different portfolio, health, or owner filter.</p>
             </div>
           )}
         </>

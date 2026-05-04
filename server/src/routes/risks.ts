@@ -14,6 +14,7 @@ const RISK_LIST_INCLUDE = {
   statusProject: { select: { id: true, name: true, programId: true } },
   category: { select: { id: true, name: true } },
   submitter: { select: { id: true, displayName: true, email: true } },
+  riskOwner: { select: { id: true, firstName: true, lastName: true } },
   mitigationActions: { select: { status: true } },
   _count: { select: { comments: true, mitigationActions: true } },
 };
@@ -231,6 +232,7 @@ risksRouter.post('/', async (req: AuthenticatedRequest, res: Response, next: Nex
           statusProjectId: b.statusProjectId,
           categoryId: b.categoryId,
           spmId: b.spmId || null,
+          riskOwnerId: b.riskOwnerId || null,
           title: b.title.trim(),
           statement: b.statement.trim(),
           criticality: b.criticality,
@@ -293,6 +295,7 @@ risksRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Re
           statusProjectId: b.statusProjectId ?? undefined,
           categoryId: b.categoryId ?? undefined,
           spmId: b.spmId !== undefined ? (b.spmId || null) : undefined,
+          riskOwnerId: b.riskOwnerId !== undefined ? (b.riskOwnerId || null) : undefined,
           title: b.title !== undefined ? String(b.title).trim() : undefined,
           statement: b.statement !== undefined ? String(b.statement).trim() : undefined,
           criticality: b.criticality ?? undefined,

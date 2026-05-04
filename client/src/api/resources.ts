@@ -19,4 +19,7 @@ export const resourcesApi = {
 
   supervisors: () =>
     api.get('/resources/supervisors').then((r) => r.data.data as Array<{ id: string; firstName: string; lastName: string; division: string }>),
+
+  linkableUsers: () =>
+    api.get('/resources/linkable-users').then((r) => r.data.data as Array<{ id: string; displayName: string; email: string; resource: { id: string } | null }>),
 };

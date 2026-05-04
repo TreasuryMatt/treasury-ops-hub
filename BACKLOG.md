@@ -164,7 +164,7 @@
 
 - [x] **"Without a mitigation plan" card button** — The filter button on this stat card is broken (table filtering no longer works as expected). Replace or supplement with a modal/popup that lists all Risks whose status is `None` (no mitigation items). The existing table filter approach can be removed if it cannot be made reliable.
 
-- [ ] **Risk Owner / Program Owner field rename and split** — Rename the current "Risk Owner" field to "Program Owner" and keep it auto-populated from the selected Program (no change in data source). Add a new separate "Risk Owner" field that is a dropdown pulling from the Resources list. Update all forms, detail views, list columns, and server types accordingly.
+- [x] **Risk Owner / Program Owner field rename and split** — Rename the current "Risk Owner" field to "Program Owner" and keep it auto-populated from the selected Program (no change in data source). Add a new separate "Risk Owner" field that is a dropdown pulling from the Resources list. Update all forms, detail views, list columns, and server types accordingly.
 
 - [ ] **Mitigation Action Step owner** — Each mitigation action step can be assigned a "Step Owner" selected from Resources. Only the Risk Owner (the new Resource-based field from the Risk Owner / Program Owner split, not the Program Owner) or a Risk Manager can create, edit, or remove mitigation steps. Wire permission checks in `RiskDetail.tsx` and the relevant API routes.
 

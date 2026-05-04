@@ -86,7 +86,7 @@ export function StatusProjectDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="work" color="var(--usa-primary)" size={24} />
+              <Icon name="lightbulb" color="var(--usa-primary)" size={24} />
               {project.name}
             </h1>
             <p className="usa-page-subtitle">

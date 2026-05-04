@@ -6,9 +6,10 @@ import { programsApi } from '../../api/programs';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
 import { risksApi } from '../../api/risks';
+import { resourcesApi } from '../../api/resources';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/Icon';
-import { Program, RiskActionStatus, RiskCategory, RiskCriticality, RiskProgress, StatusProject } from '../../types';
+import { Program, Resource, RiskActionStatus, RiskCategory, RiskCriticality, RiskProgress, StatusProject } from '../../types';
 import { RISK_ACTION_STATUS_LABELS, RISK_CRITICALITY_LABELS, RISK_PROGRESS_LABELS } from './riskUi';
 
 type MitigationActionDraft = {
@@ -27,6 +28,7 @@ export function RiskForm() {
     statusProjectId: '',
     categoryId: '',
     spmId: '',
+    riskOwnerId: '',
     title: '',
     statement: '',
     criticality: 'moderate' as RiskCriticality,
@@ -49,6 +51,11 @@ export function RiskForm() {
     queryKey: ['risk-categories'],
     queryFn: adminApi.riskCategories,
   });
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   const visibleProjects = useMemo(
     () => projects.filter((project) => !form.programId || project.programId === form.programId),
@@ -190,6 +197,16 @@ export function RiskForm() {
           <div>
             <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
             <input className="usa-input" value={selectedProgram?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
+          </div>
+
+          <div>
+            <label className="usa-label">Risk Owner</label>
+            <select className="usa-select" value={form.riskOwnerId} onChange={(e) => setForm((prev) => ({ ...prev, riskOwnerId: e.target.value }))}>
+              <option value="">Select a resource</option>
+              {resources.map((r) => (
+                <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+              ))}
+            </select>
           </div>
 
           <div>

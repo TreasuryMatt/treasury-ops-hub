@@ -23,8 +23,14 @@ export function Sidebar() {
             </li>
             <li>
               <NavLink to="/status/projects">
-                <Icon name="work" color={COLOR_MAIN} />
+                <Icon name="lightbulb" color={COLOR_MAIN} />
                 Projects
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/status/portfolios">
+                <Icon name="work" color={COLOR_MAIN} />
+                Portfolios
               </NavLink>
             </li>
             <li>
@@ -107,12 +113,14 @@ export function Sidebar() {
                 Resources
               </NavLink>
             </li>
-            <li>
-              <NavLink to="/staffing/requests">
-                <Icon name="pending_actions" color={COLOR_MAIN} />
-                Resource Requests
-              </NavLink>
-            </li>
+            {(user?.isResourceRequestor || user?.role === 'admin') && (
+              <li>
+                <NavLink to="/staffing/requests">
+                  <Icon name="pending_actions" color={COLOR_MAIN} />
+                  Resource Requests
+                </NavLink>
+              </li>
+            )}
           </ul>
         </div>
 

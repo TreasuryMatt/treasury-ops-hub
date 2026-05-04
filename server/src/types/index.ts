@@ -12,6 +12,7 @@ export interface AuthUser {
   userType: UserTypeType;
   isIntakeReviewer: boolean;
   isResourceManager: boolean;
+  isResourceRequestor: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

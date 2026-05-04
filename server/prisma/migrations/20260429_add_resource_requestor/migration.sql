@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "is_resource_requestor" BOOLEAN NOT NULL DEFAULT false;

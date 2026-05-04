@@ -144,7 +144,7 @@ export function StatusProjectForm() {
             <Icon name="arrow_back" size={16} /> Back
           </button>
           <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="work" color="var(--usa-primary)" size={24} />
+            <Icon name="lightbulb" color="var(--usa-primary)" size={24} />
             {isEdit ? 'Edit Project' : 'New Status Project'}
           </h1>
         </div>

@@ -30,6 +30,21 @@ resourcesRouter.get('/supervisors', async (_req: AuthenticatedRequest, res: Resp
   res.json({ data: supervisors });
 });
 
+// GET /api/resources/linkable-users — active staff users, with their linked resource id if any
+resourcesRouter.get('/linkable-users', async (_req: AuthenticatedRequest, res: Response) => {
+  const users = await prisma.user.findMany({
+    where: { isActive: true, userType: 'staff' },
+    select: {
+      id: true,
+      displayName: true,
+      email: true,
+      resource: { select: { id: true } },
+    },
+    orderBy: { displayName: 'asc' },
+  });
+  res.json({ data: users });
+});
+
 // GET /api/resources
 resourcesRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   const { page = '1', limit = '50', search, division, resourceType, functionalAreaId, roleId, available, popEndWithinDays } = req.query as Record<string, string>;
@@ -142,6 +157,7 @@ resourcesRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: 
       secondaryRoleId: b.secondaryRoleId || null,
       availableForWork: toBoolean(b.availableForWork),
       notes: b.notes || null,
+      userId: b.userId || null,
     };
 
     const resource = await prisma.resource.create({ data, include: RESOURCE_INCLUDE });
@@ -177,6 +193,7 @@ resourcesRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res
     if (b.secondaryRoleId !== undefined) data.secondaryRoleId = b.secondaryRoleId || null;
     if (b.availableForWork !== undefined) data.availableForWork = toBoolean(b.availableForWork);
     if (b.notes !== undefined) data.notes = b.notes || null;
+    if (b.userId !== undefined) data.userId = b.userId || null;
 
     const resource = await prisma.resource.update({
       where: { id: req.params.id as string },

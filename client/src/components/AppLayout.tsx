@@ -351,3 +351,10 @@ export function IntakeReviewerOnly() {
   if (!user.isIntakeReviewer && user.role !== 'admin') return <Navigate to="/staffing/dashboard" replace />;
   return <Outlet />;
 }
+
+export function ResourceRequestorOnly() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.isResourceRequestor && user.role !== 'admin') return <Navigate to="/staffing/dashboard" replace />;
+  return <Outlet />;
+}

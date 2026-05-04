@@ -13,6 +13,7 @@ const ISSUE_LIST_INCLUDE = {
   statusProject: { select: { id: true, name: true, programId: true } },
   category: { select: { id: true, name: true } },
   submitter: { select: { id: true, displayName: true, email: true } },
+  riskOwner: { select: { id: true, firstName: true, lastName: true } },
   _count: { select: { comments: true, mitigationActions: true } },
 };
 

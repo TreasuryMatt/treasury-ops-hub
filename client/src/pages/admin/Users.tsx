@@ -13,6 +13,7 @@ type AdminUserForm = {
   userType: 'staff' | 'customer';
   isIntakeReviewer: boolean;
   isResourceManager: boolean;
+  isResourceRequestor: boolean;
   isActive: boolean;
 };
 
@@ -36,6 +37,7 @@ export function Users() {
     userType: 'staff',
     isIntakeReviewer: false,
     isResourceManager: false,
+    isResourceRequestor: false,
     isActive: true,
   });
 
@@ -61,6 +63,7 @@ export function Users() {
     userType: 'staff' as 'staff' | 'customer',
     isIntakeReviewer: false,
     isResourceManager: false,
+    isResourceRequestor: false,
   });
 
   const createMutation = useMutation({
@@ -68,7 +71,7 @@ export function Users() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAdd(false);
-      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer', userType: 'staff', isIntakeReviewer: false, isResourceManager: false });
+      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer', userType: 'staff', isIntakeReviewer: false, isResourceManager: false, isResourceRequestor: false });
     },
   });
 
@@ -98,6 +101,7 @@ export function Users() {
       userType: u.userType || 'staff',
       isIntakeReviewer: Boolean(u.isIntakeReviewer),
       isResourceManager: Boolean(u.isResourceManager || u.role === 'manager'),
+      isResourceRequestor: Boolean(u.isResourceRequestor),
       isActive: u.isActive,
     });
   }
@@ -168,6 +172,16 @@ export function Users() {
               />
               <label htmlFor="new-isResourceManager" className="usa-checkbox__label">Resource Manager</label>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+              <input
+                id="new-isResourceRequestor"
+                type="checkbox"
+                className="usa-checkbox__input"
+                checked={newUser.isResourceRequestor}
+                onChange={(e) => setNewUser({ ...newUser, isResourceRequestor: e.target.checked })}
+              />
+              <label htmlFor="new-isResourceRequestor" className="usa-checkbox__label">Resource Requestor</label>
+            </div>
             <button className="usa-button usa-button--success" disabled={createMutation.isPending} onClick={() => createMutation.mutate(newUser)}>
               {createMutation.isPending ? 'Creating…' : 'Create'}
             </button>
@@ -180,7 +194,7 @@ export function Users() {
         <table className="usa-table">
           <thead>
             <tr>
-              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isResourceManager', 'Resource Manager'], ['isIntakeReviewer', 'Reviewer'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
+              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isIntakeReviewer', 'Reviewer'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
                 <th key={field} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(field)}>
                   {label} <SortIcon field={field} active={sortBy === field} dir={sortDir} />
                 </th>
@@ -195,7 +209,6 @@ export function Users() {
                 <td>{u.caiaId}</td>
                 <td>{u.email}</td>
                 <td style={{ textTransform: 'capitalize' }}>{u.role === 'manager' ? 'viewer' : u.role}</td>
-                <td>{u.isResourceManager || u.role === 'manager' ? 'Yes' : 'No'}</td>
                 <td>{u.isIntakeReviewer ? 'Yes' : 'No'}</td>
                 <td>{u.isActive ? 'Yes' : 'No'}</td>
                 {isAdmin && (
@@ -300,6 +313,16 @@ export function Users() {
                     onChange={(e) => setEditValues({ ...editValues, isResourceManager: e.target.checked })}
                   />
                   <label htmlFor="edit-isResourceManager" className="usa-checkbox__label">Resource Manager</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
+                  <input
+                    id="edit-isResourceRequestor"
+                    type="checkbox"
+                    className="usa-checkbox__input"
+                    checked={editValues.isResourceRequestor}
+                    onChange={(e) => setEditValues({ ...editValues, isResourceRequestor: e.target.checked })}
+                  />
+                  <label htmlFor="edit-isResourceRequestor" className="usa-checkbox__label">Resource Requestor</label>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
                   <input

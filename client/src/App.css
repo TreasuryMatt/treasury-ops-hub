@@ -137,6 +137,66 @@
   margin-top: 8px;
 }
 
+/* ── Mini Stat Cards ─────────────────────────────────────────────────────── */
+.mini-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.mini-stat-card {
+  flex: 1 1 110px;
+  background: var(--usa-white);
+  border: 1px solid var(--usa-base-lighter);
+  border-left: 3px solid var(--usa-base-lighter);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
+}
+.mini-stat-card:hover {
+  background: var(--usa-primary-lighter);
+  border-color: var(--usa-primary-light);
+}
+.mini-stat-card.active {
+  background: var(--usa-primary-lighter);
+  border-color: var(--usa-primary);
+}
+
+.mini-stat-card--success { border-left-color: var(--usa-success); }
+.mini-stat-card--success.active,
+.mini-stat-card--success:hover { border-color: var(--usa-success); }
+
+.mini-stat-card--warning { border-left-color: var(--usa-warning-dark); }
+.mini-stat-card--warning.active,
+.mini-stat-card--warning:hover { border-color: var(--usa-warning-dark); }
+
+.mini-stat-card--danger { border-left-color: var(--usa-error); }
+.mini-stat-card--danger.active,
+.mini-stat-card--danger:hover { border-color: var(--usa-error); }
+
+.mini-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--usa-base-dark);
+  margin-bottom: 6px;
+}
+.mini-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--usa-ink);
+}
+.mini-stat-sublabel {
+  font-size: 12px;
+  color: var(--usa-base-dark);
+  margin-top: 4px;
+}
+
 .dashboard-quick-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1060,6 +1120,43 @@
 [data-theme="dark"] .rollup-program__rag-pill--red {
   color: #ffb8ae;
   background: rgba(213, 67, 9, 0.25);
+}
+
+[data-theme="dark"] .intake-status-pill--draft,
+[data-theme="dark"] .intake-status-pill--pending {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--usa-base-darker);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .intake-status-pill--submitted {
+  background: rgba(80, 154, 212, 0.18);
+  color: var(--usa-primary-dark);
+  border-color: rgba(80, 154, 212, 0.35);
+}
+
+[data-theme="dark"] .intake-status-pill--under_review {
+  background: rgba(80, 154, 212, 0.13);
+  color: var(--usa-primary-light);
+  border-color: rgba(80, 154, 212, 0.28);
+}
+
+[data-theme="dark"] .intake-status-pill--backlog {
+  background: rgba(255, 190, 46, 0.14);
+  color: #ffd960;
+  border-color: rgba(255, 190, 46, 0.28);
+}
+
+[data-theme="dark"] .intake-status-pill--denied {
+  background: rgba(213, 67, 9, 0.18);
+  color: #ffb8ae;
+  border-color: rgba(213, 67, 9, 0.32);
+}
+
+[data-theme="dark"] .intake-status-pill--approved {
+  background: rgba(0, 169, 28, 0.25);
+  color: #a6e9d0;
+  border-color: rgba(0, 169, 28, 0.40);
 }
 
 /* Detailed cards and content */

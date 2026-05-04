@@ -1722,6 +1722,10 @@ code {
   color: var(--usa-base-darker);
 }
 
+[data-theme="dark"] .software-card__name {
+  color: var(--usa-primary-dark);
+}
+
 [data-theme="dark"] .detail-stat-card__body {
   color: var(--usa-base-dark);
 }

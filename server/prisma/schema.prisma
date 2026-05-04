@@ -96,6 +96,7 @@ model User {
   userType         UserType @default(staff) @map("user_type")
   isIntakeReviewer Boolean  @default(false) @map("is_intake_reviewer")
   isResourceManager Boolean @default(false) @map("is_resource_manager")
+  isResourceRequestor Boolean @default(false) @map("is_resource_requestor")
   isActive         Boolean  @default(true) @map("is_active")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -218,6 +219,7 @@ model Resource {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   assignments Assignment[]
+  ownedRisks  Risk[]       @relation("RiskOwner")
 
   @@map("resources")
 }
@@ -424,6 +426,8 @@ model Portfolio {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
+  owner       String?
+  budget      Decimal? @db.Decimal(15, 2)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -439,8 +443,8 @@ model Program {
   description  String?
   logoUrl      String?  @map("logo_url")
   federalOwner String?  @map("federal_owner")
-  portfolioId  String?  @map("portfolio_id")
-  portfolio    Portfolio? @relation(fields: [portfolioId], references: [id])
+  portfolioId  String   @map("portfolio_id")
+  portfolio    Portfolio @relation(fields: [portfolioId], references: [id])
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -597,6 +601,8 @@ model Risk {
   categoryId      String          @map("category_id")
   category        RiskCategory    @relation(fields: [categoryId], references: [id])
   spmId           String?         @map("spm_id")
+  riskOwnerId     String?         @map("risk_owner_id")
+  riskOwner       Resource?       @relation("RiskOwner", fields: [riskOwnerId], references: [id])
   title           String
   statement       String
   criticality     RiskCriticality
