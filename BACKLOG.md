@@ -158,7 +158,7 @@
 
 ### 🟡 Medium (1–4 hours)
 
-- [ ] **Probability calculation** — The `probability` field is stored as raw user input; nothing derives or validates it. Intent was to calculate probability from likelihood × exposure (or similar) and surface a computed `riskScore` (probability × impact) in the list and detail views. Remaining work: decide the formula; auto-derive `probability` in the form or on the server; optionally expose `riskScore` in `Risks.tsx` and `RiskDetail.tsx`.
+- [x] **Probability calculation** — The `probability` field is stored as raw user input; nothing derives or validates it. Intent was to calculate probability from likelihood × exposure (or similar) and surface a computed `riskScore` (probability × impact) in the list and detail views. Remaining work: decide the formula; auto-derive `probability` in the form or on the server; optionally expose `riskScore` in `Risks.tsx` and `RiskDetail.tsx`.
 
 - [x] **Risk status auto-derived from mitigation items** — A Risk's status should be computed automatically as the worst status among its Mitigation Items (On Track < At Risk < Off Track). If a Risk has no mitigation items, its status is `None` (displayed with a gray neutral chip). Risks with status `None` count toward the "Without a mitigation plan" stat card on the Risks main page.
 
@@ -166,13 +166,13 @@
 
 - [x] **Risk Owner / Program Owner field rename and split** — Rename the current "Risk Owner" field to "Program Owner" and keep it auto-populated from the selected Program (no change in data source). Add a new separate "Risk Owner" field that is a dropdown pulling from the Resources list. Update all forms, detail views, list columns, and server types accordingly.
 
-- [ ] **Mitigation Action Step owner** — Each mitigation action step can be assigned a "Step Owner" selected from Resources. Only the Risk Owner (the new Resource-based field from the Risk Owner / Program Owner split, not the Program Owner) or a Risk Manager can create, edit, or remove mitigation steps. Wire permission checks in `RiskDetail.tsx` and the relevant API routes.
+- [x] **Mitigation Action Step owner** — Each mitigation action step can be assigned a "Step Owner" selected from Resources. Only the Risk Owner (the new Resource-based field from the Risk Owner / Program Owner split, not the Program Owner) or a Risk Manager can create, edit, or remove mitigation steps. Wire permission checks in `RiskDetail.tsx` and the relevant API routes.
 
 - [x] **Closure criteria prompt after all steps complete** — When all mitigation action steps for a Risk are checked/complete, display a prompt below the steps list (e.g. "Have all of the Closure Criteria been met?") along with a green "Yes, set status to Mitigated" button. Clicking it sets the Risk's status to `Mitigated`.
 
 - [x] **Mitigation item status pill text** — Change the status pill labels on mitigation items to match the project status convention: `On Track`, `At Risk`, `Off Track` (title case, same wording).
 
-- [ ] **Remove old project-scoped Issues from Status module** — The Status module contains project-attached risk/issue scaffolding that predates the standalone Risks & Issues module. Locate and remove risk/issue fields, components, and routes scoped to a project in the Status module. Confirm no Status views reference the old model before deleting; regression-check the Status page.
+- [x] **Remove old project-scoped Issues from Status module** — The Status module contains project-attached risk/issue scaffolding that predates the standalone Risks & Issues module. Locate and remove risk/issue fields, components, and routes scoped to a project in the Status module. Confirm no Status views reference the old model before deleting; regression-check the Status page.
 
 ### 🟢 Small (< 1 hour)
 
