@@ -14,6 +14,7 @@ export interface AuthUser {
   userType: UserType;
   isIntakeReviewer: boolean;
   isResourceManager: boolean;
+  isResourceRequestor: boolean;
 }
 
 export interface Role {
@@ -91,6 +92,23 @@ export interface Project {
   assignments: Assignment[];
   teamSize: number;
   totalUtilization?: number;
+}
+
+export interface ProjectsDashboardStats {
+  total: number;
+  inProgress: number;
+  onHold: number;
+  completed: number;
+  endingSoon: number;
+  byProduct: { id: string; name: string; count: number }[];
+  endingSoonProjects: {
+    id: string;
+    name: string;
+    endDate: string;
+    priority: ProjectPriority | null;
+    product: { id: string; name: string } | null;
+    teamSize: number;
+  }[];
 }
 
 export interface Assignment {
@@ -236,6 +254,7 @@ export type IssueCategory = 'risk' | 'issue' | 'blocker';
 export type RiskProgress = 'open' | 'accepted' | 'escalated_to_issue' | 'mitigated';
 export type RiskCriticality = 'critical' | 'high' | 'moderate' | 'low';
 export type RiskActionStatus = 'red' | 'yellow' | 'green';
+export type RiskStatus = 'off_track' | 'at_risk' | 'on_track' | 'none';
 export type NotificationType =
   | 'update_due'
   | 'update_overdue'
@@ -292,6 +311,8 @@ export interface Portfolio {
   id: string;
   name: string;
   description: string | null;
+  owner: string | null;
+  budget: number | null;
   isActive: boolean;
   programs?: Program[];
 }
@@ -312,8 +333,8 @@ export interface Program {
   description: string | null;
   logoUrl: string | null;
   federalOwner: string | null;
-  portfolioId: string | null;
-  portfolio?: Portfolio | null;
+  portfolioId: string;
+  portfolio?: Portfolio;
   isActive: boolean;
   applications?: Application[];
   statusProjects?: StatusProject[];

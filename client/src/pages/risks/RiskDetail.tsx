@@ -14,6 +14,9 @@ import {
   RISK_CRITICALITY_STYLES,
   RISK_PROGRESS_LABELS,
   RISK_PROGRESS_STYLES,
+  RISK_STATUS_LABELS,
+  RISK_STATUS_STYLES,
+  computeRiskStatus,
 } from './riskUi';
 
 // ─── Mitigation row ───────────────────────────────────────────────────────────
@@ -287,7 +290,12 @@ export function RiskDetail() {
       qc.invalidateQueries({ queryKey: ['risks'] });
       navigate(`/risks/issues/${id}`);
     },
-    onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to escalate.'),
+    onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to convert to issue.'),
+  });
+
+  const markMitigated = useMutation({
+    mutationFn: () => risksApi.update(id!, { progress: 'mitigated' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['risk', id] }),
   });
 
   const addComment = useMutation({
@@ -342,6 +350,10 @@ export function RiskDetail() {
             </h1>
             <Pill {...RISK_PROGRESS_STYLES[risk.progress]}>{RISK_PROGRESS_LABELS[risk.progress]}</Pill>
             <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>{RISK_CRITICALITY_LABELS[risk.criticality]}</Pill>
+            {(() => {
+              const s = computeRiskStatus((risk.mitigationActions ?? []) as { status: any }[]);
+              return <Pill {...RISK_STATUS_STYLES[s]}>Status: {RISK_STATUS_LABELS[s]}</Pill>;
+            })()}
           </div>
           <p className="usa-page-subtitle" style={{ marginTop: 8 }}>
             {risk.riskCode}{risk.spmId ? ` · SPM ${risk.spmId}` : ''}{risk.program ? ` · ${risk.program.name}` : ''}{risk.statusProject ? ` · ${risk.statusProject.name}` : ''}
@@ -355,12 +367,12 @@ export function RiskDetail() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 disabled={escalateToIssue.isPending}
                 onClick={() => {
-                  if (window.confirm('Escalate this risk to an issue? It will move to the Issues list and no longer appear under Risks.')) {
+                  if (window.confirm('Convert this risk to an issue? It will move to the Issues list.')) {
                     escalateToIssue.mutate();
                   }
                 }}
               >
-                <Icon name="report" size={15} /> Escalate to Issue
+                <Icon name="report" size={15} /> Convert to Issue
               </button>
             )}
             <button className="usa-button usa-button--outline" onClick={startEdit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -557,6 +569,25 @@ export function RiskDetail() {
           </table>
         ) : (
           <p style={{ margin: 0, color: 'var(--usa-base-dark)' }}>No mitigation actions recorded yet. Use the button above to add one.</p>
+        )}
+
+        {/* Closure criteria prompt — shown only when all steps are complete */}
+        {risk.mitigationActions && risk.mitigationActions.length > 0 &&
+          (risk.mitigationActions as RiskMitigationAction[]).every((a) => a.isComplete) &&
+          risk.progress !== 'mitigated' && (
+          <div style={{ marginTop: 20, padding: '16px 20px', borderRadius: 8, border: '2px solid var(--usa-success)', background: 'var(--usa-success-lighter, #ecfdf5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--usa-success-dark)', marginBottom: 2 }}>All action steps are complete.</div>
+              <div style={{ fontSize: 14, color: 'var(--usa-base-dark)' }}>Have all of the Closure Criteria been met?</div>
+            </div>
+            <button
+              className="usa-button usa-button--success"
+              disabled={markMitigated.isPending}
+              onClick={() => markMitigated.mutate()}
+            >
+              Yes, set status to Mitigated
+            </button>
+          </div>
         )}
       </div>
 

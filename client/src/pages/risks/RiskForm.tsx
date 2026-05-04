@@ -30,7 +30,7 @@ export function RiskForm() {
     title: '',
     statement: '',
     criticality: 'moderate' as RiskCriticality,
-    dateIdentified: '',
+    dateIdentified: new Date().toISOString().slice(0, 10),
     impact: '',
     impactDate: '',
     closureCriteria: '',

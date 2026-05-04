@@ -322,7 +322,7 @@ export function IssueDetail() {
 
   const escalatedReason = issue.escalatedAt && issue.impactDate && new Date(issue.escalatedAt) >= new Date(issue.impactDate)
     ? 'Impact date passed without resolution'
-    : 'Manually escalated';
+    : 'Manually converted';
 
   return (
     <div className="usa-page">
@@ -357,7 +357,7 @@ export function IssueDetail() {
       <div style={{ marginBottom: 'var(--space-3)', padding: '12px 16px', borderRadius: 8, background: '#fff0f0', border: '1px solid var(--usa-error-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <Icon name="report" size={20} color="var(--usa-error)" />
         <div>
-          <strong style={{ color: 'var(--usa-error-dark)' }}>Escalated to Issue</strong>
+          <strong style={{ color: 'var(--usa-error-dark)' }}>Converted to Issue</strong>
           <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--usa-base-dark)' }}>
             {issue.escalatedAt
               ? `${new Date(issue.escalatedAt).toLocaleDateString()} — ${escalatedReason}`
@@ -387,7 +387,7 @@ export function IssueDetail() {
                 </select>
                 {draft.progress !== 'escalated_to_issue' && (
                   <p style={{ fontSize: 12, color: 'var(--usa-warning-dark)', marginTop: 4 }}>
-                    Changing progress away from "Escalated to Issue" will remove this record from the Issues list.
+                    Changing progress away from "Converted to Issue" will remove this record from the Issues list.
                   </p>
                 )}
               </div>
@@ -510,7 +510,7 @@ export function IssueDetail() {
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{issue.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{issue.dateIdentified ? new Date(issue.dateIdentified).toLocaleDateString() : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{issue.impactDate ? new Date(issue.impactDate).toLocaleDateString() : '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Escalated On</dt><dd style={DD_STYLE}>{issue.escalatedAt ? new Date(issue.escalatedAt).toLocaleDateString() : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Converted On</dt><dd style={DD_STYLE}>{issue.escalatedAt ? new Date(issue.escalatedAt).toLocaleDateString() : '—'}</dd></div>
             </dl>
           </div>
         </div>
