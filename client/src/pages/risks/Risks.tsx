@@ -22,6 +22,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
         color,
         fontSize: 12,
         fontWeight: 700,
+        whiteSpace: 'nowrap',
       }}
     >
       {children}
@@ -29,7 +30,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
   );
 }
 
-type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'impactDate' | 'progress' | 'criticality' | 'dateIdentified';
+type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'impactDate' | 'progress' | 'dateIdentified';
 
 function SortTh({ col, label, sort, onSort }: { col: SortColumn; label: string; sort: { col: SortColumn; dir: 'asc' | 'desc' }; onSort: (col: SortColumn) => void }) {
   const active = sort.col === col;
@@ -323,12 +324,12 @@ export function Risks() {
           <table className="usa-table">
             <thead>
               <tr>
+                <th style={{ width: 5, padding: 0 }} aria-label="Criticality" />
                 <SortTh col="title" label="Title" sort={sort} onSort={handleSort} />
                 <SortTh col="program" label="Program" sort={sort} onSort={handleSort} />
                 <SortTh col="project" label="Project" sort={sort} onSort={handleSort} />
                 <th>Status</th>
                 <SortTh col="impactDate" label="Impact Date" sort={sort} onSort={handleSort} />
-                <SortTh col="criticality" label="Criticality" sort={sort} onSort={handleSort} />
                 <SortTh col="progress" label="Progress" sort={sort} onSort={handleSort} />
                 <SortTh col="dateIdentified" label="Date Identified" sort={sort} onSort={handleSort} />
               </tr>
@@ -336,6 +337,10 @@ export function Risks() {
             <tbody>
               {risks.map((risk) => (
                 <tr key={risk.id} onClick={() => navigate(`/risks/risks/${risk.id}`)} style={{ cursor: 'pointer' }}>
+                  <td
+                    style={{ width: 5, padding: 0, backgroundColor: RISK_CRITICALITY_STYLES[risk.criticality].bg }}
+                    title={RISK_CRITICALITY_LABELS[risk.criticality]}
+                  />
                   <td>
                     <div style={{ fontWeight: 600 }}>{risk.title}</div>
                     {risk.spmId && <div style={{ fontSize: 12, color: 'var(--usa-base-dark)' }}>SPM: {risk.spmId}</div>}
@@ -349,11 +354,6 @@ export function Risks() {
                     })()}
                   </td>
                   <td>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</td>
-                  <td>
-                    <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>
-                      {RISK_CRITICALITY_LABELS[risk.criticality]}
-                    </Pill>
-                  </td>
                   <td>
                     <Pill {...RISK_PROGRESS_STYLES[risk.progress]}>
                       {RISK_PROGRESS_LABELS[risk.progress]}

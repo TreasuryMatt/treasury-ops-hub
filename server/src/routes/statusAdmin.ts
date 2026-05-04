@@ -352,7 +352,7 @@ statusAdminRouter.get('/reports', async (_req: AuthenticatedRequest, res: Respon
       priority: { select: { id: true, name: true } },
       department: { select: { id: true, name: true } },
       application: { select: { id: true, name: true } },
-      _count: { select: { updates: true, issues: true } },
+      _count: { select: { updates: true } },
     },
     orderBy: [{ program: { name: 'asc' } }, { name: 'asc' }],
   });

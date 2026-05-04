@@ -14,7 +14,7 @@ interface ReportProject extends Omit<StatusProject, 'program' | 'owner' | 'prior
   priority: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
   application: Application | null;
-  _count: { updates: number; issues: number };
+  _count: { updates: number };
 }
 
 const STATUS_ORDER: Record<StatusProjectStatusType, number> = {
@@ -75,9 +75,6 @@ export function Reports() {
         break;
       case 'updates':
         cmp = a._count.updates - b._count.updates;
-        break;
-      case 'issues':
-        cmp = a._count.issues - b._count.issues;
         break;
       case 'nextUpdateDue': {
         const ta = a.nextUpdateDue ? new Date(a.nextUpdateDue).getTime() : Infinity;
@@ -214,7 +211,6 @@ export function Reports() {
                 <th>Funded</th>
                 <SortTh col="nextUpdateDue">Next Update</SortTh>
                 <SortTh col="updates">Updates</SortTh>
-                <SortTh col="issues">Issues</SortTh>
               </tr>
             </thead>
             <tbody>
@@ -235,9 +231,6 @@ export function Reports() {
                       {overdue && ' ⚠'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{p._count.updates}</td>
-                    <td style={{ textAlign: 'center', color: p._count.issues > 0 ? 'var(--usa-warning-darker)' : undefined }}>
-                      {p._count.issues || '—'}
-                    </td>
                   </tr>
                 );
               })}

@@ -20,10 +20,10 @@ export const risksApi = {
   addComment: (id: string, text: string) =>
     api.post(`/risks/${id}/comments`, { text }).then((r) => r.data.data as RiskComment),
 
-  addMitigationAction: (id: string, data: { title: string; dueDate: string; status: string }) =>
+  addMitigationAction: (id: string, data: { title: string; dueDate: string; status: string; stepOwnerId?: string }) =>
     api.post(`/risks/${id}/mitigation-actions`, data).then((r) => r.data.data as RiskMitigationAction),
 
-  updateMitigationAction: (id: string, actionId: string, data: { title?: string; dueDate?: string; status?: string; isComplete?: boolean }) =>
+  updateMitigationAction: (id: string, actionId: string, data: { title?: string; dueDate?: string; status?: string; isComplete?: boolean; stepOwnerId?: string }) =>
     api.put(`/risks/${id}/mitigation-actions/${actionId}`, data).then((r) => r.data.data as RiskMitigationAction),
 
   deleteMitigationAction: (id: string, actionId: string) =>

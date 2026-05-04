@@ -380,6 +380,8 @@ export interface StatusProject {
 export interface RiskMitigationAction {
   id: string;
   riskId: string;
+  stepOwnerId?: string | null;
+  stepOwner?: { id: string; firstName: string; lastName: string } | null;
   title: string;
   dueDate: string | null;
   status: RiskActionStatus;
@@ -464,20 +466,6 @@ export interface StatusUpdate {
   risks: string | null;
   blockers: string | null;
   createdAt: string;
-}
-
-export interface IssueEntry {
-  id: string;
-  statusProjectId: string;
-  authorId: string;
-  author?: { id: string; displayName: string };
-  category: IssueCategory;
-  text: string;
-  createdAt: string;
-  resolvedAt?: string | null;
-  resolvedById?: string | null;
-  resolvedBy?: { id: string; displayName: string } | null;
-  resolutionNotes?: string | null;
 }
 
 export interface Accomplishment {

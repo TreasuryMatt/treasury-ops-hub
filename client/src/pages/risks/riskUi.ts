@@ -63,3 +63,24 @@ export const RISK_STATUS_STYLES: Record<RiskStatus, { bg: string; color: string 
   on_track: { bg: 'var(--usa-success)', color: '#fff' },
   none: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
 };
+
+// Risk Score = Likelihood (1–5) × Criticality Impact Weight (1–4)
+// Range: 1–20
+const CRITICALITY_IMPACT_WEIGHT: Record<RiskCriticality, number> = {
+  low: 1,
+  moderate: 2,
+  high: 3,
+  critical: 4,
+};
+
+export function computeRiskScore(likelihood: number | null | undefined, criticality: RiskCriticality): number | null {
+  if (likelihood == null || likelihood < 1 || likelihood > 5) return null;
+  return Math.round(likelihood) * CRITICALITY_IMPACT_WEIGHT[criticality];
+}
+
+export function riskScoreStyle(score: number): { bg: string; color: string; label: string } {
+  if (score <= 4) return { bg: 'var(--usa-success)', color: '#fff', label: 'Low' };
+  if (score <= 8) return { bg: 'var(--usa-warning)', color: 'var(--usa-base-darkest)', label: 'Moderate' };
+  if (score <= 12) return { bg: '#b84c00', color: '#fff', label: 'High' };
+  return { bg: '#1b1b1b', color: '#fff', label: 'Critical' };
+}

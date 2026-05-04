@@ -26,6 +26,7 @@ const RISK_DETAIL_INCLUDE = {
     orderBy: { createdAt: 'desc' as const },
   },
   mitigationActions: {
+    include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
   },
 };
@@ -326,7 +327,7 @@ risksRouter.post('/:id/mitigation-actions', async (req: AuthenticatedRequest, re
     });
     if (!risk) throw new AppError('Risk not found', 404);
 
-    const { title, dueDate, status, isComplete } = req.body;
+    const { title, dueDate, status, isComplete, stepOwnerId } = req.body;
     if (!title || !String(title).trim()) throw new AppError('Title is required', 400);
 
     if (dueDate && risk.impactDate && new Date(dueDate) > new Date(risk.impactDate)) {
@@ -337,12 +338,14 @@ risksRouter.post('/:id/mitigation-actions', async (req: AuthenticatedRequest, re
     const action = await prisma.riskMitigationAction.create({
       data: {
         riskId: risk.id,
+        stepOwnerId: stepOwnerId || null,
         title: String(title).trim(),
         dueDate: dueDate ? new Date(dueDate) : null,
         status: status || 'yellow',
         isComplete: Boolean(isComplete),
         sortOrder: count,
       },
+      include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     });
 
     await syncRiskProgress(risk.id);
@@ -366,7 +369,7 @@ risksRouter.put('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRe
     });
     if (!existing) throw new AppError('Mitigation action not found', 404);
 
-    const { title, dueDate, status, isComplete } = req.body;
+    const { title, dueDate, status, isComplete, stepOwnerId } = req.body;
 
     const nextDueDate = dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existing.dueDate;
     if (nextDueDate && risk.impactDate && nextDueDate > new Date(risk.impactDate)) {
@@ -376,11 +379,13 @@ risksRouter.put('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRe
     const action = await prisma.riskMitigationAction.update({
       where: { id: existing.id },
       data: {
+        stepOwnerId: stepOwnerId !== undefined ? (stepOwnerId || null) : undefined,
         title: title !== undefined ? String(title).trim() : undefined,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
         status: status ?? undefined,
         isComplete: isComplete !== undefined ? Boolean(isComplete) : undefined,
       },
+      include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     });
 
     await syncRiskProgress(risk.id);

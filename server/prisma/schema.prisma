@@ -218,8 +218,9 @@ model Resource {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  assignments Assignment[]
-  ownedRisks  Risk[]       @relation("RiskOwner")
+  assignments           Assignment[]
+  ownedRisks            Risk[]                  @relation("RiskOwner")
+  mitigationStepsOwned  RiskMitigationAction[]  @relation("MitigationStepOwner")
 
   @@map("resources")
 }
@@ -636,16 +637,18 @@ model RiskComment {
 }
 
 model RiskMitigationAction {
-  id        String           @id @default(uuid())
-  riskId    String           @map("risk_id")
-  risk      Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  title      String
-  dueDate    DateTime?        @map("due_date")
-  status     RiskActionStatus @default(yellow)
-  isComplete Boolean          @default(false) @map("is_complete")
-  sortOrder  Int              @default(0) @map("sort_order")
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @updatedAt @map("updated_at")
+  id           String           @id @default(uuid())
+  riskId       String           @map("risk_id")
+  risk         Risk             @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  stepOwnerId  String?          @map("step_owner_id")
+  stepOwner    Resource?        @relation("MitigationStepOwner", fields: [stepOwnerId], references: [id])
+  title        String
+  dueDate      DateTime?        @map("due_date")
+  status       RiskActionStatus @default(yellow)
+  isComplete   Boolean          @default(false) @map("is_complete")
+  sortOrder    Int              @default(0) @map("sort_order")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
 
   @@map("risk_mitigation_actions")
 }

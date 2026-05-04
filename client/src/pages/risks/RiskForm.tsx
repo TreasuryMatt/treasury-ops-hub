@@ -10,12 +10,13 @@ import { resourcesApi } from '../../api/resources';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/Icon';
 import { Program, Resource, RiskActionStatus, RiskCategory, RiskCriticality, RiskProgress, StatusProject } from '../../types';
-import { RISK_ACTION_STATUS_LABELS, RISK_CRITICALITY_LABELS, RISK_PROGRESS_LABELS } from './riskUi';
+import { RISK_ACTION_STATUS_LABELS, RISK_CRITICALITY_LABELS, RISK_PROGRESS_LABELS, computeRiskScore, riskScoreStyle } from './riskUi';
 
 type MitigationActionDraft = {
   title: string;
   dueDate: string;
   status: RiskActionStatus;
+  stepOwnerId: string;
 };
 
 export function RiskForm() {
@@ -29,6 +30,7 @@ export function RiskForm() {
     categoryId: '',
     spmId: '',
     riskOwnerId: '',
+    likelihood: '',
     title: '',
     statement: '',
     criticality: 'moderate' as RiskCriticality,
@@ -68,6 +70,7 @@ export function RiskForm() {
     mutationFn: () =>
       risksApi.create({
         ...form,
+        probability: form.likelihood ? Number(form.likelihood) : null,
         mitigationActions,
       }),
     onSuccess: (risk) => navigate(`/risks/risks/${risk.id}`),
@@ -214,6 +217,35 @@ export function RiskForm() {
             <input className="usa-input" type="date" value={form.dateIdentified} onChange={(e) => setForm((prev) => ({ ...prev, dateIdentified: e.target.value }))} />
           </div>
 
+          <div>
+            <label className="usa-label">Likelihood (1–5)</label>
+            <input
+              className="usa-input"
+              type="number"
+              min={1}
+              max={5}
+              placeholder="1 = Very Unlikely · 5 = Very Likely"
+              value={form.likelihood}
+              onChange={(e) => setForm((prev) => ({ ...prev, likelihood: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Score <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(computed)</span></label>
+            {(() => {
+              const score = computeRiskScore(form.likelihood ? Number(form.likelihood) : null, form.criticality);
+              if (score == null) return <div className="usa-input" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default', display: 'flex', alignItems: 'center' }}>—</div>;
+              const style = riskScoreStyle(score);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', borderRadius: 999, backgroundColor: style.bg, color: style.color, fontWeight: 700, fontSize: 14 }}>
+                    {score} / 20 — {style.label}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+
           <div style={{ gridColumn: '1 / -1' }}>
             <label className="usa-label">Title *</label>
             <input className="usa-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} />
@@ -250,7 +282,7 @@ export function RiskForm() {
           <button
             className="usa-button usa-button--success usa-button--sm"
             type="button"
-            onClick={() => setMitigationActions((prev) => [...prev, { title: '', dueDate: '', status: 'yellow' }])}
+            onClick={() => setMitigationActions((prev) => [...prev, { title: '', dueDate: '', status: 'yellow', stepOwnerId: '' }])}
           >
             <Icon name="add" size={14} /> Add Action Step
           </button>
@@ -261,7 +293,7 @@ export function RiskForm() {
         ) : (
           <div style={{ display: 'grid', gap: 12 }}>
             {mitigationActions.map((action, index) => (
-              <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
                 <div>
                   <label className="usa-label">Mitigation Action Step</label>
                   <input className="usa-input" value={action.title} onChange={(e) => updateMitigationAction(index, 'title', e.target.value)} />
@@ -275,6 +307,15 @@ export function RiskForm() {
                   <select className="usa-select" value={action.status} onChange={(e) => updateMitigationAction(index, 'status', e.target.value as RiskActionStatus)}>
                     {(Object.keys(RISK_ACTION_STATUS_LABELS) as RiskActionStatus[]).map((status) => (
                       <option key={status} value={status}>{RISK_ACTION_STATUS_LABELS[status]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="usa-label">Step Owner</label>
+                  <select className="usa-select" value={action.stepOwnerId} onChange={(e) => updateMitigationAction(index, 'stepOwnerId', e.target.value)}>
+                    <option value="">No owner</option>
+                    {resources.map((r) => (
+                      <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
                     ))}
                   </select>
                 </div>

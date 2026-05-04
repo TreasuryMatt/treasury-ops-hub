@@ -7,7 +7,7 @@ import { requireAuth, requireEditor, requireManager } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import { logAction } from '../utils/audit';
-import { notifyAllUsersOfIssue, notifyProjectStatusChanged, notifyNewUpdate } from '../services/notificationService';
+import { notifyProjectStatusChanged, notifyNewUpdate } from '../services/notificationService';
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -340,124 +340,6 @@ statusProjectsRouter.put('/:id/phases/:phaseId', requireEditor, async (req: Auth
       },
     });
     res.json({ data: phase });
-  } catch (err: any) {
-    next(new AppError(err.message, 400));
-  }
-});
-
-// ─── Issues ──────────────────────────────────────────────────────────────────
-
-// GET /api/status-projects/:id/issues
-statusProjectsRouter.get('/:id/issues', async (req: AuthenticatedRequest, res: Response) => {
-  const issues = await prisma.issueEntry.findMany({
-    where: { statusProjectId: req.params.id as string },
-    include: {
-      author: { select: { id: true, displayName: true } },
-      resolvedBy: { select: { id: true, displayName: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-  res.json({ data: issues });
-});
-
-// POST /api/status-projects/:id/issues
-statusProjectsRouter.post('/:id/issues', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const b = req.body;
-    const issue = await prisma.issueEntry.create({
-      data: {
-        statusProjectId: req.params.id as string,
-        authorId: req.user!.id,
-        category: b.category,
-        text: b.text,
-      },
-      include: {
-        author: { select: { id: true, displayName: true } },
-        statusProject: { select: { name: true } },
-      },
-    });
-
-    notifyAllUsersOfIssue('issue_created', issue.statusProject.name, req.params.id as string, b.text).catch(console.error);
-
-    res.status(201).json({ data: issue });
-  } catch (err: any) {
-    next(new AppError(err.message, 400));
-  }
-});
-
-// PUT /api/status-projects/:id/issues/:issueId
-statusProjectsRouter.put('/:id/issues/:issueId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const b = req.body;
-    const issue = await prisma.issueEntry.update({
-      where: { id: req.params.issueId as string },
-      data: {
-        category: b.category ?? undefined,
-        text: b.text ?? undefined,
-      },
-      include: { author: { select: { id: true, displayName: true } } },
-    });
-    res.json({ data: issue });
-  } catch (err: any) {
-    next(new AppError(err.message, 400));
-  }
-});
-
-// DELETE /api/status-projects/:id/issues/:issueId
-statusProjectsRouter.delete('/:id/issues/:issueId', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    await prisma.issueEntry.delete({ where: { id: req.params.issueId as string } });
-    res.json({ message: 'Deleted' });
-  } catch (err: any) {
-    next(new AppError(err.message, 400));
-  }
-});
-
-// PUT /api/status-projects/:id/issues/:issueId/resolve
-statusProjectsRouter.put('/:id/issues/:issueId/resolve', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const issue = await prisma.issueEntry.update({
-      where: { id: req.params.issueId as string },
-      data: {
-        resolvedAt: new Date(),
-        resolvedById: req.user!.id,
-        resolutionNotes: req.body.resolutionNotes || null,
-      },
-      include: {
-        author: { select: { id: true, displayName: true } },
-        resolvedBy: { select: { id: true, displayName: true } },
-        statusProject: { select: { name: true } },
-      },
-    });
-
-    notifyAllUsersOfIssue('issue_resolved', issue.statusProject.name, req.params.id as string, issue.text).catch(console.error);
-
-    res.json({ data: issue });
-  } catch (err: any) {
-    next(new AppError(err.message, 400));
-  }
-});
-
-// PUT /api/status-projects/:id/issues/:issueId/reopen
-statusProjectsRouter.put('/:id/issues/:issueId/reopen', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const issue = await prisma.issueEntry.update({
-      where: { id: req.params.issueId as string },
-      data: {
-        resolvedAt: null,
-        resolvedById: null,
-        resolutionNotes: null,
-      },
-      include: {
-        author: { select: { id: true, displayName: true } },
-        resolvedBy: { select: { id: true, displayName: true } },
-        statusProject: { select: { name: true } },
-      },
-    });
-
-    notifyAllUsersOfIssue('issue_reopened', issue.statusProject.name, req.params.id as string, issue.text).catch(console.error);
-
-    res.json({ data: issue });
   } catch (err: any) {
     next(new AppError(err.message, 400));
   }
