@@ -154,7 +154,7 @@ export function ProjectDetail() {
           <h3>Project Details</h3>
           <dl className="detail-list">
             <dt>Application</dt><dd>{project.product?.name || '-'}</dd>
-            <dt>Federal Product Owner</dt><dd>{project.federalProductOwner || '-'}</dd>
+            <dt>Federal Project Owner</dt><dd>{project.federalProductOwner || '-'}</dd>
             <dt>Customer Contact</dt><dd>{project.customerContact || '-'}</dd>
             <dt>Priority</dt><dd style={{ textTransform: 'capitalize' }}>{project.priority || '-'}</dd>
             <dt>Status</dt><dd>{STATUS_LABELS[project.status]}</dd>
@@ -170,7 +170,7 @@ export function ProjectDetail() {
           <div style={{ marginTop: 12, fontSize: 24, fontWeight: 600 }}>
             {Math.round(totalUtilization * 100)}%
           </div>
-          <div style={{ fontSize: 14, color: 'var(--usa-base)' }}>Allocated FTEs</div>
+          <div style={{ fontSize: 14, color: 'var(--usa-base)' }}>Avg Allocation</div>
         </div>
       </div>
 

@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { programsApi } from '../../api/programs';
 import { portfoliosApi } from '../../api/portfolios';
-import { Portfolio } from '../../types';
+import { resourcesApi } from '../../api/resources';
+import { Portfolio, Resource } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
@@ -18,6 +19,7 @@ interface FormData {
 export function ProgramForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const qc = useQueryClient();
   const isEdit = !!id;
 
@@ -34,6 +36,12 @@ export function ProgramForm() {
     queryFn: portfoliosApi.list,
   });
 
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
+
   useEffect(() => {
     if (program) {
       reset({
@@ -41,15 +49,16 @@ export function ProgramForm() {
         description: program.description || '',
         federalOwner: program.federalOwner || '',
         logoUrl: program.logoUrl || '',
-        portfolioId: program.portfolioId || '',
+        portfolioId: program.portfolioId,
       });
+    } else if (!isEdit) {
+      reset({ portfolioId: searchParams.get('portfolioId') || '' });
     }
-  }, [program, reset]);
+  }, [program, isEdit, reset, searchParams]);
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
-      const payload = { ...data, portfolioId: data.portfolioId || null };
-      return isEdit ? programsApi.update(id!, payload) : programsApi.create(payload);
+      return isEdit ? programsApi.update(id!, data) : programsApi.create(data);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['programs'] });
@@ -88,8 +97,13 @@ export function ProgramForm() {
         </div>
 
         <div className="usa-form-group">
-          <label className="usa-label" htmlFor="federalOwner">Federal Owner</label>
-          <input className="usa-input" id="federalOwner" placeholder="e.g. Jane Smith" {...register('federalOwner')} />
+          <label className="usa-label" htmlFor="federalOwner">Federal Program Owner</label>
+          <select className="usa-select" id="federalOwner" {...register('federalOwner')}>
+            <option value="">— Select —</option>
+            {resources.map((r) => (
+              <option key={r.id} value={`${r.firstName} ${r.lastName}`}>{r.firstName} {r.lastName}</option>
+            ))}
+          </select>
         </div>
 
         <div className="usa-form-group">
@@ -99,13 +113,14 @@ export function ProgramForm() {
         </div>
 
         <div className="usa-form-group">
-          <label className="usa-label" htmlFor="portfolioId">Portfolio (optional)</label>
-          <select className="usa-select" id="portfolioId" {...register('portfolioId')}>
-            <option value="">— None —</option>
+          <label className="usa-label" htmlFor="portfolioId">Portfolio *</label>
+          <select className="usa-select" id="portfolioId" {...register('portfolioId', { required: 'Portfolio is required' })}>
+            <option value="">— Select a portfolio —</option>
             {portfolios.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+          {errors.portfolioId && <span className="usa-error-message">{errors.portfolioId.message}</span>}
         </div>
 
         {mutation.isError && (

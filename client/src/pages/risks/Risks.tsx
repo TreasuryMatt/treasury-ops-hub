@@ -8,7 +8,7 @@ import { adminApi } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/Icon';
 import { Program, Risk, RiskCategory, RiskCriticality, RiskProgress, RisksDashboardStats, StatusProject } from '../../types';
-import { RISK_CRITICALITY_LABELS, RISK_CRITICALITY_STYLES, RISK_PROGRESS_LABELS, RISK_PROGRESS_STYLES } from './riskUi';
+import { RISK_CRITICALITY_LABELS, RISK_CRITICALITY_STYLES, RISK_PROGRESS_LABELS, RISK_PROGRESS_STYLES, RISK_STATUS_LABELS, RISK_STATUS_STYLES, computeRiskStatus } from './riskUi';
 
 function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; color: string }) {
   return (
@@ -22,6 +22,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
         color,
         fontSize: 12,
         fontWeight: 700,
+        whiteSpace: 'nowrap',
       }}
     >
       {children}
@@ -29,7 +30,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
   );
 }
 
-type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'impactDate' | 'progress' | 'criticality' | 'dateIdentified';
+type SortColumn = 'riskCode' | 'title' | 'program' | 'project' | 'impactDate' | 'progress' | 'dateIdentified';
 
 function SortTh({ col, label, sort, onSort }: { col: SortColumn; label: string; sort: { col: SortColumn; dir: 'asc' | 'desc' }; onSort: (col: SortColumn) => void }) {
   const active = sort.col === col;
@@ -52,6 +53,7 @@ export function Risks() {
   const { user } = useAuth();
   const tableRef = useRef<HTMLDivElement>(null);
   const canCreate = !!user;
+  const [showNoMitigationModal, setShowNoMitigationModal] = useState(false);
   const [sort, setSort] = useState<{ col: SortColumn; dir: 'asc' | 'desc' }>({ col: 'dateIdentified', dir: 'desc' });
   const [filters, setFilters] = useState({
     search: '',
@@ -144,10 +146,10 @@ export function Risks() {
             </button>
             <button
               className="dashboard-quick-stat"
-              onClick={() => setFilters((f) => ({ ...f, progress: 'accepted' }))}
+              onClick={() => setFilters((f) => ({ ...f, progress: 'assumed' }))}
             >
-              <div className="dashboard-quick-stat__label">Accepted</div>
-              <div className="dashboard-quick-stat__value">{stats.byProgress.accepted}</div>
+              <div className="dashboard-quick-stat__label">Assumed</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.assumed}</div>
             </button>
             <button
               className="dashboard-quick-stat"
@@ -161,7 +163,7 @@ export function Risks() {
               className={`dashboard-quick-stat${stats.byProgress.escalated_to_issue > 0 ? ' dashboard-quick-stat--danger' : ''}`}
               onClick={() => setFilters((f) => ({ ...f, progress: 'escalated_to_issue' }))}
             >
-              <div className="dashboard-quick-stat__label">Escalated to Issue</div>
+              <div className="dashboard-quick-stat__label">Converted to Issue</div>
               <div className="dashboard-quick-stat__value">{stats.byProgress.escalated_to_issue}</div>
             </button>
           </div>
@@ -202,11 +204,8 @@ export function Risks() {
               <p className="dashboard-action-card__detail">
                 This is the number of open risks that have no mitigation action steps recorded yet.
               </p>
-              <button className="usa-button usa-button--outline" onClick={() => {
-                setFilters((f) => ({ ...f, criticality: '', progress: 'open' }));
-                setSort({ col: 'dateIdentified', dir: 'desc' });
-              }}>
-                View Open Risks
+              <button className="usa-button usa-button--outline" onClick={() => setShowNoMitigationModal(true)}>
+                View These Risks
               </button>
             </div>
           </div>
@@ -224,7 +223,7 @@ export function Risks() {
                   onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-1)')}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--usa-primary-darker)', marginBottom: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--usa-primary-dark)', marginBottom: 6 }}>
                     {prog.name}
                   </div>
                   <div style={{ display: 'flex', gap: 'var(--space-3)', fontSize: 13 }}>
@@ -325,12 +324,12 @@ export function Risks() {
           <table className="usa-table">
             <thead>
               <tr>
-                <SortTh col="riskCode" label="ID" sort={sort} onSort={handleSort} />
+                <th style={{ width: 5, padding: 0 }} aria-label="Criticality" />
                 <SortTh col="title" label="Title" sort={sort} onSort={handleSort} />
                 <SortTh col="program" label="Program" sort={sort} onSort={handleSort} />
                 <SortTh col="project" label="Project" sort={sort} onSort={handleSort} />
+                <th>Status</th>
                 <SortTh col="impactDate" label="Impact Date" sort={sort} onSort={handleSort} />
-                <SortTh col="criticality" label="Criticality" sort={sort} onSort={handleSort} />
                 <SortTh col="progress" label="Progress" sort={sort} onSort={handleSort} />
                 <SortTh col="dateIdentified" label="Date Identified" sort={sort} onSort={handleSort} />
               </tr>
@@ -338,19 +337,23 @@ export function Risks() {
             <tbody>
               {risks.map((risk) => (
                 <tr key={risk.id} onClick={() => navigate(`/risks/risks/${risk.id}`)} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontWeight: 700 }}>{risk.riskCode}</td>
+                  <td
+                    style={{ width: 5, padding: 0, backgroundColor: RISK_CRITICALITY_STYLES[risk.criticality].bg }}
+                    title={RISK_CRITICALITY_LABELS[risk.criticality]}
+                  />
                   <td>
                     <div style={{ fontWeight: 600 }}>{risk.title}</div>
                     {risk.spmId && <div style={{ fontSize: 12, color: 'var(--usa-base-dark)' }}>SPM: {risk.spmId}</div>}
                   </td>
                   <td>{risk.program?.name || '—'}</td>
                   <td>{risk.statusProject?.name || '—'}</td>
-                  <td>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</td>
                   <td>
-                    <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>
-                      {RISK_CRITICALITY_LABELS[risk.criticality]}
-                    </Pill>
+                    {(() => {
+                      const s = computeRiskStatus((risk.mitigationActions ?? []) as { status: any }[]);
+                      return <Pill {...RISK_STATUS_STYLES[s]}>{RISK_STATUS_LABELS[s]}</Pill>;
+                    })()}
                   </td>
+                  <td>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</td>
                   <td>
                     <Pill {...RISK_PROGRESS_STYLES[risk.progress]}>
                       {RISK_PROGRESS_LABELS[risk.progress]}
@@ -363,6 +366,55 @@ export function Risks() {
           </table>
         </div>
       )}
+
+      {/* ── Without Mitigation Plan Modal ── */}
+      {showNoMitigationModal && (() => {
+        const unplanned = risks.filter((r) => !r.mitigationActions || r.mitigationActions.length === 0);
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setShowNoMitigationModal(false)}
+          >
+            <div
+              style={{ background: 'var(--usa-page-bg, #fff)', borderRadius: 10, width: '90%', maxWidth: 680, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-3)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--usa-base-lighter)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Risks Without a Mitigation Plan</h2>
+                <button className="usa-button usa-button--unstyled" onClick={() => setShowNoMitigationModal(false)} style={{ fontSize: 20, lineHeight: 1 }}>✕</button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1, padding: '16px 24px' }}>
+                {unplanned.length === 0 ? (
+                  <p style={{ color: 'var(--usa-success-dark)', fontWeight: 600 }}>All open risks have at least one mitigation action step. Great work!</p>
+                ) : (
+                  <table className="usa-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Program</th>
+                        <th>Criticality</th>
+                        <th>Date Identified</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unplanned.map((r) => (
+                        <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => { setShowNoMitigationModal(false); navigate(`/risks/risks/${r.id}`); }}>
+                          <td style={{ fontWeight: 600 }}>{r.title}</td>
+                          <td>{r.program?.name || '—'}</td>
+                          <td>
+                            <Pill {...RISK_CRITICALITY_STYLES[r.criticality]}>{RISK_CRITICALITY_LABELS[r.criticality]}</Pill>
+                          </td>
+                          <td>{r.dateIdentified ? new Date(r.dateIdentified).toLocaleDateString() : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import api from './client';
-import { StatusProject, StatusUpdate, ProjectPhase, IssueEntry, Accomplishment, ProjectDocument } from '../types';
+import { StatusProject, StatusUpdate, ProjectPhase, Accomplishment, ProjectDocument } from '../types';
 
 export const statusProjectsApi = {
   list: (params?: Record<string, string>) =>
@@ -36,25 +36,6 @@ export const statusProjectsApi = {
 
   updatePhase: (projectId: string, phaseId: string, data: any) =>
     api.put(`/status-projects/${projectId}/phases/${phaseId}`, data).then((r) => r.data.data as ProjectPhase),
-
-  // Issues
-  listIssues: (projectId: string) =>
-    api.get(`/status-projects/${projectId}/issues`).then((r) => r.data.data as IssueEntry[]),
-
-  createIssue: (projectId: string, data: any) =>
-    api.post(`/status-projects/${projectId}/issues`, data).then((r) => r.data.data as IssueEntry),
-
-  updateIssue: (projectId: string, issueId: string, data: any) =>
-    api.put(`/status-projects/${projectId}/issues/${issueId}`, data).then((r) => r.data.data as IssueEntry),
-
-  deleteIssue: (projectId: string, issueId: string) =>
-    api.delete(`/status-projects/${projectId}/issues/${issueId}`).then((r) => r.data),
-
-  resolveIssue: (projectId: string, issueId: string, resolutionNotes: string) =>
-    api.put(`/status-projects/${projectId}/issues/${issueId}/resolve`, { resolutionNotes }).then((r) => r.data.data as IssueEntry),
-
-  reopenIssue: (projectId: string, issueId: string) =>
-    api.put(`/status-projects/${projectId}/issues/${issueId}/reopen`).then((r) => r.data.data as IssueEntry),
 
   // Accomplishments
   listAccomplishments: (projectId: string) =>

@@ -1,7 +1,10 @@
 import api from './client';
-import { Project, PaginatedResponse } from '../types';
+import { Project, PaginatedResponse, ProjectsDashboardStats } from '../types';
 
 export const projectsApi = {
+  stats: () =>
+    api.get('/projects/stats').then((r) => r.data.data as ProjectsDashboardStats),
+
   list: (params?: Record<string, string>) =>
     api.get('/projects', { params }).then((r) => r.data as PaginatedResponse<Project>),
 

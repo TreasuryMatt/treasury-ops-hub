@@ -289,7 +289,10 @@ adminRouter.delete('/risk-categories/:id', requireAdmin, async (req: Authenticat
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 adminRouter.get('/users', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
-  const users = await prisma.user.findMany({ orderBy: { displayName: 'asc' } });
+  const users = await prisma.user.findMany({
+    orderBy: { displayName: 'asc' },
+    include: { resource: { select: { id: true, firstName: true, lastName: true } } },
+  });
   res.json({ data: users });
 });
 
@@ -311,6 +314,45 @@ adminRouter.delete('/users/:id', requireAdmin, async (req: AuthenticatedRequest,
   try {
     const user = await prisma.user.update({ where: { id: req.params.id as string }, data: { isActive: false } });
     res.json({ data: user });
+  } catch (err: any) { next(new AppError(err.message, 400)); }
+});
+
+// ─── Onboard Staff (creates User + Resource atomically) ───────────────────────
+adminRouter.post('/onboard-staff', requireAdmin, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { user: u, resource: r } = req.body;
+    const toBoolean = (v: any): boolean => v === true || v === 'true' || v === 'on';
+    const toNullableBoolean = (v: any): boolean | null => v == null ? null : toBoolean(v);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: u });
+      const resource = await tx.resource.create({
+        data: {
+          resourceType: r.resourceType,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          division: r.division,
+          functionalAreaId: r.functionalAreaId || null,
+          primaryRoleId: r.primaryRoleId || null,
+          secondaryRoleId: r.secondaryRoleId || null,
+          supervisorId: r.supervisorId || null,
+          secondLineSupervisorId: r.secondLineSupervisorId || null,
+          opsEngLead: r.opsEngLead || null,
+          gsLevel: r.resourceType === 'federal' ? r.gsLevel || null : null,
+          isMatrixed: r.resourceType === 'federal' ? toNullableBoolean(r.isMatrixed) : null,
+          popStartDate: r.resourceType === 'contractor' && r.popStartDate ? new Date(r.popStartDate) : null,
+          popEndDate: r.resourceType === 'contractor' && r.popEndDate ? new Date(r.popEndDate) : null,
+          popAlertDaysBefore: r.resourceType === 'contractor' && r.popAlertDaysBefore ? parseInt(r.popAlertDaysBefore, 10) : null,
+          isSupervisor: toBoolean(r.isSupervisor),
+          availableForWork: toBoolean(r.availableForWork),
+          notes: r.notes || null,
+          userId: user.id,
+        },
+      });
+      return { user, resource };
+    });
+
+    res.status(201).json({ data: result });
   } catch (err: any) { next(new AppError(err.message, 400)); }
 });
 

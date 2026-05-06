@@ -1,15 +1,15 @@
-import { RiskActionStatus, RiskCriticality, RiskProgress } from '../../types';
+import { RiskActionStatus, RiskCriticality, RiskProgress, RiskStatus } from '../../types';
 
 export const RISK_PROGRESS_LABELS: Record<RiskProgress, string> = {
   open: 'Open',
-  accepted: 'Accepted',
-  escalated_to_issue: 'Escalated to Issue',
+  assumed: 'Assumed',
+  escalated_to_issue: 'Converted to Issue',
   mitigated: 'Mitigated',
 };
 
 export const RISK_PROGRESS_STYLES: Record<RiskProgress, { bg: string; color: string }> = {
   open: { bg: 'var(--usa-primary)', color: '#fff' },
-  accepted: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
+  assumed: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
   escalated_to_issue: { bg: 'var(--usa-error)', color: '#fff' },
   mitigated: { bg: 'var(--usa-success)', color: '#fff' },
 };
@@ -29,9 +29,9 @@ export const RISK_CRITICALITY_STYLES: Record<RiskCriticality, { bg: string; colo
 };
 
 export const RISK_ACTION_STATUS_LABELS: Record<RiskActionStatus, string> = {
-  red: 'Red',
-  yellow: 'Yellow',
-  green: 'Green',
+  red: 'Off Track',
+  yellow: 'At Risk',
+  green: 'On Track',
 };
 
 export const RISK_ACTION_STATUS_STYLES: Record<RiskActionStatus, { bg: string; color: string }> = {
@@ -39,3 +39,48 @@ export const RISK_ACTION_STATUS_STYLES: Record<RiskActionStatus, { bg: string; c
   yellow: { bg: 'var(--usa-warning)', color: 'var(--usa-base-darkest)' },
   green: { bg: 'var(--usa-success)', color: '#fff' },
 };
+
+const RISK_STATUS_SEVERITY: Record<RiskActionStatus, number> = { red: 2, yellow: 1, green: 0 };
+
+export function computeRiskStatus(actions: { status: RiskActionStatus }[]): RiskStatus {
+  if (!actions || actions.length === 0) return 'none';
+  const worst = actions.reduce((w, a) => (RISK_STATUS_SEVERITY[a.status] > RISK_STATUS_SEVERITY[w.status] ? a : w));
+  if (worst.status === 'red') return 'off_track';
+  if (worst.status === 'yellow') return 'at_risk';
+  return 'on_track';
+}
+
+export const RISK_STATUS_LABELS: Record<RiskStatus, string> = {
+  off_track: 'Off Track',
+  at_risk: 'At Risk',
+  on_track: 'On Track',
+  none: 'None',
+};
+
+export const RISK_STATUS_STYLES: Record<RiskStatus, { bg: string; color: string }> = {
+  off_track: { bg: 'var(--usa-error)', color: '#fff' },
+  at_risk: { bg: 'var(--usa-warning)', color: 'var(--usa-base-darkest)' },
+  on_track: { bg: 'var(--usa-success)', color: '#fff' },
+  none: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
+};
+
+// Risk Score = Likelihood (1–5) × Criticality Impact Weight (1–4)
+// Range: 1–20
+const CRITICALITY_IMPACT_WEIGHT: Record<RiskCriticality, number> = {
+  low: 1,
+  moderate: 2,
+  high: 3,
+  critical: 4,
+};
+
+export function computeRiskScore(likelihood: number | null | undefined, criticality: RiskCriticality): number | null {
+  if (likelihood == null || likelihood < 1 || likelihood > 5) return null;
+  return Math.round(likelihood) * CRITICALITY_IMPACT_WEIGHT[criticality];
+}
+
+export function riskScoreStyle(score: number): { bg: string; color: string; label: string } {
+  if (score <= 4) return { bg: 'var(--usa-success)', color: '#fff', label: 'Low' };
+  if (score <= 8) return { bg: 'var(--usa-warning)', color: 'var(--usa-base-darkest)', label: 'Moderate' };
+  if (score <= 12) return { bg: '#b84c00', color: '#fff', label: 'High' };
+  return { bg: '#1b1b1b', color: '#fff', label: 'Critical' };
+}

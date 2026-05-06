@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { projectsApi } from '../api/projects';
 import { adminApi } from '../api/admin';
+import { resourcesApi } from '../api/resources';
+import { Resource } from '../types';
 import { Icon } from '../components/Icon';
 
 interface FormData {
@@ -33,6 +35,12 @@ export function ProjectForm() {
   });
 
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => adminApi.products() });
+
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   useEffect(() => {
     if (existing) {
@@ -96,8 +104,13 @@ export function ProjectForm() {
             </select>
           </div>
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="federalProductOwner">Federal Product Owner</label>
-            <input id="federalProductOwner" className="usa-input" {...register('federalProductOwner')} />
+            <label className="usa-label" htmlFor="federalProductOwner">Federal Project Owner</label>
+            <select id="federalProductOwner" className="usa-select" {...register('federalProductOwner')}>
+              <option value="">— Select —</option>
+              {resources.map((r) => (
+                <option key={r.id} value={`${r.firstName} ${r.lastName}`}>{r.firstName} {r.lastName}</option>
+              ))}
+            </select>
           </div>
           <div className="usa-form-group">
             <label className="usa-label" htmlFor="customerContact">Customer Contact</label>

@@ -2,7 +2,8 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
-import { StatusDashboardStats, StatusProjectStatusType } from '../../types';
+import { portfoliosApi } from '../../api/portfolios';
+import { StatusDashboardStats, StatusProjectStatusType, Portfolio } from '../../types';
 import { Icon } from '../../components/Icon';
 
 const RAG_LABELS: Record<StatusProjectStatusType, string> = {
@@ -42,6 +43,10 @@ export function StatusDashboard() {
   const { data: stats, isLoading } = useQuery<StatusDashboardStats>({
     queryKey: ['status-dashboard-stats'],
     queryFn: statusAdminApi.dashboardStats,
+  });
+  const { data: portfolios = [] } = useQuery<Portfolio[]>({
+    queryKey: ['portfolios'],
+    queryFn: portfoliosApi.list,
   });
 
   if (isLoading) {
@@ -89,6 +94,55 @@ export function StatusDashboard() {
         </div>
       </div>
 
+      {/* Portfolio Cards */}
+      <div className="section-header" style={{ marginTop: 'var(--space-4)' }}>
+        <h2 className="section-title">Portfolios</h2>
+        <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/portfolios')}>
+          View All Portfolios
+        </button>
+      </div>
+
+      {portfolios.length === 0 ? (
+        <div className="empty-state" style={{ marginBottom: 'var(--space-3)' }}>
+          <div className="empty-state__icon"><Icon name="work" size={48} /></div>
+          <h3>No portfolios yet</h3>
+          <p>Create a portfolio to organize your programs.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+          {portfolios.map((pf) => {
+            const programCount = (pf.programs ?? []).length;
+            const projectCount = (pf.programs ?? []).reduce(
+              (sum, prog: any) => sum + (prog.statusProjects?.length ?? 0),
+              0
+            );
+            return (
+              <div
+                key={pf.id}
+                className="detail-card"
+                style={{ cursor: 'pointer', transition: 'box-shadow 0.15s', padding: 'var(--space-2)' }}
+                onClick={() => navigate(`/status/portfolios/${pf.id}`)}
+                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-1)')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Icon name="work" color="var(--usa-primary)" size={16} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--usa-primary-dark)' }}>{pf.name}</span>
+                </div>
+                {pf.owner && (
+                  <div style={{ fontSize: 12, color: 'var(--usa-base-dark)', marginBottom: 4 }}>
+                    {pf.owner}
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: 'var(--usa-base-dark)' }}>
+                  {programCount} program{programCount !== 1 ? 's' : ''} · {projectCount} project{projectCount !== 1 ? 's' : ''}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Program Cards */}
       <div className="section-header" style={{ marginTop: 'var(--space-4)' }}>
         <h2 className="section-title">Programs</h2>
@@ -115,7 +169,7 @@ export function StatusDashboard() {
               onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-1)')}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--usa-primary-darker)' }}>{prog.name}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--usa-primary-dark)' }}>{prog.name}</span>
                 <RagDot status={prog.worstStatus as StatusProjectStatusType} />
               </div>
               <div style={{ fontSize: 13, color: 'var(--usa-base-dark)' }}>

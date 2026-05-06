@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/admin';
+import { resourcesApi } from '../../api/resources';
 import { Icon } from '../../components/Icon';
 import { SortIcon, SortDir } from '../../components/SortIcon';
 import { useAuth } from '../../context/AuthContext';
@@ -13,10 +15,12 @@ type AdminUserForm = {
   userType: 'staff' | 'customer';
   isIntakeReviewer: boolean;
   isResourceManager: boolean;
+  isResourceRequestor: boolean;
   isActive: boolean;
 };
 
 export function Users() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'admin';
   const qc = useQueryClient();
@@ -26,7 +30,6 @@ export function Users() {
   const [sortBy, setSortBy] = useState('displayName');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // Edit modal state
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editValues, setEditValues] = useState<AdminUserForm>({
     displayName: '',
@@ -36,11 +39,27 @@ export function Users() {
     userType: 'staff',
     isIntakeReviewer: false,
     isResourceManager: false,
+    isResourceRequestor: false,
     isActive: true,
   });
 
-  // Deactivate confirmation state
   const [pendingDeactivateUser, setPendingDeactivateUser] = useState<any | null>(null);
+
+  // Link resource modal
+  const [linkingUser, setLinkingUser] = useState<any | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState('');
+  const [pendingUnlinkUser, setPendingUnlinkUser] = useState<any | null>(null);
+
+  const { data: allResourcesData } = useQuery({
+    queryKey: ['resources-all-for-linking'],
+    queryFn: () => resourcesApi.list({ limit: '1000' }),
+    enabled: Boolean(linkingUser),
+  });
+
+  // Resources not yet linked to any user (or linked to this user)
+  const linkableResources = (allResourcesData?.data ?? []).filter(
+    (r: any) => !r.userId || r.userId === linkingUser?.id,
+  );
 
   function handleSort(field: string) {
     if (sortBy === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -61,6 +80,7 @@ export function Users() {
     userType: 'staff' as 'staff' | 'customer',
     isIntakeReviewer: false,
     isResourceManager: false,
+    isResourceRequestor: false,
   });
 
   const createMutation = useMutation({
@@ -68,7 +88,7 @@ export function Users() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAdd(false);
-      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer', userType: 'staff', isIntakeReviewer: false, isResourceManager: false });
+      setNewUser({ caiaId: '', email: '', displayName: '', role: 'viewer', userType: 'staff', isIntakeReviewer: false, isResourceManager: false, isResourceRequestor: false });
     },
   });
 
@@ -88,6 +108,26 @@ export function Users() {
     },
   });
 
+  const linkMutation = useMutation({
+    mutationFn: ({ resourceId, userId }: { resourceId: string; userId: string }) =>
+      resourcesApi.update(resourceId, { userId } as any),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      qc.invalidateQueries({ queryKey: ['resources-all-for-linking'] });
+      setLinkingUser(null);
+      setSelectedResourceId('');
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: (resourceId: string) => resourcesApi.update(resourceId, { userId: null } as any),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      qc.invalidateQueries({ queryKey: ['resources-all-for-linking'] });
+      setPendingUnlinkUser(null);
+    },
+  });
+
   function openEdit(u: any) {
     setEditingUser(u);
     setEditValues({
@@ -98,8 +138,14 @@ export function Users() {
       userType: u.userType || 'staff',
       isIntakeReviewer: Boolean(u.isIntakeReviewer),
       isResourceManager: Boolean(u.isResourceManager || u.role === 'manager'),
+      isResourceRequestor: Boolean(u.isResourceRequestor),
       isActive: u.isActive,
     });
+  }
+
+  function openLinkModal(u: any) {
+    setLinkingUser(u);
+    setSelectedResourceId('');
   }
 
   return (
@@ -113,9 +159,14 @@ export function Users() {
       </div>
 
       {isAdmin && (
-        <button className="usa-button usa-button--primary" onClick={() => setShowAdd(!showAdd)} style={{ marginBottom: 16 }}>
-          <Icon name="person_add" color="white" size={16} /> Add User
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button className="usa-button usa-button--primary" onClick={() => navigate('/admin/onboard-staff')}>
+            <Icon name="person_add" color="white" size={16} /> Onboard Staff Member
+          </button>
+          <button className="usa-button usa-button--outline" onClick={() => setShowAdd(!showAdd)}>
+            <Icon name="add" size={16} /> Add User Only
+          </button>
+        </div>
       )}
 
       {showAdd && (
@@ -168,6 +219,16 @@ export function Users() {
               />
               <label htmlFor="new-isResourceManager" className="usa-checkbox__label">Resource Manager</label>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
+              <input
+                id="new-isResourceRequestor"
+                type="checkbox"
+                className="usa-checkbox__input"
+                checked={newUser.isResourceRequestor}
+                onChange={(e) => setNewUser({ ...newUser, isResourceRequestor: e.target.checked })}
+              />
+              <label htmlFor="new-isResourceRequestor" className="usa-checkbox__label">Resource Requestor</label>
+            </div>
             <button className="usa-button usa-button--success" disabled={createMutation.isPending} onClick={() => createMutation.mutate(newUser)}>
               {createMutation.isPending ? 'Creating…' : 'Create'}
             </button>
@@ -180,11 +241,12 @@ export function Users() {
         <table className="usa-table">
           <thead>
             <tr>
-              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isResourceManager', 'Resource Manager'], ['isIntakeReviewer', 'Reviewer'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
+              {([['displayName', 'Display Name'], ['caiaId', 'CAIA ID'], ['email', 'Email'], ['role', 'Role'], ['isIntakeReviewer', 'Reviewer'], ['isActive', 'Active']] as [string, string][]).map(([field, label]) => (
                 <th key={field} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }} onClick={() => handleSort(field)}>
                   {label} <SortIcon field={field} active={sortBy === field} dir={sortDir} />
                 </th>
               ))}
+              <th style={{ whiteSpace: 'nowrap' }}>Linked Resource</th>
               {isAdmin && <th style={{ whiteSpace: 'nowrap' }}>Actions</th>}
             </tr>
           </thead>
@@ -195,9 +257,42 @@ export function Users() {
                 <td>{u.caiaId}</td>
                 <td>{u.email}</td>
                 <td style={{ textTransform: 'capitalize' }}>{u.role === 'manager' ? 'viewer' : u.role}</td>
-                <td>{u.isResourceManager || u.role === 'manager' ? 'Yes' : 'No'}</td>
                 <td>{u.isIntakeReviewer ? 'Yes' : 'No'}</td>
                 <td>{u.isActive ? 'Yes' : 'No'}</td>
+                <td>
+                  {u.resource ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span
+                        style={{ color: 'var(--usa-primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                        onClick={() => navigate(`/staffing/resources/${u.resource.id}`)}
+                      >
+                        {u.resource.lastName}, {u.resource.firstName}
+                      </span>
+                      {isAdmin && (
+                        <button
+                          className="usa-button usa-button--unstyled"
+                          title="Unlink resource"
+                          onClick={() => setPendingUnlinkUser(u)}
+                          style={{ color: 'var(--usa-base-light)', marginLeft: 2 }}
+                        >
+                          <Icon name="link_off" size={14} />
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    isAdmin ? (
+                      <button
+                        className="usa-button usa-button--unstyled"
+                        style={{ fontSize: 13, color: 'var(--usa-primary)' }}
+                        onClick={() => openLinkModal(u)}
+                      >
+                        <Icon name="link" size={14} /> Link resource
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--usa-base-light)', fontSize: 13 }}>None</span>
+                    )
+                  )}
+                </td>
                 {isAdmin && (
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <button
@@ -303,6 +398,16 @@ export function Users() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
                   <input
+                    id="edit-isResourceRequestor"
+                    type="checkbox"
+                    className="usa-checkbox__input"
+                    checked={editValues.isResourceRequestor}
+                    onChange={(e) => setEditValues({ ...editValues, isResourceRequestor: e.target.checked })}
+                  />
+                  <label htmlFor="edit-isResourceRequestor" className="usa-checkbox__label">Resource Requestor</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 24 }}>
+                  <input
                     id="edit-isActive"
                     type="checkbox"
                     className="usa-checkbox__input"
@@ -321,6 +426,78 @@ export function Users() {
                 onClick={() => updateMutation.mutate({ id: editingUser.id, data: editValues })}
               >
                 {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Link Resource Modal ─────────────────────────────── */}
+      {linkingUser && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setLinkingUser(null); setSelectedResourceId(''); } }}>
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal__title">Link Resource — {linkingUser.displayName}</div>
+            <div className="modal__body">
+              <p style={{ marginTop: 0, marginBottom: 12, fontSize: 14 }}>
+                Select the staffing record to link to this user account. Only unlinked resources are shown.
+              </p>
+              <label className="usa-label" style={{ marginTop: 0 }}>Resource</label>
+              <select
+                className="usa-select"
+                value={selectedResourceId}
+                onChange={(e) => setSelectedResourceId(e.target.value)}
+              >
+                <option value="">— Select a resource —</option>
+                {linkableResources.map((r: any) => (
+                  <option key={r.id} value={r.id}>
+                    {r.lastName}, {r.firstName} ({r.division})
+                  </option>
+                ))}
+              </select>
+              {linkableResources.length === 0 && !allResourcesData && (
+                <p style={{ fontSize: 13, color: 'var(--usa-base-light)', marginTop: 8 }}>Loading resources…</p>
+              )}
+              {linkableResources.length === 0 && allResourcesData && (
+                <p style={{ fontSize: 13, color: 'var(--usa-base-light)', marginTop: 8 }}>No unlinked resources available.</p>
+              )}
+              {linkMutation.isError && (
+                <p style={{ color: 'var(--usa-error)', fontSize: 13, marginTop: 8 }}>
+                  Failed to link resource. Please try again.
+                </p>
+              )}
+            </div>
+            <div className="modal__actions">
+              <button className="usa-button usa-button--outline" onClick={() => { setLinkingUser(null); setSelectedResourceId(''); }}>Cancel</button>
+              <button
+                className="usa-button usa-button--primary"
+                disabled={!selectedResourceId || linkMutation.isPending}
+                onClick={() => linkMutation.mutate({ resourceId: selectedResourceId, userId: linkingUser.id })}
+              >
+                {linkMutation.isPending ? 'Linking…' : 'Link Resource'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unlink Confirmation Modal ───────────────────────── */}
+      {pendingUnlinkUser && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setPendingUnlinkUser(null); }}>
+          <div className="modal">
+            <div className="modal__title">Unlink Resource?</div>
+            <div className="modal__body">
+              Remove the link between <strong>{pendingUnlinkUser.displayName}</strong> and{' '}
+              <strong>{pendingUnlinkUser.resource?.lastName}, {pendingUnlinkUser.resource?.firstName}</strong>?
+              The user account and staffing record will both remain; only the connection between them will be removed.
+            </div>
+            <div className="modal__actions">
+              <button className="usa-button usa-button--outline" onClick={() => setPendingUnlinkUser(null)}>Cancel</button>
+              <button
+                className="usa-button usa-button--danger"
+                disabled={unlinkMutation.isPending}
+                onClick={() => unlinkMutation.mutate(pendingUnlinkUser.resource.id)}
+              >
+                {unlinkMutation.isPending ? 'Unlinking…' : 'Unlink'}
               </button>
             </div>
           </div>

@@ -11,9 +11,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 const MOCK_CAIA = process.env.MOCK_CAIA === 'true';
 
-function issueToken(user: { id: string; caiaId: string; email: string; displayName: string; role: string; userType: string; isIntakeReviewer: boolean; isResourceManager: boolean }): string {
+function issueToken(user: { id: string; caiaId: string; email: string; displayName: string; role: string; userType: string; isIntakeReviewer: boolean; isResourceManager: boolean; isResourceRequestor: boolean }): string {
   return jwt.sign(
-    { id: user.id, caiaId: user.caiaId, email: user.email, displayName: user.displayName, role: user.role, userType: user.userType, isIntakeReviewer: user.isIntakeReviewer, isResourceManager: user.isResourceManager },
+    { id: user.id, caiaId: user.caiaId, email: user.email, displayName: user.displayName, role: user.role, userType: user.userType, isIntakeReviewer: user.isIntakeReviewer, isResourceManager: user.isResourceManager, isResourceRequestor: user.isResourceRequestor },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions
   );
@@ -39,13 +39,13 @@ authRouter.post('/mock-login', async (req: Request, res: Response, next: NextFun
 
   const token = issueToken(user);
   res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
-  res.json({ data: { token, user: { id: user.id, caiaId: user.caiaId, email: user.email, displayName: user.displayName, role: user.role, userType: user.userType, isIntakeReviewer: user.isIntakeReviewer, isResourceManager: user.isResourceManager } } });
+  res.json({ data: { token, user: { id: user.id, caiaId: user.caiaId, email: user.email, displayName: user.displayName, role: user.role, userType: user.userType, isIntakeReviewer: user.isIntakeReviewer, isResourceManager: user.isResourceManager, isResourceRequestor: user.isResourceRequestor } } });
 });
 
 authRouter.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.id },
-    select: { id: true, caiaId: true, email: true, displayName: true, role: true, userType: true, isIntakeReviewer: true, isResourceManager: true, isActive: true },
+    select: { id: true, caiaId: true, email: true, displayName: true, role: true, userType: true, isIntakeReviewer: true, isResourceManager: true, isResourceRequestor: true, isActive: true },
   });
   if (!user) {
     next(new AppError('User not found', 404));

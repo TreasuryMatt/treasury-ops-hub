@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { assignmentsApi } from '../../api/assignments';
 import { resourcesApi } from '../../api/resources';
 import { adminApi } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
-import { StatusProject, StatusUpdate, IssueEntry, Accomplishment, ProjectPhase, ProjectDocument, StatusProjectStatusType } from '../../types';
+import { StatusProject, StatusUpdate, Accomplishment, ProjectPhase, ProjectDocument, StatusProjectStatusType } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { GanttChart } from '../../components/GanttChart';
+import { RichTextEditor, RichTextDisplay } from '../../components/RichTextEditor';
 
-type Tab = 'overview' | 'updates' | 'accomplishments' | 'issues' | 'documents' | 'staffing';
+type Tab = 'overview' | 'updates' | 'accomplishments' | 'documents' | 'staffing';
 
 export function StatusProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -40,12 +41,6 @@ export function StatusProjectDetail() {
     enabled: !!id && activeTab === 'overview',
   });
 
-  const { data: issues = [] } = useQuery<IssueEntry[]>({
-    queryKey: ['status-project-issues', id],
-    queryFn: () => statusProjectsApi.listIssues(id!),
-    enabled: !!id && activeTab === 'issues',
-  });
-
   const { data: accomplishments = [] } = useQuery<Accomplishment[]>({
     queryKey: ['status-project-accomplishments', id],
     queryFn: () => statusProjectsApi.listAccomplishments(id!),
@@ -68,7 +63,6 @@ export function StatusProjectDetail() {
     { key: 'overview', label: 'Overview' },
     { key: 'updates', label: 'Updates' },
     { key: 'accomplishments', label: 'Successes' },
-    { key: 'issues', label: 'Issues' },
     { key: 'documents', label: 'Documents' },
     { key: 'staffing', label: 'Staffing' },
   ];
@@ -86,7 +80,7 @@ export function StatusProjectDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="work" color="var(--usa-primary)" size={24} />
+              <Icon name="lightbulb" color="var(--usa-primary)" size={24} />
               {project.name}
             </h1>
             <p className="usa-page-subtitle">
@@ -134,7 +128,6 @@ export function StatusProjectDetail() {
       {activeTab === 'overview' && <OverviewTab project={project} phases={phases} />}
       {activeTab === 'updates' && <UpdatesTab projectId={id!} updates={updates} canEdit={canEdit} />}
       {activeTab === 'accomplishments' && <AccomplishmentsTab projectId={id!} accomplishments={accomplishments} canEdit={canEdit} />}
-      {activeTab === 'issues' && <IssuesTab projectId={id!} issues={issues} canEdit={canEdit} />}
       {activeTab === 'documents' && <DocumentsTab projectId={id!} documents={documents} canEdit={canEdit} />}
       {activeTab === 'staffing' && <StaffingTab projectId={id!} canEdit={canManageAssignments} />}
     </div>
@@ -170,14 +163,14 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
       title: 'Organization',
       fields: [
         { label: 'Program', value: project.program?.name },
-        { label: 'Application', value: project.application?.name },
+        { label: 'Products', value: project.products?.map((pp) => pp.product.name).join(', ') || null },
         { label: 'Department', value: project.department?.name },
       ],
     },
     {
       title: 'Leadership',
       fields: [
-        { label: 'Federal Product Owner', value: project.federalProductOwner },
+        { label: 'Federal Project Owner', value: project.federalProductOwner },
         { label: 'Customer Contact', value: project.customerContact },
       ],
     },
@@ -295,8 +288,8 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
 function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; updates: StatusUpdate[]; canEdit: boolean }) {
   const qc = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
-  const { register: regEdit, handleSubmit: handleEdit, reset: resetEdit } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
+  const { register, handleSubmit, reset, control } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
+  const { register: regEdit, handleSubmit: handleEdit, reset: resetEdit, control: controlEdit } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
 
   const addUpdate = useMutation({
     mutationFn: (data: any) => statusProjectsApi.createUpdate(projectId, data),
@@ -349,7 +342,14 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
               </div>
               <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label" htmlFor="summary">Summary *</label>
-                <textarea className="usa-textarea" id="summary" {...register('summary', { required: true })} rows={3} />
+                <Controller
+                  name="summary"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <RichTextEditor value={field.value || ''} onChange={field.onChange} minHeight={96} />
+                  )}
+                />
               </div>
             </div>
             <button type="submit" className="usa-button usa-button--success" disabled={addUpdate.isPending}>
@@ -392,7 +392,14 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
                     </div>
                     <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
                       <label className="usa-label">Summary *</label>
-                      <textarea className="usa-textarea" {...regEdit('summary', { required: true })} rows={3} />
+                      <Controller
+                        name="summary"
+                        control={controlEdit}
+                        rules={{ required: true }}
+                        render={({ field }) => (
+                          <RichTextEditor value={field.value || ''} onChange={field.onChange} minHeight={96} />
+                        )}
+                      />
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
@@ -423,7 +430,7 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
                       )}
                     </div>
                   </div>
-                  <p style={{ margin: 0 }}>{u.summary}</p>
+                  <RichTextDisplay html={u.summary} />
                 </>
               )}
             </div>
@@ -484,7 +491,7 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
   const qc = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const { register, handleSubmit, reset } = useForm<{ text: string }>();
+  const { handleSubmit, reset, control } = useForm<{ text: string }>();
 
   const addAccomplishment = useMutation({
     mutationFn: (data: { text: string }) => statusProjectsApi.createAccomplishment(projectId, data),
@@ -518,13 +525,18 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
         <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
           <h3>Log Success</h3>
           <form onSubmit={handleSubmit((data) => addAccomplishment.mutate(data))}>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
-                <label className="usa-label">Description *</label>
-                <input className="usa-input" placeholder="Describe the success..." {...register('text', { required: true })} />
-              </div>
-              <button type="submit" className="usa-button usa-button--success" disabled={addAccomplishment.isPending}>Add</button>
+            <div className="usa-form-group" style={{ margin: '0 0 var(--space-2)' }}>
+              <label className="usa-label">Description *</label>
+              <Controller
+                name="text"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <RichTextEditor value={field.value || ''} onChange={field.onChange} placeholder="Describe the success..." minHeight={72} />
+                )}
+              />
             </div>
+            <button type="submit" className="usa-button usa-button--success" disabled={addAccomplishment.isPending}>Add</button>
           </form>
         </div>
       )}
@@ -550,27 +562,25 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
               }}
             >
               {editingId === a.id ? (
-                <div style={{ display: 'flex', gap: 'var(--space-1)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <input
-                    className="usa-input"
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    style={{ flex: 1, minWidth: 200 }}
-                    autoFocus
-                  />
-                  <button
-                    className="usa-button usa-button--success"
-                    disabled={saveAccomplishment.isPending || !editText.trim()}
-                    onClick={() => saveAccomplishment.mutate({ id: a.id, text: editText })}
-                  >
-                    {saveAccomplishment.isPending ? 'Saving...' : 'Save'}
-                  </button>
-                  <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                <div>
+                  <div style={{ marginBottom: 'var(--space-1)' }}>
+                    <RichTextEditor value={editText} onChange={setEditText} minHeight={72} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                    <button
+                      className="usa-button usa-button--success"
+                      disabled={saveAccomplishment.isPending || !editText.replace(/<[^>]*>/g, '').trim()}
+                      onClick={() => saveAccomplishment.mutate({ id: a.id, text: editText })}
+                    >
+                      {saveAccomplishment.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                    <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 4px' }}>{a.text}</p>
+                    <RichTextDisplay html={a.text} />
                     <span className="text-sm text-muted">{a.author?.displayName} · {new Date(a.createdAt).toLocaleDateString()}</span>
                   </div>
                   {canEdit && (
@@ -587,262 +597,6 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
               )}
             </div>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function IssuesTab({ projectId, issues, canEdit }: { projectId: string; issues: IssueEntry[]; canEdit: boolean }) {
-  const qc = useQueryClient();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [resolveNotes, setResolveNotes] = useState('');
-  const [editForm, setEditForm] = useState<{ category: string; text: string }>({ category: 'risk', text: '' });
-  const { register, handleSubmit, reset } = useForm<{ category: string; text: string }>();
-
-  const invalidateIssues = () => qc.invalidateQueries({ queryKey: ['status-project-issues', projectId] });
-
-  const addIssue = useMutation({
-    mutationFn: (data: any) => statusProjectsApi.createIssue(projectId, data),
-    onSuccess: () => { invalidateIssues(); reset(); },
-  });
-
-  const saveIssue = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => statusProjectsApi.updateIssue(projectId, id, data),
-    onSuccess: () => { invalidateIssues(); setEditingId(null); },
-  });
-
-  const deleteIssue = useMutation({
-    mutationFn: (id: string) => statusProjectsApi.deleteIssue(projectId, id),
-    onSuccess: invalidateIssues,
-  });
-
-  const resolveIssue = useMutation({
-    mutationFn: ({ id, notes }: { id: string; notes: string }) => statusProjectsApi.resolveIssue(projectId, id, notes),
-    onSuccess: () => { invalidateIssues(); setResolvingId(null); setResolveNotes(''); },
-  });
-
-  const reopenIssue = useMutation({
-    mutationFn: (id: string) => statusProjectsApi.reopenIssue(projectId, id),
-    onSuccess: invalidateIssues,
-  });
-
-  const CATEGORY_COLORS: Record<string, string> = {
-    risk: 'var(--usa-warning-dark)',
-    issue: 'var(--usa-error)',
-    blocker: '#d83933',
-  };
-
-  const CATEGORY_TAG: Record<string, string> = {
-    risk: 'usa-tag--yellow',
-    issue: 'usa-tag--red',
-    blocker: 'usa-tag--red',
-  };
-
-  function startEdit(iss: IssueEntry) {
-    setEditForm({ category: iss.category, text: iss.text });
-    setEditingId(iss.id);
-    setResolvingId(null);
-  }
-
-  function startResolve(iss: IssueEntry) {
-    setResolvingId(iss.id);
-    setResolveNotes('');
-    setEditingId(null);
-  }
-
-  const openIssues = issues.filter((i) => !i.resolvedAt);
-  const resolvedIssues = issues.filter((i) => !!i.resolvedAt);
-
-  return (
-    <div>
-      {canEdit && (
-        <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
-          <h3>Log Issue</h3>
-          <form onSubmit={handleSubmit((data) => addIssue.mutate(data))}>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div className="usa-form-group" style={{ margin: 0 }}>
-                <label className="usa-label">Type</label>
-                <select className="usa-select" {...register('category', { required: true })} style={{ minWidth: 120 }}>
-                  <option value="risk">Risk</option>
-                  <option value="issue">Issue</option>
-                  <option value="blocker">Blocker</option>
-                </select>
-              </div>
-              <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
-                <label className="usa-label">Description *</label>
-                <input className="usa-input" placeholder="Describe the issue..." {...register('text', { required: true })} />
-              </div>
-              <button type="submit" className="usa-button usa-button--success" disabled={addIssue.isPending}>Add</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {issues.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state__icon"><Icon name="flag" size={48} /></div>
-          <h3>No issues logged</h3>
-          <p>Log risks, issues, or blockers to track them here.</p>
-        </div>
-      ) : (
-        <div>
-          {/* Open issues */}
-          {openIssues.map((iss) => (
-            <div
-              key={iss.id}
-              style={{
-                padding: 'var(--space-2) var(--space-3)',
-                borderLeft: `3px solid ${CATEGORY_COLORS[iss.category] || 'var(--usa-base)'}`,
-                marginBottom: 'var(--space-1)',
-                background: 'var(--usa-white)',
-                borderRadius: '0 var(--radius) var(--radius) 0',
-                boxShadow: 'var(--shadow-1)',
-              }}
-            >
-              {editingId === iss.id ? (
-                <div>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}>
-                    <div className="usa-form-group" style={{ margin: 0 }}>
-                      <label className="usa-label">Type</label>
-                      <select
-                        className="usa-select"
-                        value={editForm.category}
-                        onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                        style={{ minWidth: 120 }}
-                      >
-                        <option value="risk">Risk</option>
-                        <option value="issue">Issue</option>
-                        <option value="blocker">Blocker</option>
-                      </select>
-                    </div>
-                    <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
-                      <label className="usa-label">Description *</label>
-                      <input
-                        className="usa-input"
-                        value={editForm.text}
-                        onChange={(e) => setEditForm((f) => ({ ...f, text: e.target.value }))}
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                    <button
-                      className="usa-button usa-button--success"
-                      disabled={saveIssue.isPending || !editForm.text.trim()}
-                      onClick={() => saveIssue.mutate({ id: iss.id, data: editForm })}
-                    >
-                      {saveIssue.isPending ? 'Saving...' : 'Save'}
-                    </button>
-                    <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
-                  </div>
-                </div>
-              ) : resolvingId === iss.id ? (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`}>{iss.category.toUpperCase()}</span>
-                  </div>
-                  <p style={{ margin: '0 0 var(--space-1) 0' }}>{iss.text}</p>
-                  <div className="usa-form-group" style={{ margin: '0 0 var(--space-1) 0' }}>
-                    <label className="usa-label">Resolution Notes</label>
-                    <textarea
-                      className="usa-textarea"
-                      rows={2}
-                      placeholder="Describe how this was resolved..."
-                      value={resolveNotes}
-                      onChange={(e) => setResolveNotes(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
-                    <button
-                      className="usa-button usa-button--success"
-                      disabled={resolveIssue.isPending}
-                      onClick={() => resolveIssue.mutate({ id: iss.id, notes: resolveNotes })}
-                    >
-                      {resolveIssue.isPending ? 'Resolving...' : 'Mark Resolved'}
-                    </button>
-                    <button className="usa-button usa-button--outline" onClick={() => setResolvingId(null)}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`}>{iss.category.toUpperCase()}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="text-sm text-muted">{iss.author?.displayName} · {new Date(iss.createdAt).toLocaleDateString()}</span>
-                      {canEdit && (
-                        <>
-                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-success)' }} onClick={() => startResolve(iss)} aria-label="Resolve issue" title="Resolve">
-                            <Icon name="check_circle" size={15} />
-                          </button>
-                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-primary)' }} onClick={() => startEdit(iss)} aria-label="Edit issue">
-                            <Icon name="edit" size={15} />
-                          </button>
-                          <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-error)' }} onClick={() => deleteIssue.mutate(iss.id)} aria-label="Delete issue">
-                            <Icon name="delete" size={15} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{ margin: 0 }}>{iss.text}</p>
-                </>
-              )}
-            </div>
-          ))}
-
-          {/* Resolved issues */}
-          {resolvedIssues.length > 0 && (
-            <>
-              {openIssues.length > 0 && (
-                <div style={{ margin: 'var(--space-3) 0 var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                  <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
-                  <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Resolved ({resolvedIssues.length})</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--usa-base-lighter)' }} />
-                </div>
-              )}
-              {resolvedIssues.map((iss) => (
-                <div
-                  key={iss.id}
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    borderLeft: '3px solid var(--usa-success)',
-                    marginBottom: 'var(--space-1)',
-                    background: 'var(--usa-white)',
-                    borderRadius: '0 var(--radius) var(--radius) 0',
-                    boxShadow: 'var(--shadow-1)',
-                    opacity: 0.75,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-                      <span className={`usa-tag ${CATEGORY_TAG[iss.category] || ''}`} style={{ opacity: 0.6 }}>{iss.category.toUpperCase()}</span>
-                      <span className="usa-tag" style={{ background: 'var(--usa-success)', color: '#fff' }}>RESOLVED</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="text-sm text-muted">{iss.author?.displayName} · {new Date(iss.createdAt).toLocaleDateString()}</span>
-                      {canEdit && (
-                        <button className="usa-button usa-button--unstyled" style={{ color: 'var(--usa-warning-dark)' }} onClick={() => reopenIssue.mutate(iss.id)} aria-label="Reopen issue" title="Reopen">
-                          <Icon name="history" size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{ margin: 0, textDecoration: 'line-through', color: 'var(--usa-base)' }}>{iss.text}</p>
-                  {iss.resolutionNotes && (
-                    <p style={{ margin: 'var(--space-1) 0 0', fontSize: '0.875rem', color: 'var(--usa-success-darker)' }}>
-                      <strong>Resolution:</strong> {iss.resolutionNotes}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted" style={{ margin: 'var(--space-half) 0 0' }}>
-                    Resolved by {iss.resolvedBy?.displayName} on {new Date(iss.resolvedAt!).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </>
-          )}
         </div>
       )}
     </div>

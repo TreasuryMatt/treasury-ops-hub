@@ -1,6 +1,6 @@
-# Treasury Capacity Management — Backlog
+# Treasury Digital Operations Hub — Backlog
 
-> Last updated: 2026-04-29
+> Last updated: 2026-05-04
 
 ---
 
@@ -17,6 +17,12 @@
 - [x] Resource detail page — profile card, supervisory chain, assignments with utilization, notes
 - [x] Supervisor data model — isSupervisor flag, FK relations, dropdown on form, column on list
 - [x] Resource Request form — all users can submit; editors approve/deny with review note; approval optionally assigns resource to project
+- [x] Dashboard — Division labels capitalize correctly (PMSO, etc.) via `formatDivision()` utility
+- [x] User management page — list users, edit roles, activate/deactivate
+- [x] Audit log viewer — paginated table of all actions
+- [x] Notification system — bell icon + dropdown, /notifications page, /settings/notifications preferences, popAlertJob cron, popAlertDaysBefore field on resource form, Notification + NotificationPreference schema
+- [x] Issues page — full data model + CRUD (Issues list, IssueDetail with mitigation plan + comments, server routes, API client)
+- [x] Escalate Risk → Issue workflow — "Escalate to Issue" button on RiskDetail; sets `progress = escalated_to_issue`, records `escalatedAt`; escalation banner on IssueDetail; block re-escalation
 
 ---
 
@@ -28,11 +34,12 @@
 - [x] **Resources — edit row icon** is white on white in light mode; use appropriate contrasting color
 - [x] **Dashboard — "View All Resources" button** style should match "View All Projects" button
 - [x] **Dashboard — Total Resources card** links to the Resources page
-- [ ] **Dashboard — Division labels** show lowercase (e.g. "Pmso" → "PMSO"); capitalize correctly
+- [x] **Dashboard — Division labels** show lowercase (e.g. "Pmso" → "PMSO"); capitalize correctly
 
 ### 🟡 Medium (1–4 hours)
 
-- [ ] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
+- [x] **Resource create — duplicate name/email warning** — when an admin fills in First Name + Last Name (or selects a linked user), check against existing active resources and users for a likely duplicate before saving. Approach: debounced `GET /api/resources?search=<firstName+lastName>` on blur of the Last Name field; if results come back, show an inline warning banner ("A resource named Jane Smith already exists — are you sure?") with a link to the existing record. Also check the selected linked user's email against existing `resource.user.email` values. The warning should be advisory only (not block submission) since legitimate duplicates exist (e.g. two people named John Smith). Server-side, the POST route should return a clear 409 if a unique constraint fires rather than a generic 400.
+- [x] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
 
 ### 🟠 Large (half day – full day)
 
@@ -43,61 +50,46 @@
 
 - [ ] **Bureaus reference data** — admin CRUD for Treasury Bureaus (IRS, OCC, FinCEN, etc.); link bureaus to projects, programs, and resources for filtering and reporting
 - [ ] **Departments reference data** — admin CRUD for Departments; used as a picklist on projects and resources for filtering and reporting
-- [ ] **User management page** — list users, change roles, activate/deactivate
-- [ ] **Audit log viewer** — paginated table of all actions
+- [x] **User management page** — list users, change roles, activate/deactivate
+- [x] **Audit log viewer** — paginated table of all actions
 - [ ] **Role-based access** — editors can update resources, viewers read-only
+- [x] **Unified staff onboarding wizard (Option D)** — a single "Add Staff Member" form for admins that creates a `User` and `Resource` record in one transaction, pre-linked via `resource.userId`. Today these are created separately and linked after the fact via the Resource edit form (Option A). The wizard should: collect login fields (CAIA ID, email, display name, role, user type) alongside resource fields (type, division, functional area, role, supervisor, etc.) in a stepped or two-column layout; POST to a new server endpoint `POST /api/admin/onboard-staff` that wraps both creates in a Prisma `$transaction`; redirect to the new Resource detail page on success. Useful when onboarding federal employees who always need both an app login and a staffing record. Contractors (who may not log in) can continue to be created as Resource-only via the existing form. Also added: "Linked Resource" column on the Users page with link/unlink modal to retroactively connect existing users to existing resources.
 
 ---
 
 ## 🔍 Insights — 2026-03-20
 
-### 🎯 UX & Interaction
-- [ ] **Dashboard — Stat cards not clickable** — all 4 cards (Total Resources, Active Projects, Avg Utilization, Available Resources) look interactive but go nowhere; link each to its respective filtered view
-- [ ] **Resource Detail — No way to edit an assignment** — trash icon only; users must delete and re-add to change utilization %, role, or dates
-- [ ] **Project Detail — No way to edit a team member assignment** — same as above; delete-only with no edit path
-- [ ] **Add Resource Form — POP dates always visible** — POP Start/End fields show even when Type = Federal; hide them when Type = Federal, show when Type = Contractor
-- [ ] **Resources List — "Add Resource" appears twice inconsistently** — once as a confusing text link above the table (looks like a label/filter), once in the sidebar; consolidate into a clear button in the filter bar matching the Projects page pattern
-- [ ] **Resource Detail — Edit button has no visual treatment** — sits flush next to the name with no border or background; doesn't look like a button
-
 ### 📊 Data & Content
-- [ ] **Dashboard — Avg Utilization has no context** — 70% means nothing without a target or color signal; add green/yellow/red threshold coloring (e.g. green <80%, yellow 80–95%, red >95%)
-- [ ] **Projects List — Priority column is empty for 43 of 45 projects** — column takes up space and shows "-" almost everywhere; either prompt users to fill it in or hide the column until data exists
+- [x] **Projects List — Priority column is empty for 43 of 45 projects** — column takes up space and shows "-" almost everywhere; either prompt users to fill it in or hide the column until data exists
 - [ ] **Resources List — "Available" definition is unclear** — someone at 80% utilized shows 0% available; the definition of available capacity needs to be visible to users
-- [ ] **Project Detail — "Total FTE Allocation %" label is misleading** — 78% sounds like the project is 78% staffed, but it's the sum of individual allocations; rename to "Total Allocated FTEs" or show a clearer breakdown
-- [ ] **Resource Detail — Assignment start/end dates all show "-"** — date data exists in the source Excel but isn't displaying; critical for contractors with hard end dates
+- [x] **Project Detail — "Total FTE Allocation %" label is misleading** — 78% sounds like the project is 78% staffed, but it's the sum of individual allocations; rename to "Total Allocated FTEs" or show a clearer breakdown
 
 ### 🧭 Navigation
-- [ ] **Add Resource Form — Back button has no destination label** — says "← Back" with no context; should say "← Back to Resources"
-- [ ] **Resource Detail — Supervisor names are plain text, not links** — should navigate to that supervisor's own detail page when clicked
+- [x] **Resource Detail — Supervisor names are plain text, not links** — should navigate to that supervisor's own detail page when clicked
 - [ ] **Projects List — Rows are clickable but have no hover affordance** — no cursor change, no hover highlight, no chevron; users won't know rows are interactive
 
-### ♿ Accessibility
-- [ ] **FED/CTR badges rely on color alone** — blue vs. orange as the only differentiator is a color vision risk; text label helps but color-first design needs review
-- [ ] **Assignment delete icon has no label or tooltip** — screen readers and keyboard users get a red icon with no context; add aria-label and a visible tooltip ("Remove assignment")
-
 ### ✨ Polish
-- [ ] **Dashboard — "1 resources" pluralization bug** — the PMSO division card reads "1 resources" instead of "1 resource"
+- [x] **Dashboard — "1 resources" pluralization bug** — the PMSO division card reads "1 resources" instead of "1 resource"
 
 ---
 
 ## 🔍 Insights — 2026-03-21
 
 ### 🎯 UX & Interaction
-- [ ] **Users — no way to deactivate a user** — Active column is plain text only; no toggle or button to cut access. High priority.
-- [ ] **Users — no way to delete a user** — No delete option exists. Combined with no deactivation, once a user is created they can't be removed from the UI.
-- [ ] **Add Resource form — Back button has no destination** — says "← Back" with no label; every other back button names its destination (e.g. "← Back to Resources").
+- [x] **Users — no way to deactivate a user** — Deactivate button + confirmation dialog implemented in Users.tsx.
+- [x] **Add Resource form — Back button has no destination** — says "← Back" with no label; every other back button names its destination (e.g. "← Back to Resources").
 
 ### 📊 Data & Content
 - [ ] **Audit Log — most actions not being logged** — only 1 entry exists despite heavy activity (imports, resource creates, assignment changes aren't appearing); audit events not being fired consistently.
 - [ ] **Audit Log — Entity ID not actionable** — rows show a truncated UUID (e.g. `752d5dfd...`) instead of the name of what changed; should show entity name (e.g. "Project: AI Service Desk") and ideally link to the record.
-- [ ] **Dashboard — "1 resources" pluralization bug** — PMSO division bar reads "1 resources" instead of "1 resource".
+- [x] **Dashboard — "1 resources" pluralization bug** — PMSO division bar reads "1 resources" instead of "1 resource".
 - [ ] **Project Detail — "Allocated FTEs" label still confusing** — 78% of *what*? FTEs implies headcount not a percentage; consider "78% avg allocation" or show a clearer breakdown.
 
 ### 🧭 Navigation
 - [ ] **Mobile — sidebar doesn't collapse** — sidebar takes up ~65% of screen at 375px wide; app is completely unusable on phones or narrow tablets; needs a hamburger/collapse at small viewports.
 
 ### ✨ Polish
-- [ ] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
+- [x] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
 
 ---
 
@@ -105,18 +97,10 @@
 
 ### 🎯 UX & Interaction
 - [ ] **Exec Rollup — No text truncation on long entries** — a single verbose accomplishment dominates the page; clamp to 2–3 lines with a "Show more" toggle
-- [ ] **Exec Rollup — Risks & Issues entries have no category badge** — blockers, risks, and issues are mixed with no visual severity indicator; add a colored category chip (Blocker/Risk/Issue) to each entry
-- [ ] **Exec Rollup — Activity sections not collapsible** — Accomplishments, Updates, and Risks & Issues sections grow unbounded; add collapse/expand to each section header
-- [ ] **Status Dashboard — Program card status dot has no label** — yellow dot conveys status through color alone; add tooltip or text label
 - [ ] **Reports — Table horizontally clipped** — "ISSUES" column header cut off at right edge; needs horizontal scroll or narrower columns
 
 ### 📊 Data & Content
 - [ ] **Exec Rollup — Zero-count stat cards styled in error color** — "0 Off Track" in red looks alarming; zero counts should use neutral/positive styling
-- [ ] **Projects List — Overdue "Next Update Due" not highlighted** — Awesome Project 3.14 shows 2/14/2026 (2 months overdue) without red styling, unlike the Reports page; inconsistent overdue treatment
-- [ ] **Exec Rollup — No "as of" timestamp** — subtitle shows window range but not when the rollup was generated; executives forwarding this need to know data freshness
-
-### 🧭 Navigation
-- [ ] **Sidebar — Executive section has only one item** — a section with a single nav link ("Rollup") wastes vertical space; consider keeping under Status until there are 2+ items, or add a second exec-level page
 
 ### ♿ Accessibility
 - [ ] **Exec Rollup — Trend arrows rely on color alone** — ↑→↓ arrows use green/gray/red without screen-reader-friendly labels; add `aria-label` (e.g. "Status improving")
@@ -132,19 +116,49 @@
 
 ## 🗂️ Risks & Issues Module — 2026-04-29
 
+### 🔴 Extra Large (multi-day)
+
+- [ ] **Risk approval workflow + Risk Approver role** — Add `isRiskApprover` boolean to the `User` model (new checkbox in the Users admin page). New Risks start with status `Pending` and are visible as such in the Risks list. Only Risk Approvers can transition a Risk from `Pending` → `Open` or `Pending` / `Open` → `Archived`. All other users can create risks but cannot approve them. Update Risks list to surface pending risks clearly (e.g. badge or row highlight).
+
+- [ ] **Risk Manager role** — Add `isRiskManager` boolean to the `User` model (new checkbox in Users admin page). Risk Managers can fully create, edit, delete, and manage all Risks and Issues across the app — similar to an admin but scoped to the R&I module. Wire permission checks throughout `Risks.tsx`, `RiskDetail.tsx`, `Issues.tsx`, and `IssueDetail.tsx`.
+
+- [ ] **Risks & Issues tab on Project detail** — Remove the old project-scoped Issues functionality from the Project detail page (the pre-standalone-module scaffolding); do not leave stale routes, API calls, or types behind. Replace with a unified "Risks & Issues" tab that queries the standalone Risks and Issues records filtered to the selected project.
+
+- [ ] **Convert to Issue — retain Risk with bidirectional link** — When a Risk is converted to an Issue (manually via the "Convert to Issue" button, or automatically), do not delete or hide the Risk. Instead mark the Risk's status as `Converted to Issue`. Auto-generate a relative link on the Risk detail page pointing to the new Issue, and a matching relative link on the Issue detail page pointing back to the originating Risk. No absolute URLs — links must survive a domain/host migration.
+
 ### 🟠 Large (half day – full day)
 
-- [ ] **Issues page — data model + full CRUD workflow** — The Issues page is a placeholder. No `Issue` type, no server routes, no list/detail/form pages. Issues were scoped as a parallel track to Risks with the same field structure (title, severity, status, owner, due date). Remaining work: `Issue` type in `types/index.ts`; `server/src/routes/issues.ts` CRUD routes; `Issues`, `IssueDetail`, and `IssueForm` pages mirroring the Risks pages; sidebar link + API client in `client/src/api/`.
+- [x] **Issues page — data model + full CRUD workflow** — Full implementation: `Issues.tsx` list with dashboard stats + filters, `IssueDetail.tsx` with mitigation plan + comments, `server/src/routes/issues.ts`, `client/src/api/issues.ts`. Issues are risks with `progress = escalated_to_issue`; no separate model needed.
 
-- [ ] **Escalate Risk → Issue workflow** — The Risk form captures an Impact Date field but there is no mechanism to promote a Risk to an Issue. Intent: a one-click "Escalate to Issue" action on `RiskDetail` that creates a linked Issue pre-populated from the Risk record. Remaining work: add `escalatedToIssueId` FK to the Risk model; `POST /api/issues` call from `RiskDetail`; read-only "Escalated" badge on the Risk once promoted; block re-escalation.
+- [x] **Escalate Risk → Issue workflow** — "Escalate to Issue" button on `RiskDetail` sets `progress = escalated_to_issue` and records `escalatedAt`; escalation banner in `IssueDetail`; button hidden once escalated.
 
 ### 🟡 Medium (1–4 hours)
 
-- [ ] **Probability calculation** — The `probability` field is stored as raw user input; nothing derives or validates it. Intent was to calculate probability from likelihood × exposure (or similar) and surface a computed `riskScore` (probability × impact) in the list and detail views. Remaining work: decide the formula; auto-derive `probability` in the form or on the server; optionally expose `riskScore` in `Risks.tsx` and `RiskDetail.tsx`.
+- [x] **Probability calculation** — The `probability` field is stored as raw user input; nothing derives or validates it. Intent was to calculate probability from likelihood × exposure (or similar) and surface a computed `riskScore` (probability × impact) in the list and detail views. Remaining work: decide the formula; auto-derive `probability` in the form or on the server; optionally expose `riskScore` in `Risks.tsx` and `RiskDetail.tsx`.
+
+- [x] **Risk status auto-derived from mitigation items** — A Risk's status should be computed automatically as the worst status among its Mitigation Items (On Track < At Risk < Off Track). If a Risk has no mitigation items, its status is `None` (displayed with a gray neutral chip). Risks with status `None` count toward the "Without a mitigation plan" stat card on the Risks main page.
+
+- [x] **"Without a mitigation plan" card button** — The filter button on this stat card is broken (table filtering no longer works as expected). Replace or supplement with a modal/popup that lists all Risks whose status is `None` (no mitigation items). The existing table filter approach can be removed if it cannot be made reliable.
+
+- [x] **Risk Owner / Program Owner field rename and split** — Rename the current "Risk Owner" field to "Program Owner" and keep it auto-populated from the selected Program (no change in data source). Add a new separate "Risk Owner" field that is a dropdown pulling from the Resources list. Update all forms, detail views, list columns, and server types accordingly.
+
+- [x] **Mitigation Action Step owner** — Each mitigation action step can be assigned a "Step Owner" selected from Resources. Only the Risk Owner (the new Resource-based field from the Risk Owner / Program Owner split, not the Program Owner) or a Risk Manager can create, edit, or remove mitigation steps. Wire permission checks in `RiskDetail.tsx` and the relevant API routes.
+
+- [x] **Closure criteria prompt after all steps complete** — When all mitigation action steps for a Risk are checked/complete, display a prompt below the steps list (e.g. "Have all of the Closure Criteria been met?") along with a green "Yes, set status to Mitigated" button. Clicking it sets the Risk's status to `Mitigated`.
+
+- [x] **Mitigation item status pill text** — Change the status pill labels on mitigation items to match the project status convention: `On Track`, `At Risk`, `Off Track` (title case, same wording).
+
+- [x] **Remove old project-scoped Issues from Status module** — The Status module contains project-attached risk/issue scaffolding that predates the standalone Risks & Issues module. Locate and remove risk/issue fields, components, and routes scoped to a project in the Status module. Confirm no Status views reference the old model before deleting; regression-check the Status page.
 
 ### 🟢 Small (< 1 hour)
 
-- [ ] **Remove legacy risk/issue code from Status module** — The Status module contains project-attached risk/issue scaffolding that predates the standalone Risks & Issues module. Identified early but skipped. Remaining work: locate and remove risk/issue fields, components, and routes scoped to a project in the Status module; confirm no Status views reference the old model before deleting; regression-check the Status page.
+- [x] **Remove ID column from Risks and Issues tables** — The ID column in the `Risks.tsx` list table and the `Issues.tsx` list table should be removed; it is internal data that adds no value to users.
+
+- [x] **Risk status column on Risks list and Risk Detail** — Add a Status column to the `Risks.tsx` table showing the auto-derived status as a colored chip (green = On Track, yellow = At Risk, red = Off Track, gray = None). Also display the same chip prominently on the `RiskDetail.tsx` page.
+
+- [x] **"Convert to Issue" rename** — Rename all instances of "Escalate to Issue" to "Convert to Issue" throughout the UI and codebase (button labels, banners, comments, type strings). This is the canonical term going forward.
+
+- [x] **Auto-fill Date Identified from creation date** — When creating a new Risk, the "Date Identified" field should be pre-populated with today's date. The user can override it, but it should never be blank on a new record.
 
 ---
 
@@ -156,9 +170,9 @@
 
 ---
 
-## 🔔 Notification System Plan — 2026-04-10
+## ✅ Notification System — 2026-04-10 (implemented)
 
-> Planned for implementation week of 2026-04-14.
+> Planned for implementation week of 2026-04-14. All phases complete as of 2026-04-29 audit.
 
 ### Decision Summary
 

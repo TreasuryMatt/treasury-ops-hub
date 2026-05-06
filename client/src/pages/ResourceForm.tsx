@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { resourcesApi } from '../api/resources';
 import { adminApi } from '../api/admin';
 import { Icon } from '../components/Icon';
+import { Resource } from '../types';
 
 interface FormData {
   resourceType: string;
@@ -36,6 +37,30 @@ export function ResourceForm() {
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>();
   const resourceType = watch('resourceType');
+  const watchedFirstName = watch('firstName') || '';
+  const watchedLastName = watch('lastName') || '';
+
+  const [dupWarning, setDupWarning] = useState<Resource[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const fn = watchedFirstName.trim();
+    const ln = watchedLastName.trim();
+    if (!fn || !ln) { setDupWarning([]); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await resourcesApi.list({ search: ln, limit: '50' });
+        const matches = (res.data ?? []).filter((r) =>
+          r.id !== id &&
+          r.firstName.toLowerCase() === fn.toLowerCase() &&
+          r.lastName.toLowerCase() === ln.toLowerCase()
+        );
+        setDupWarning(matches);
+      } catch { /* ignore */ }
+    }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [watchedFirstName, watchedLastName, id]);
 
   const { data: existing } = useQuery({
     queryKey: ['resource', id],
@@ -46,6 +71,7 @@ export function ResourceForm() {
   const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: () => adminApi.roles() });
   const { data: functionalAreas } = useQuery({ queryKey: ['functional-areas'], queryFn: () => adminApi.functionalAreas() });
   const { data: supervisors } = useQuery({ queryKey: ['supervisors'], queryFn: () => resourcesApi.supervisors() });
+  const { data: linkableUsers } = useQuery({ queryKey: ['linkable-users'], queryFn: () => resourcesApi.linkableUsers() });
 
   useEffect(() => {
     if (existing) {
@@ -73,6 +99,8 @@ export function ResourceForm() {
     }
   }, [existing, reset]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const mutation = useMutation({
     mutationFn: (data: any) => isEdit ? resourcesApi.update(id!, data) : resourcesApi.create(data),
     onSuccess: (res) => {
@@ -82,7 +110,13 @@ export function ResourceForm() {
       navigate(`/staffing/resources/${res.id}`);
     },
     onError: (err: any) => {
-      console.error('Resource save error:', err.response?.data?.error || err.message);
+      const status = err.response?.status;
+      const msg = err.response?.data?.error || err.message;
+      if (status === 409) {
+        setSaveError(`A duplicate record already exists: ${msg}`);
+      } else {
+        setSaveError('Failed to save resource. Please check your input.');
+      }
     },
   });
 
@@ -110,7 +144,7 @@ export function ResourceForm() {
     <div className="usa-page">
       <div className="usa-page-header">
         <button className="usa-button usa-button--unstyled" onClick={() => navigate(-1)} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Icon name="arrow_back" size={16} /> Back
+          <Icon name="arrow_back" size={16} /> Back to Resources
         </button>
         <h1 className="usa-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="people" color="var(--usa-primary)" size={24} />
@@ -228,13 +262,16 @@ export function ResourceForm() {
             </>
           )}
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="userId">Linked system user ID</label>
-            <input
-              id="userId"
-              className="usa-input"
-              placeholder="(optional — enables targeted notifications)"
-              {...register('userId')}
-            />
+            <label className="usa-label" htmlFor="userId">Linked system user</label>
+            <select id="userId" className="usa-select" {...register('userId')}>
+              <option value="">None</option>
+              {linkableUsers
+                ?.filter((u) => !u.resource || u.resource.id === id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>
+                ))}
+            </select>
+            <span className="usa-hint">Links this resource to a login account for targeted notifications.</span>
           </div>
         </div>
 
@@ -254,9 +291,20 @@ export function ResourceForm() {
           <textarea id="notes" className="usa-textarea" rows={4} {...register('notes')} />
         </div>
 
-        {mutation.isError && (
+        {dupWarning.length > 0 && (
+          <div className="usa-alert usa-alert--warning" style={{ marginTop: 16 }}>
+            <strong>Possible duplicate:</strong>{' '}
+            {dupWarning.length === 1
+              ? <>A resource named <strong>{dupWarning[0].firstName} {dupWarning[0].lastName}</strong> already exists.{' '}<a href={`/staffing/resources/${dupWarning[0].id}`} style={{ color: 'var(--usa-warning-dark)' }}>View record</a></>
+              : <>{dupWarning.length} resources with a similar name already exist. You may still save if this is intentional.</>
+            }
+            {' '}You can still save if this is a different person.
+          </div>
+        )}
+
+        {saveError && (
           <div className="usa-alert usa-alert--error" style={{ marginTop: 16 }}>
-            Failed to save resource. Please check your input.
+            {saveError}
           </div>
         )}
 

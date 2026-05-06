@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, ProjectPhase, StatusProjectStatusType, Application } from '../../types';
+import { Program, StatusProject, ProjectPhase, StatusProjectStatusType } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 
@@ -54,10 +54,10 @@ const STATUS_COLORS: Record<StatusProjectStatusType, string> = {
   gray: 'var(--usa-base)',
 };
 
-interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases' | 'application'> {
+interface RoadmapProject extends Omit<StatusProject, 'program' | 'phases'> {
   phases: ProjectPhase[];
   program: { id: string; name: string };
-  application: Application | null;
+  products: { product: { id: string; name: string } }[];
 }
 
 export function Roadmap() {
@@ -99,15 +99,15 @@ export function Roadmap() {
   const allApplications = Array.from(
     new Map(
       projects
-        .map((project) => project.application)
-        .filter((application): application is Application => application != null)
-        .map((application) => [application.id, application])
+        .map((project) => (project as any).products?.map((pp: any) => pp.product) ?? []).flat()
+        .filter((p: any) => p != null)
+        .map((p: any) => [p.id, p])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = projects.filter((p) => {
     if (filterProgramId && p.programId !== filterProgramId) return false;
-    if (filterApplicationId && p.application?.id !== filterApplicationId) return false;
+    if (filterApplicationId && !(p as any).products?.some((pp: any) => pp.product.id === filterApplicationId)) return false;
     return true;
   });
 
@@ -419,9 +419,9 @@ export function Roadmap() {
                                 title={proj.status}
                               />
                             </div>
-                            {proj.application && (
+                            {((proj as any).products?.length > 0) && (
                               <span className="app-pill" style={{ fontSize: 10, padding: '0 4px', marginTop: 2, display: 'inline-block' }}>
-                                {proj.application.name}
+                                {(proj as any).products?.map((pp: any) => pp.product.name).join(", ")}
                               </span>
                             )}
                           </div>
@@ -509,7 +509,7 @@ export function Roadmap() {
                     <td><RagBadge status={p.status} /></td>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
                     <td>{p.program?.name}</td>
-                    <td>{p.application?.name || '—'}</td>
+                    <td>{(p as any).products?.map((pp: any) => pp.product.name).join(", ") || "—"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -52,6 +52,58 @@ projectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
   res.json({ data: enriched, meta: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) } });
 });
 
+// GET /api/projects/stats
+projectsRouter.get('/stats', async (_req: AuthenticatedRequest, res: Response) => {
+  const now = new Date();
+  const thirtyDaysOut = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const [total, inProgress, onHold, completed, endingSoon, byProduct, endingSoonProjects] = await Promise.all([
+    prisma.project.count({ where: { isActive: true } }),
+    prisma.project.count({ where: { isActive: true, status: 'in_progress' } }),
+    prisma.project.count({ where: { isActive: true, status: 'on_hold' } }),
+    prisma.project.count({ where: { isActive: true, status: 'completed' } }),
+    prisma.project.count({
+      where: { isActive: true, status: 'in_progress', endDate: { gte: now, lte: thirtyDaysOut } },
+    }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { projects: { where: { isActive: true } } } },
+      },
+    }),
+    prisma.project.findMany({
+      where: { isActive: true, status: 'in_progress', endDate: { gte: now, lte: thirtyDaysOut } },
+      select: {
+        id: true,
+        name: true,
+        endDate: true,
+        priority: true,
+        product: { select: { id: true, name: true } },
+        _count: { select: { assignments: { where: { isActive: true } } } },
+      },
+      orderBy: { endDate: 'asc' },
+      take: 8,
+    }),
+  ]);
+
+  res.json({
+    data: {
+      total,
+      inProgress,
+      onHold,
+      completed,
+      endingSoon,
+      byProduct: byProduct
+        .filter((p) => p._count.projects > 0)
+        .map((p) => ({ id: p.id, name: p.name, count: p._count.projects }))
+        .sort((a, b) => b.count - a.count),
+      endingSoonProjects: endingSoonProjects.map((p) => ({ ...p, teamSize: p._count.assignments })),
+    },
+  });
+});
+
 // GET /api/projects/:id
 projectsRouter.get('/:id', async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const project = await prisma.project.findUnique({ where: { id: req.params.id as string }, include: PROJECT_INCLUDE });

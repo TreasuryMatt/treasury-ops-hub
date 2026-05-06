@@ -105,7 +105,7 @@ export function Issues() {
             <Icon name="report" color="#c9a227" size={26} />
             Issues
           </h1>
-          <p className="usa-page-subtitle">{issues.length} active issue{issues.length !== 1 ? 's' : ''} escalated from risks</p>
+          <p className="usa-page-subtitle">{issues.length} active issue{issues.length !== 1 ? 's' : ''} converted from risks</p>
         </div>
       </div>
 
@@ -143,7 +143,7 @@ export function Issues() {
                   onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-1)')}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--usa-primary-darker)', marginBottom: 4 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--usa-primary-dark)', marginBottom: 4 }}>
                     {prog.name}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--usa-error-dark)' }}>
@@ -231,7 +231,7 @@ export function Issues() {
             <div key={programId}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <Icon name="folder" size={16} color="var(--usa-primary)" />
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--usa-primary-darker)' }}>{programName}</h3>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--usa-primary-dark)' }}>{programName}</h3>
                 <span style={{ fontSize: 12, color: 'var(--usa-base-dark)', marginLeft: 4 }}>
                   {programIssues.length} issue{programIssues.length !== 1 ? 's' : ''}
                 </span>
@@ -264,19 +264,17 @@ function IssueTable({
     <table className="usa-table">
       <thead>
         <tr>
-          <SortTh col="riskCode" label="ID" sort={sort} onSort={onSort} />
           <SortTh col="title" label="Title" sort={sort} onSort={onSort} />
           <SortTh col="program" label="Program" sort={sort} onSort={onSort} />
           <SortTh col="project" label="Project" sort={sort} onSort={onSort} />
           <SortTh col="criticality" label="Criticality" sort={sort} onSort={onSort} />
-          <SortTh col="escalatedAt" label="Escalated" sort={sort} onSort={onSort} />
+          <SortTh col="escalatedAt" label="Converted" sort={sort} onSort={onSort} />
           <SortTh col="impactDate" label="Impact Date" sort={sort} onSort={onSort} />
         </tr>
       </thead>
       <tbody>
         {issues.map((issue) => (
           <tr key={issue.id} onClick={() => onNavigate(issue.id)} style={{ cursor: 'pointer' }}>
-            <td style={{ fontWeight: 700 }}>{issue.riskCode}</td>
             <td>
               <div style={{ fontWeight: 600 }}>{issue.title}</div>
               {issue.spmId && <div style={{ fontSize: 12, color: 'var(--usa-base-dark)' }}>SPM: {issue.spmId}</div>}

@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { RichTextEditor, RichTextDisplay } from '../../components/RichTextEditor';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { issuesApi } from '../../api/issues';
 import { programsApi } from '../../api/programs';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
+import { resourcesApi } from '../../api/resources';
 import { Icon } from '../../components/Icon';
 import {
   Program,
+  Resource,
   Risk,
   RiskActionStatus,
   RiskCategory,
@@ -202,6 +205,7 @@ type IssueDraft = {
   statusProjectId: string;
   categoryId: string;
   spmId: string;
+  riskOwnerId: string;
   title: string;
   statement: string;
   criticality: RiskCriticality;
@@ -218,6 +222,7 @@ function issueToDraft(issue: Risk): IssueDraft {
     statusProjectId: issue.statusProjectId,
     categoryId: issue.categoryId,
     spmId: issue.spmId || '',
+    riskOwnerId: issue.riskOwnerId || '',
     title: issue.title,
     statement: issue.statement,
     criticality: issue.criticality,
@@ -263,6 +268,12 @@ export function IssueDetail() {
     queryFn: adminApi.riskCategories,
     enabled: editing,
   });
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+    enabled: editing,
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   const visibleProjects = allProjects.filter((p) => !draft?.programId || p.programId === draft.programId);
   const selectedProgram = programs.find((p) => p.id === draft?.programId);
@@ -275,6 +286,7 @@ export function IssueDetail() {
     mutationFn: () => issuesApi.update(id!, {
       ...draft,
       spmId: draft?.spmId || null,
+      riskOwnerId: draft?.riskOwnerId || null,
       dateIdentified: draft?.dateIdentified || null,
       impactDate: draft?.impactDate || null,
       impact: draft?.impact || null,
@@ -322,7 +334,7 @@ export function IssueDetail() {
 
   const escalatedReason = issue.escalatedAt && issue.impactDate && new Date(issue.escalatedAt) >= new Date(issue.impactDate)
     ? 'Impact date passed without resolution'
-    : 'Manually escalated';
+    : 'Manually converted';
 
   return (
     <div className="usa-page">
@@ -357,7 +369,7 @@ export function IssueDetail() {
       <div style={{ marginBottom: 'var(--space-3)', padding: '12px 16px', borderRadius: 8, background: '#fff0f0', border: '1px solid var(--usa-error-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <Icon name="report" size={20} color="var(--usa-error)" />
         <div>
-          <strong style={{ color: 'var(--usa-error-dark)' }}>Escalated to Issue</strong>
+          <strong style={{ color: 'var(--usa-error-dark)' }}>Converted to Issue</strong>
           <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--usa-base-dark)' }}>
             {issue.escalatedAt
               ? `${new Date(issue.escalatedAt).toLocaleDateString()} — ${escalatedReason}`
@@ -387,7 +399,7 @@ export function IssueDetail() {
                 </select>
                 {draft.progress !== 'escalated_to_issue' && (
                   <p style={{ fontSize: 12, color: 'var(--usa-warning-dark)', marginTop: 4 }}>
-                    Changing progress away from "Escalated to Issue" will remove this record from the Issues list.
+                    Changing progress away from "Converted to Issue" will remove this record from the Issues list.
                   </p>
                 )}
               </div>
@@ -435,8 +447,19 @@ export function IssueDetail() {
               </div>
 
               <div>
-                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Federal Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
                 <input className="usa-input" value={selectedProgram?.federalOwner || issue.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
+              </div>
+
+              <div>
+                <label className="usa-label">Risk Owner</label>
+                <select className="usa-select" value={draft.riskOwnerId}
+                  onChange={(e) => setDraft((p) => p && ({ ...p, riskOwnerId: e.target.value }))}>
+                  <option value="">Select a resource</option>
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -459,20 +482,17 @@ export function IssueDetail() {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Statement *</label>
-                <textarea className="usa-textarea" rows={5} value={draft.statement}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, statement: e.target.value }))} />
+                <RichTextEditor value={draft.statement} onChange={(v) => setDraft((p) => p && ({ ...p, statement: v }))} minHeight={120} />
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Impact</label>
-                <textarea className="usa-textarea" rows={4} value={draft.impact}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, impact: e.target.value }))} />
+                <RichTextEditor value={draft.impact || ''} onChange={(v) => setDraft((p) => p && ({ ...p, impact: v }))} minHeight={96} />
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Closure Criteria</label>
-                <textarea className="usa-textarea" rows={4} value={draft.closureCriteria}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, closureCriteria: e.target.value }))} />
+                <RichTextEditor value={draft.closureCriteria || ''} onChange={(v) => setDraft((p) => p && ({ ...p, closureCriteria: v }))} minHeight={96} />
               </div>
 
             </div>
@@ -494,11 +514,11 @@ export function IssueDetail() {
             <h2 style={{ marginTop: 0 }}>Issue Summary</h2>
             <dl style={{ margin: 0 }}>
               <dt style={DT_STYLE}>Statement</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.statement}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}><RichTextDisplay html={issue.statement} /></dd>
               <dt style={DT_STYLE}>Impact</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.impact || '—'}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.impact ? <RichTextDisplay html={issue.impact} /> : '—'}</dd>
               <dt style={DT_STYLE}>Closure Criteria</dt>
-              <dd style={DD_STYLE}>{issue.closureCriteria || '—'}</dd>
+              <dd style={DD_STYLE}>{issue.closureCriteria ? <RichTextDisplay html={issue.closureCriteria} /> : '—'}</dd>
             </dl>
           </div>
 
@@ -506,11 +526,12 @@ export function IssueDetail() {
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
               <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{issue.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{issue.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Federal Program Owner</dt><dd style={DD_STYLE}>{issue.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{issue.riskOwner ? `${issue.riskOwner.firstName} ${issue.riskOwner.lastName}` : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{issue.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{issue.dateIdentified ? new Date(issue.dateIdentified).toLocaleDateString() : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{issue.impactDate ? new Date(issue.impactDate).toLocaleDateString() : '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Escalated On</dt><dd style={DD_STYLE}>{issue.escalatedAt ? new Date(issue.escalatedAt).toLocaleDateString() : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Converted On</dt><dd style={DD_STYLE}>{issue.escalatedAt ? new Date(issue.escalatedAt).toLocaleDateString() : '—'}</dd></div>
             </dl>
           </div>
         </div>

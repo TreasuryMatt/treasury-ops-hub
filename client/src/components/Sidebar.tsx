@@ -23,7 +23,7 @@ export function Sidebar() {
             </li>
             <li>
               <NavLink to="/status/projects">
-                <Icon name="work" color={COLOR_MAIN} />
+                <Icon name="lightbulb" color={COLOR_MAIN} />
                 Projects
               </NavLink>
             </li>
@@ -34,9 +34,15 @@ export function Sidebar() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/status/applications">
-                <Icon name="tune" color={COLOR_MAIN} />
-                Applications
+              <NavLink to="/status/portfolios">
+                <Icon name="work" color={COLOR_MAIN} />
+                Portfolios
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/status/products">
+                <Icon name="build" color={COLOR_MAIN} />
+                Products
               </NavLink>
             </li>
             <li>
@@ -107,12 +113,14 @@ export function Sidebar() {
                 Resources
               </NavLink>
             </li>
-            <li>
-              <NavLink to="/staffing/requests">
-                <Icon name="pending_actions" color={COLOR_MAIN} />
-                Resource Requests
-              </NavLink>
-            </li>
+            {(user?.isResourceRequestor || user?.role === 'admin') && (
+              <li>
+                <NavLink to="/staffing/requests">
+                  <Icon name="pending_actions" color={COLOR_MAIN} />
+                  Resource Requests
+                </NavLink>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -136,6 +144,12 @@ export function Sidebar() {
                 <NavLink to="/admin/users">
                   <Icon name="group_add" color={COLOR_ADMIN} />
                   Users
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/admin/onboard-staff">
+                  <Icon name="person_add" color={COLOR_ADMIN} />
+                  Onboard Staff
                 </NavLink>
               </li>
               <li>

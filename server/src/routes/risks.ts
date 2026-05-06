@@ -14,6 +14,8 @@ const RISK_LIST_INCLUDE = {
   statusProject: { select: { id: true, name: true, programId: true } },
   category: { select: { id: true, name: true } },
   submitter: { select: { id: true, displayName: true, email: true } },
+  riskOwner: { select: { id: true, firstName: true, lastName: true } },
+  mitigationActions: { select: { status: true } },
   _count: { select: { comments: true, mitigationActions: true } },
 };
 
@@ -24,6 +26,7 @@ const RISK_DETAIL_INCLUDE = {
     orderBy: { createdAt: 'desc' as const },
   },
   mitigationActions: {
+    include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
   },
 };
@@ -182,7 +185,7 @@ risksRouter.get('/dashboard', async (_req: AuthenticatedRequest, res: Response) 
       withoutMitigationPlan,
       byProgress: {
         open: byProgress['open'] ?? 0,
-        accepted: byProgress['accepted'] ?? 0,
+        assumed: byProgress['assumed'] ?? 0,
         escalated_to_issue: byProgress['escalated_to_issue'] ?? 0,
         mitigated: byProgress['mitigated'] ?? 0,
       },
@@ -230,6 +233,7 @@ risksRouter.post('/', async (req: AuthenticatedRequest, res: Response, next: Nex
           statusProjectId: b.statusProjectId,
           categoryId: b.categoryId,
           spmId: b.spmId || null,
+          riskOwnerId: b.riskOwnerId || null,
           title: b.title.trim(),
           statement: b.statement.trim(),
           criticality: b.criticality,
@@ -292,6 +296,7 @@ risksRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest, res: Re
           statusProjectId: b.statusProjectId ?? undefined,
           categoryId: b.categoryId ?? undefined,
           spmId: b.spmId !== undefined ? (b.spmId || null) : undefined,
+          riskOwnerId: b.riskOwnerId !== undefined ? (b.riskOwnerId || null) : undefined,
           title: b.title !== undefined ? String(b.title).trim() : undefined,
           statement: b.statement !== undefined ? String(b.statement).trim() : undefined,
           criticality: b.criticality ?? undefined,
@@ -322,7 +327,7 @@ risksRouter.post('/:id/mitigation-actions', async (req: AuthenticatedRequest, re
     });
     if (!risk) throw new AppError('Risk not found', 404);
 
-    const { title, dueDate, status, isComplete } = req.body;
+    const { title, dueDate, status, isComplete, stepOwnerId } = req.body;
     if (!title || !String(title).trim()) throw new AppError('Title is required', 400);
 
     if (dueDate && risk.impactDate && new Date(dueDate) > new Date(risk.impactDate)) {
@@ -333,12 +338,14 @@ risksRouter.post('/:id/mitigation-actions', async (req: AuthenticatedRequest, re
     const action = await prisma.riskMitigationAction.create({
       data: {
         riskId: risk.id,
+        stepOwnerId: stepOwnerId || null,
         title: String(title).trim(),
         dueDate: dueDate ? new Date(dueDate) : null,
         status: status || 'yellow',
         isComplete: Boolean(isComplete),
         sortOrder: count,
       },
+      include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     });
 
     await syncRiskProgress(risk.id);
@@ -362,7 +369,7 @@ risksRouter.put('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRe
     });
     if (!existing) throw new AppError('Mitigation action not found', 404);
 
-    const { title, dueDate, status, isComplete } = req.body;
+    const { title, dueDate, status, isComplete, stepOwnerId } = req.body;
 
     const nextDueDate = dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existing.dueDate;
     if (nextDueDate && risk.impactDate && nextDueDate > new Date(risk.impactDate)) {
@@ -372,11 +379,13 @@ risksRouter.put('/:id/mitigation-actions/:actionId', async (req: AuthenticatedRe
     const action = await prisma.riskMitigationAction.update({
       where: { id: existing.id },
       data: {
+        stepOwnerId: stepOwnerId !== undefined ? (stepOwnerId || null) : undefined,
         title: title !== undefined ? String(title).trim() : undefined,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
         status: status ?? undefined,
         isComplete: isComplete !== undefined ? Boolean(isComplete) : undefined,
       },
+      include: { stepOwner: { select: { id: true, firstName: true, lastName: true } } },
     });
 
     await syncRiskProgress(risk.id);

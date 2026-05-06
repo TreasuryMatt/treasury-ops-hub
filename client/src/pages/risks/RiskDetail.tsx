@@ -5,8 +5,9 @@ import { risksApi } from '../../api/risks';
 import { programsApi } from '../../api/programs';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { adminApi } from '../../api/admin';
+import { resourcesApi } from '../../api/resources';
 import { Icon } from '../../components/Icon';
-import { Program, Risk, RiskActionStatus, RiskCategory, RiskCriticality, RiskMitigationAction, RiskProgress, StatusProject } from '../../types';
+import { Program, Resource, Risk, RiskActionStatus, RiskCategory, RiskCriticality, RiskMitigationAction, RiskProgress, StatusProject } from '../../types';
 import {
   RISK_ACTION_STATUS_LABELS,
   RISK_ACTION_STATUS_STYLES,
@@ -14,17 +15,23 @@ import {
   RISK_CRITICALITY_STYLES,
   RISK_PROGRESS_LABELS,
   RISK_PROGRESS_STYLES,
+  RISK_STATUS_LABELS,
+  RISK_STATUS_STYLES,
+  computeRiskStatus,
+  computeRiskScore,
+  riskScoreStyle,
 } from './riskUi';
 
 // ─── Mitigation row ───────────────────────────────────────────────────────────
 
-type ActionDraft = { title: string; dueDate: string; status: RiskActionStatus; isComplete: boolean };
-const EMPTY_DRAFT: ActionDraft = { title: '', dueDate: '', status: 'yellow', isComplete: false };
+type ActionDraft = { title: string; dueDate: string; status: RiskActionStatus; isComplete: boolean; stepOwnerId: string };
+const EMPTY_DRAFT: ActionDraft = { title: '', dueDate: '', status: 'yellow', isComplete: false, stepOwnerId: '' };
 
-function MitigationRow({ action, impactDate, riskId, onSaved }: {
+function MitigationRow({ action, impactDate, riskId, resources, onSaved }: {
   action: RiskMitigationAction;
   impactDate: string | null;
   riskId: string;
+  resources: Resource[];
   onSaved: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -33,6 +40,7 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
     dueDate: action.dueDate ? action.dueDate.slice(0, 10) : '',
     status: action.status,
     isComplete: action.isComplete,
+    stepOwnerId: action.stepOwnerId || '',
   });
   const [error, setError] = useState('');
 
@@ -75,6 +83,7 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
         <td style={action.isComplete ? { textDecoration: 'line-through' } : undefined}>{action.title}</td>
         <td>{action.dueDate ? new Date(action.dueDate).toLocaleDateString() : '—'}</td>
         <td><Pill {...RISK_ACTION_STATUS_STYLES[action.status]}>{RISK_ACTION_STATUS_LABELS[action.status]}</Pill></td>
+        <td>{action.stepOwner ? `${action.stepOwner.firstName} ${action.stepOwner.lastName}` : '—'}</td>
         <td style={{ whiteSpace: 'nowrap' }}>
           <button className="usa-button usa-button--unstyled" style={{ marginRight: 12 }} onClick={() => setEditing(true)}>
             <Icon name="edit" size={15} /> Edit
@@ -106,6 +115,14 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
           ))}
         </select>
       </td>
+      <td>
+        <select className="usa-select" value={draft.stepOwnerId} onChange={(e) => setDraft((p) => ({ ...p, stepOwnerId: e.target.value }))}>
+          <option value="">No owner</option>
+          {resources.map((r) => (
+            <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+          ))}
+        </select>
+      </td>
       <td style={{ whiteSpace: 'nowrap' }}>
         <button className="usa-button usa-button--unstyled" style={{ marginRight: 12 }} disabled={update.isPending}
           onClick={() => { const err = validate(); if (err) { setError(err); return; } update.mutate(); }}>
@@ -120,9 +137,10 @@ function MitigationRow({ action, impactDate, riskId, onSaved }: {
   );
 }
 
-function AddActionRow({ riskId, impactDate, onSaved, onCancel }: {
+function AddActionRow({ riskId, impactDate, resources, onSaved, onCancel }: {
   riskId: string;
   impactDate: string | null;
+  resources: Resource[];
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -162,6 +180,14 @@ function AddActionRow({ riskId, impactDate, onSaved, onCancel }: {
           ))}
         </select>
       </td>
+      <td>
+        <select className="usa-select" value={draft.stepOwnerId} onChange={(e) => setDraft((p) => ({ ...p, stepOwnerId: e.target.value }))}>
+          <option value="">No owner</option>
+          {resources.map((r) => (
+            <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+          ))}
+        </select>
+      </td>
       <td style={{ whiteSpace: 'nowrap' }}>
         <button className="usa-button usa-button--success usa-button--sm" disabled={add.isPending}
           onClick={() => { const err = validate(); if (err) { setError(err); return; } add.mutate(); }}>
@@ -193,6 +219,8 @@ type RiskDraft = {
   statusProjectId: string;
   categoryId: string;
   spmId: string;
+  riskOwnerId: string;
+  likelihood: string;
   title: string;
   statement: string;
   criticality: RiskCriticality;
@@ -209,6 +237,8 @@ function riskToDraft(risk: Risk): RiskDraft {
     statusProjectId: risk.statusProjectId,
     categoryId: risk.categoryId,
     spmId: risk.spmId || '',
+    riskOwnerId: risk.riskOwnerId || '',
+    likelihood: risk.probability != null ? String(risk.probability) : '',
     title: risk.title,
     statement: risk.statement,
     criticality: risk.criticality,
@@ -254,6 +284,11 @@ export function RiskDetail() {
     queryFn: adminApi.riskCategories,
     enabled: editing,
   });
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   const visibleProjects = allProjects.filter((p) => !draft?.programId || p.programId === draft.programId);
   const selectedProgram = programs.find((p) => p.id === draft?.programId);
@@ -265,7 +300,9 @@ export function RiskDetail() {
   const updateRisk = useMutation({
     mutationFn: () => risksApi.update(id!, {
       ...draft,
+      probability: draft?.likelihood ? Number(draft.likelihood) : null,
       spmId: draft?.spmId || null,
+      riskOwnerId: draft?.riskOwnerId || null,
       dateIdentified: draft?.dateIdentified || null,
       impactDate: draft?.impactDate || null,
       impact: draft?.impact || null,
@@ -287,7 +324,12 @@ export function RiskDetail() {
       qc.invalidateQueries({ queryKey: ['risks'] });
       navigate(`/risks/issues/${id}`);
     },
-    onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to escalate.'),
+    onError: (e: any) => setEditError(e?.response?.data?.error || e.message || 'Failed to convert to issue.'),
+  });
+
+  const markMitigated = useMutation({
+    mutationFn: () => risksApi.update(id!, { progress: 'mitigated' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['risk', id] }),
   });
 
   const addComment = useMutation({
@@ -342,6 +384,10 @@ export function RiskDetail() {
             </h1>
             <Pill {...RISK_PROGRESS_STYLES[risk.progress]}>{RISK_PROGRESS_LABELS[risk.progress]}</Pill>
             <Pill {...RISK_CRITICALITY_STYLES[risk.criticality]}>{RISK_CRITICALITY_LABELS[risk.criticality]}</Pill>
+            {(() => {
+              const s = computeRiskStatus((risk.mitigationActions ?? []) as { status: any }[]);
+              return <Pill {...RISK_STATUS_STYLES[s]}>Status: {RISK_STATUS_LABELS[s]}</Pill>;
+            })()}
           </div>
           <p className="usa-page-subtitle" style={{ marginTop: 8 }}>
             {risk.riskCode}{risk.spmId ? ` · SPM ${risk.spmId}` : ''}{risk.program ? ` · ${risk.program.name}` : ''}{risk.statusProject ? ` · ${risk.statusProject.name}` : ''}
@@ -355,12 +401,12 @@ export function RiskDetail() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 disabled={escalateToIssue.isPending}
                 onClick={() => {
-                  if (window.confirm('Escalate this risk to an issue? It will move to the Issues list and no longer appear under Risks.')) {
+                  if (window.confirm('Convert this risk to an issue? It will move to the Issues list.')) {
                     escalateToIssue.mutate();
                   }
                 }}
               >
-                <Icon name="report" size={15} /> Escalate to Issue
+                <Icon name="report" size={15} /> Convert to Issue
               </button>
             )}
             <button className="usa-button usa-button--outline" onClick={startEdit} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -435,8 +481,19 @@ export function RiskDetail() {
               </div>
 
               <div>
-                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Federal Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
                 <input className="usa-input" value={selectedProgram?.federalOwner || risk.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
+              </div>
+
+              <div>
+                <label className="usa-label">Risk Owner</label>
+                <select className="usa-select" value={draft.riskOwnerId}
+                  onChange={(e) => setDraft((p) => p && ({ ...p, riskOwnerId: e.target.value }))}>
+                  <option value="">Select a resource</option>
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -449,6 +506,35 @@ export function RiskDetail() {
                 <label className="usa-label">Impact Date</label>
                 <input className="usa-input" type="date" value={draft.impactDate}
                   onChange={(e) => setDraft((p) => p && ({ ...p, impactDate: e.target.value }))} />
+              </div>
+
+              <div>
+                <label className="usa-label">Likelihood (1–5)</label>
+                <input
+                  className="usa-input"
+                  type="number"
+                  min={1}
+                  max={5}
+                  placeholder="1 = Very Unlikely · 5 = Very Likely"
+                  value={draft.likelihood}
+                  onChange={(e) => setDraft((p) => p && ({ ...p, likelihood: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Risk Score <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(computed)</span></label>
+                {(() => {
+                  const score = computeRiskScore(draft.likelihood ? Number(draft.likelihood) : null, draft.criticality);
+                  if (score == null) return <div style={{ paddingTop: 8, color: 'var(--usa-base-dark)' }}>—</div>;
+                  const s = riskScoreStyle(score);
+                  return (
+                    <div style={{ paddingTop: 8 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', borderRadius: 999, backgroundColor: s.bg, color: s.color, fontWeight: 700, fontSize: 14 }}>
+                        {score} / 20 — {s.label}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
@@ -506,11 +592,27 @@ export function RiskDetail() {
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
               <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{risk.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Federal Program Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.riskOwner ? `${risk.riskOwner.firstName} ${risk.riskOwner.lastName}` : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{risk.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{risk.dateIdentified ? new Date(risk.dateIdentified).toLocaleDateString() : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Impact Date</dt><dd style={DD_STYLE}>{risk.impactDate ? new Date(risk.impactDate).toLocaleDateString() : '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Probability</dt><dd style={DD_STYLE}>{risk.probability != null ? `${risk.probability}` : '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Likelihood</dt><dd style={DD_STYLE}>{risk.probability != null ? `${risk.probability} / 5` : '—'}</dd></div>
+              {(() => {
+                const score = computeRiskScore(risk.probability, risk.criticality);
+                if (score == null) return null;
+                const s = riskScoreStyle(score);
+                return (
+                  <div>
+                    <dt style={DT_STYLE}>Risk Score</dt>
+                    <dd style={DD_STYLE}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, backgroundColor: s.bg, color: s.color, fontWeight: 700, fontSize: 12 }}>
+                        {score} / 20 — {s.label}
+                      </span>
+                    </dd>
+                  </div>
+                );
+              })()}
             </dl>
           </div>
         </div>
@@ -540,16 +642,19 @@ export function RiskDetail() {
                 <th>Description</th>
                 <th style={{ whiteSpace: 'nowrap' }}>Due Date</th>
                 <th>Status</th>
+                <th>Step Owner</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {risk.mitigationActions?.map((action) => (
                 <MitigationRow key={action.id} action={action} impactDate={risk.impactDate} riskId={risk.id}
+                  resources={resources}
                   onSaved={() => qc.invalidateQueries({ queryKey: ['risk', id] })} />
               ))}
               {addingAction && (
                 <AddActionRow riskId={risk.id} impactDate={risk.impactDate}
+                  resources={resources}
                   onSaved={() => { setAddingAction(false); qc.invalidateQueries({ queryKey: ['risk', id] }); }}
                   onCancel={() => setAddingAction(false)} />
               )}
@@ -557,6 +662,25 @@ export function RiskDetail() {
           </table>
         ) : (
           <p style={{ margin: 0, color: 'var(--usa-base-dark)' }}>No mitigation actions recorded yet. Use the button above to add one.</p>
+        )}
+
+        {/* Closure criteria prompt — shown only when all steps are complete */}
+        {risk.mitigationActions && risk.mitigationActions.length > 0 &&
+          (risk.mitigationActions as RiskMitigationAction[]).every((a) => a.isComplete) &&
+          risk.progress !== 'mitigated' && (
+          <div style={{ marginTop: 20, padding: '16px 20px', borderRadius: 8, border: '2px solid var(--usa-success)', background: 'var(--usa-success-lighter, #ecfdf5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--usa-success-dark)', marginBottom: 2 }}>All action steps are complete.</div>
+              <div style={{ fontSize: 14, color: 'var(--usa-base-dark)' }}>Have all of the Closure Criteria been met?</div>
+            </div>
+            <button
+              className="usa-button usa-button--success"
+              disabled={markMitigated.isPending}
+              onClick={() => markMitigated.mutate()}
+            >
+              Yes, set status to Mitigated
+            </button>
+          </div>
         )}
       </div>
 
