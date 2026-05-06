@@ -190,6 +190,7 @@ export function Projects() {
 
   const maxProductCount = stats ? Math.max(...stats.byProduct.map((p) => p.count), 1) : 1;
   const canEdit = user?.role === 'editor' || user?.role === 'manager' || user?.role === 'admin';
+  const hasPriorityData = data?.data.some((p) => p.priority);
 
   return (
     <div className="usa-page">
@@ -349,7 +350,7 @@ export function Projects() {
                     ['name', 'Project Name'],
                     ['product', 'Application'],
                     ['status', 'Status'],
-                    ['priority', 'Priority'],
+                    ...(hasPriorityData ? [['priority', 'Priority']] : []),
                     ['startDate', 'Start Date'],
                     ['endDate', 'End Date'],
                   ] as [string, string][]).map(([field, label]) => (
@@ -373,7 +374,7 @@ export function Projects() {
                           {STATUS_LABELS[p.status] || p.status}
                         </span>
                       </td>
-                      <td style={{ textTransform: 'capitalize' }}>{p.priority || '—'}</td>
+                      {hasPriorityData && <td style={{ textTransform: 'capitalize' }}>{p.priority || '—'}</td>}
                       <td>{p.startDate ? new Date(p.startDate).toLocaleDateString() : '—'}</td>
                       <td style={endingSoonRow ? { color: days! <= 7 ? 'var(--usa-error)' : 'var(--usa-warning-dark)', fontWeight: 700 } : undefined}>
                         {p.endDate ? new Date(p.endDate).toLocaleDateString() : '—'}

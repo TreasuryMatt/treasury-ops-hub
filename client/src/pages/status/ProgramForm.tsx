@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { programsApi } from '../../api/programs';
 import { portfoliosApi } from '../../api/portfolios';
-import { Portfolio } from '../../types';
+import { resourcesApi } from '../../api/resources';
+import { Portfolio, Resource } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
@@ -34,6 +35,12 @@ export function ProgramForm() {
     queryKey: ['portfolios'],
     queryFn: portfoliosApi.list,
   });
+
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   useEffect(() => {
     if (program) {
@@ -90,8 +97,13 @@ export function ProgramForm() {
         </div>
 
         <div className="usa-form-group">
-          <label className="usa-label" htmlFor="federalOwner">Federal Owner</label>
-          <input className="usa-input" id="federalOwner" placeholder="e.g. Jane Smith" {...register('federalOwner')} />
+          <label className="usa-label" htmlFor="federalOwner">Federal Program Owner</label>
+          <select className="usa-select" id="federalOwner" {...register('federalOwner')}>
+            <option value="">— Select —</option>
+            {resources.map((r) => (
+              <option key={r.id} value={`${r.firstName} ${r.lastName}`}>{r.firstName} {r.lastName}</option>
+            ))}
+          </select>
         </div>
 
         <div className="usa-form-group">

@@ -1,4 +1,4 @@
-# Treasury Capacity Management — Backlog
+# Treasury Digital Operations Hub — Backlog
 
 > Last updated: 2026-05-04
 
@@ -38,8 +38,8 @@
 
 ### 🟡 Medium (1–4 hours)
 
-- [ ] **Resource create — duplicate name/email warning** — when an admin fills in First Name + Last Name (or selects a linked user), check against existing active resources and users for a likely duplicate before saving. Approach: debounced `GET /api/resources?search=<firstName+lastName>` on blur of the Last Name field; if results come back, show an inline warning banner ("A resource named Jane Smith already exists — are you sure?") with a link to the existing record. Also check the selected linked user's email against existing `resource.user.email` values. The warning should be advisory only (not block submission) since legitimate duplicates exist (e.g. two people named John Smith). Server-side, the POST route should return a clear 409 if a unique constraint fires rather than a generic 400.
-- [ ] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
+- [x] **Resource create — duplicate name/email warning** — when an admin fills in First Name + Last Name (or selects a linked user), check against existing active resources and users for a likely duplicate before saving. Approach: debounced `GET /api/resources?search=<firstName+lastName>` on blur of the Last Name field; if results come back, show an inline warning banner ("A resource named Jane Smith already exists — are you sure?") with a link to the existing record. Also check the selected linked user's email against existing `resource.user.email` values. The warning should be advisory only (not block submission) since legitimate duplicates exist (e.g. two people named John Smith). Server-side, the POST route should return a clear 409 if a unique constraint fires rather than a generic 400.
+- [x] **WYSIWYG editor for update text fields** — replace plain textareas in the Updates, Accomplishments, and Issues tabs with a rich text editor (bold, bullets, links); display rendered HTML in the log cards
 
 ### 🟠 Large (half day – full day)
 
@@ -53,38 +53,23 @@
 - [x] **User management page** — list users, change roles, activate/deactivate
 - [x] **Audit log viewer** — paginated table of all actions
 - [ ] **Role-based access** — editors can update resources, viewers read-only
-- [ ] **Unified staff onboarding wizard (Option D)** — a single "Add Staff Member" form for admins that creates a `User` and `Resource` record in one transaction, pre-linked via `resource.userId`. Today these are created separately and linked after the fact via the Resource edit form (Option A). The wizard should: collect login fields (CAIA ID, email, display name, role, user type) alongside resource fields (type, division, functional area, role, supervisor, etc.) in a stepped or two-column layout; POST to a new server endpoint `POST /api/admin/onboard-staff` that wraps both creates in a Prisma `$transaction`; redirect to the new Resource detail page on success. Useful when onboarding federal employees who always need both an app login and a staffing record. Contractors (who may not log in) can continue to be created as Resource-only via the existing form.
+- [x] **Unified staff onboarding wizard (Option D)** — a single "Add Staff Member" form for admins that creates a `User` and `Resource` record in one transaction, pre-linked via `resource.userId`. Today these are created separately and linked after the fact via the Resource edit form (Option A). The wizard should: collect login fields (CAIA ID, email, display name, role, user type) alongside resource fields (type, division, functional area, role, supervisor, etc.) in a stepped or two-column layout; POST to a new server endpoint `POST /api/admin/onboard-staff` that wraps both creates in a Prisma `$transaction`; redirect to the new Resource detail page on success. Useful when onboarding federal employees who always need both an app login and a staffing record. Contractors (who may not log in) can continue to be created as Resource-only via the existing form. Also added: "Linked Resource" column on the Users page with link/unlink modal to retroactively connect existing users to existing resources.
 
 ---
 
 ## 🔍 Insights — 2026-03-20
 
-### 🎯 UX & Interaction
-- [ ] **Dashboard — Stat cards not clickable** — all 4 cards (Total Resources, Active Projects, Avg Utilization, Available Resources) look interactive but go nowhere; link each to its respective filtered view
-- [ ] **Resource Detail — No way to edit an assignment** — trash icon only; users must delete and re-add to change utilization %, role, or dates
-- [ ] **Project Detail — No way to edit a team member assignment** — same as above; delete-only with no edit path
-- [ ] **Add Resource Form — POP dates always visible** — POP Start/End fields show even when Type = Federal; hide them when Type = Federal, show when Type = Contractor
-- [ ] **Resources List — "Add Resource" appears twice inconsistently** — once as a confusing text link above the table (looks like a label/filter), once in the sidebar; consolidate into a clear button in the filter bar matching the Projects page pattern
-- [ ] **Resource Detail — Edit button has no visual treatment** — sits flush next to the name with no border or background; doesn't look like a button
-
 ### 📊 Data & Content
-- [ ] **Dashboard — Avg Utilization has no context** — 70% means nothing without a target or color signal; add green/yellow/red threshold coloring (e.g. green <80%, yellow 80–95%, red >95%)
-- [ ] **Projects List — Priority column is empty for 43 of 45 projects** — column takes up space and shows "-" almost everywhere; either prompt users to fill it in or hide the column until data exists
+- [x] **Projects List — Priority column is empty for 43 of 45 projects** — column takes up space and shows "-" almost everywhere; either prompt users to fill it in or hide the column until data exists
 - [ ] **Resources List — "Available" definition is unclear** — someone at 80% utilized shows 0% available; the definition of available capacity needs to be visible to users
-- [ ] **Project Detail — "Total FTE Allocation %" label is misleading** — 78% sounds like the project is 78% staffed, but it's the sum of individual allocations; rename to "Total Allocated FTEs" or show a clearer breakdown
-- [ ] **Resource Detail — Assignment start/end dates all show "-"** — date data exists in the source Excel but isn't displaying; critical for contractors with hard end dates
+- [x] **Project Detail — "Total FTE Allocation %" label is misleading** — 78% sounds like the project is 78% staffed, but it's the sum of individual allocations; rename to "Total Allocated FTEs" or show a clearer breakdown
 
 ### 🧭 Navigation
-- [ ] **Add Resource Form — Back button has no destination label** — says "← Back" with no context; should say "← Back to Resources"
-- [ ] **Resource Detail — Supervisor names are plain text, not links** — should navigate to that supervisor's own detail page when clicked
+- [x] **Resource Detail — Supervisor names are plain text, not links** — should navigate to that supervisor's own detail page when clicked
 - [ ] **Projects List — Rows are clickable but have no hover affordance** — no cursor change, no hover highlight, no chevron; users won't know rows are interactive
 
-### ♿ Accessibility
-- [ ] **FED/CTR badges rely on color alone** — blue vs. orange as the only differentiator is a color vision risk; text label helps but color-first design needs review
-- [ ] **Assignment delete icon has no label or tooltip** — screen readers and keyboard users get a red icon with no context; add aria-label and a visible tooltip ("Remove assignment")
-
 ### ✨ Polish
-- [ ] **Dashboard — "1 resources" pluralization bug** — the PMSO division card reads "1 resources" instead of "1 resource"
+- [x] **Dashboard — "1 resources" pluralization bug** — the PMSO division card reads "1 resources" instead of "1 resource"
 
 ---
 
@@ -92,20 +77,19 @@
 
 ### 🎯 UX & Interaction
 - [x] **Users — no way to deactivate a user** — Deactivate button + confirmation dialog implemented in Users.tsx.
-- [ ] **Users — no way to delete a user** — No delete option exists. Combined with no deactivation, once a user is created they can't be removed from the UI.
-- [ ] **Add Resource form — Back button has no destination** — says "← Back" with no label; every other back button names its destination (e.g. "← Back to Resources").
+- [x] **Add Resource form — Back button has no destination** — says "← Back" with no label; every other back button names its destination (e.g. "← Back to Resources").
 
 ### 📊 Data & Content
 - [ ] **Audit Log — most actions not being logged** — only 1 entry exists despite heavy activity (imports, resource creates, assignment changes aren't appearing); audit events not being fired consistently.
 - [ ] **Audit Log — Entity ID not actionable** — rows show a truncated UUID (e.g. `752d5dfd...`) instead of the name of what changed; should show entity name (e.g. "Project: AI Service Desk") and ideally link to the record.
-- [ ] **Dashboard — "1 resources" pluralization bug** — PMSO division bar reads "1 resources" instead of "1 resource".
+- [x] **Dashboard — "1 resources" pluralization bug** — PMSO division bar reads "1 resources" instead of "1 resource".
 - [ ] **Project Detail — "Allocated FTEs" label still confusing** — 78% of *what*? FTEs implies headcount not a percentage; consider "78% avg allocation" or show a clearer breakdown.
 
 ### 🧭 Navigation
 - [ ] **Mobile — sidebar doesn't collapse** — sidebar takes up ~65% of screen at 375px wide; app is completely unusable on phones or narrow tablets; needs a hamburger/collapse at small viewports.
 
 ### ✨ Polish
-- [ ] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
+- [x] **Resource Detail — Capacity card colors don't match scheme** — 100% utilization displays in blue; should be green to match the healthy=green color scheme used everywhere else.
 
 ---
 
@@ -113,18 +97,10 @@
 
 ### 🎯 UX & Interaction
 - [ ] **Exec Rollup — No text truncation on long entries** — a single verbose accomplishment dominates the page; clamp to 2–3 lines with a "Show more" toggle
-- [ ] **Exec Rollup — Risks & Issues entries have no category badge** — blockers, risks, and issues are mixed with no visual severity indicator; add a colored category chip (Blocker/Risk/Issue) to each entry
-- [ ] **Exec Rollup — Activity sections not collapsible** — Accomplishments, Updates, and Risks & Issues sections grow unbounded; add collapse/expand to each section header
-- [ ] **Status Dashboard — Program card status dot has no label** — yellow dot conveys status through color alone; add tooltip or text label
 - [ ] **Reports — Table horizontally clipped** — "ISSUES" column header cut off at right edge; needs horizontal scroll or narrower columns
 
 ### 📊 Data & Content
 - [ ] **Exec Rollup — Zero-count stat cards styled in error color** — "0 Off Track" in red looks alarming; zero counts should use neutral/positive styling
-- [ ] **Projects List — Overdue "Next Update Due" not highlighted** — Awesome Project 3.14 shows 2/14/2026 (2 months overdue) without red styling, unlike the Reports page; inconsistent overdue treatment
-- [ ] **Exec Rollup — No "as of" timestamp** — subtitle shows window range but not when the rollup was generated; executives forwarding this need to know data freshness
-
-### 🧭 Navigation
-- [ ] **Sidebar — Executive section has only one item** — a section with a single nav link ("Rollup") wastes vertical space; consider keeping under Status until there are 2+ items, or add a second exec-level page
 
 ### ♿ Accessibility
 - [ ] **Exec Rollup — Trend arrows rely on color alone** — ↑→↓ arrows use green/gray/red without screen-reader-friendly labels; add `aria-label` (e.g. "Status improving")

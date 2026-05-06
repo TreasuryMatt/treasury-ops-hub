@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { statusAdminApi } from '../../api/statusAdmin';
 import { programsApi } from '../../api/programs';
-import { Program, StatusProject, StatusProjectStatusType, Application, StatusTrendPoint } from '../../types';
+import { Program, StatusProject, StatusProjectStatusType, StatusTrendPoint } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { RagSparkline } from '../../components/RagSparkline';
@@ -13,7 +13,7 @@ interface ReportProject extends Omit<StatusProject, 'program' | 'owner' | 'prior
   owner: { id: string; displayName: string } | null;
   priority: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
-  application: Application | null;
+  products: { product: { id: string; name: string } }[];
   _count: { updates: number };
 }
 
@@ -45,16 +45,16 @@ export function Reports() {
   const allApplications = Array.from(
     new Map(
       projects
-        .map((project) => project.application)
-        .filter((application): application is Application => application != null)
-        .map((application) => [application.id, application])
+        .map((project) => (project as any).products?.map((pp: any) => pp.product) ?? []).flat()
+        .filter((p: any) => p != null)
+        .map((p: any) => [p.id, p])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filtered = projects.filter((p) => {
     if (filterProgramId && p.programId !== filterProgramId) return false;
     if (filterStatus && p.status !== filterStatus) return false;
-    if (filterApplicationId && p.application?.id !== filterApplicationId) return false;
+    if (filterApplicationId && !(p as any).products?.some((pp: any) => pp.product.id === filterApplicationId)) return false;
     return true;
   });
 

@@ -30,11 +30,44 @@ export interface FunctionalArea {
   sortOrder: number;
 }
 
+export type ProductType = 'PLATFORM' | 'APPLICATION' | 'INTEGRATION' | 'SERVICE' | 'MOBILE_APP';
+export type ProductStatus = 'ACTIVE' | 'EVALUATING' | 'PLANNED' | 'DEPRECATED' | 'SUNSET';
+export type ProductCriticality = 'LOW' | 'MEDIUM' | 'HIGH' | 'MISSION_CRITICAL';
+export type HostingModel = 'SAAS' | 'ON_PREM' | 'HYBRID' | 'GOVT_CLOUD' | 'INTERNAL_HOSTED';
+export type AtoStatus = 'AUTHORIZED' | 'PENDING' | 'EXPIRED' | 'NOT_REQUIRED';
+export type FedrampLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'NOT_APPLICABLE';
+export type DataClassification = 'PUBLIC' | 'SENSITIVE' | 'RESTRICTED';
+
 export interface Product {
   id: string;
   name: string;
   description: string | null;
+  productType: ProductType;
+  vendor: string | null;
+  isInternal: boolean;
+  productStatus: ProductStatus;
+  criticality: ProductCriticality;
+  hostingModel: HostingModel | null;
+  platformId: string | null;
+  platform?: { id: string; name: string } | null;
+  childProducts?: Pick<Product, 'id' | 'name' | 'productType' | 'productStatus' | 'vendor'>[];
+  productOwner: string | null;
+  technicalOwner: string | null;
+  primaryUrl: string | null;
+  documentationUrl: string | null;
+  logoUrl: string | null;
+  userCount: number | null;
+  annualCost: number | null;
+  contractExpiry: string | null;
+  version: string | null;
+  atoStatus: AtoStatus | null;
+  atoExpiry: string | null;
+  fedrampLevel: FedrampLevel | null;
+  dataClassification: DataClassification | null;
   isActive: boolean;
+  programs?: { program: { id: string; name: string } }[];
+  statusProjects?: { statusProject: { id: string; name: string; status: string; programId: string; program?: { name: string } } }[];
+  _count?: { statusProjects: number; childProducts: number };
 }
 
 export interface RiskCategory {
@@ -251,7 +284,7 @@ export interface StatusTrendPoint {
   date: string;
 }
 export type IssueCategory = 'risk' | 'issue' | 'blocker';
-export type RiskProgress = 'open' | 'accepted' | 'escalated_to_issue' | 'mitigated';
+export type RiskProgress = 'open' | 'assumed' | 'escalated_to_issue' | 'mitigated';
 export type RiskCriticality = 'critical' | 'high' | 'moderate' | 'low';
 export type RiskActionStatus = 'red' | 'yellow' | 'green';
 export type RiskStatus = 'off_track' | 'at_risk' | 'on_track' | 'none';
@@ -317,16 +350,6 @@ export interface Portfolio {
   programs?: Program[];
 }
 
-export interface Application {
-  id: string;
-  name: string;
-  description: string | null;
-  programId: string;
-  program?: Program | null;
-  isActive: boolean;
-  _count?: { statusProjects: number };
-}
-
 export interface Program {
   id: string;
   name: string;
@@ -336,7 +359,7 @@ export interface Program {
   portfolioId: string;
   portfolio?: Portfolio;
   isActive: boolean;
-  applications?: Application[];
+  products?: { product: Pick<Product, 'id' | 'name' | 'productType' | 'productStatus' | 'vendor' | 'logoUrl'> & { _count?: { statusProjects: number } } }[];
   statusProjects?: StatusProject[];
 }
 
@@ -346,8 +369,7 @@ export interface StatusProject {
   description: string | null;
   programId: string;
   program?: Program;
-  applicationId: string | null;
-  application?: Application | null;
+  products?: { product: { id: string; name: string; productType?: string; logoUrl?: string | null } }[];
   federalProductOwner: string | null;
   customerContact: string | null;
   departmentId: string | null;
@@ -435,7 +457,7 @@ export interface RisksDashboardStats {
   totalRisks: number;
   impactingSoon: number;
   withoutMitigationPlan: number;
-  byProgress: { open: number; accepted: number; escalated_to_issue: number; mitigated: number };
+  byProgress: { open: number; assumed: number; escalated_to_issue: number; mitigated: number };
   byCriticality: { critical: number; high: number; moderate: number; low: number };
   byProgram: Array<{ id: string; name: string; totalCount: number; criticalCount: number; openCount: number }>;
 }

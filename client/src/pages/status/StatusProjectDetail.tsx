@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { statusProjectsApi } from '../../api/statusProjects';
 import { assignmentsApi } from '../../api/assignments';
 import { resourcesApi } from '../../api/resources';
@@ -11,6 +11,7 @@ import { StatusProject, StatusUpdate, Accomplishment, ProjectPhase, ProjectDocum
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
 import { GanttChart } from '../../components/GanttChart';
+import { RichTextEditor, RichTextDisplay } from '../../components/RichTextEditor';
 
 type Tab = 'overview' | 'updates' | 'accomplishments' | 'documents' | 'staffing';
 
@@ -162,14 +163,14 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
       title: 'Organization',
       fields: [
         { label: 'Program', value: project.program?.name },
-        { label: 'Application', value: project.application?.name },
+        { label: 'Products', value: project.products?.map((pp) => pp.product.name).join(', ') || null },
         { label: 'Department', value: project.department?.name },
       ],
     },
     {
       title: 'Leadership',
       fields: [
-        { label: 'Federal Product Owner', value: project.federalProductOwner },
+        { label: 'Federal Project Owner', value: project.federalProductOwner },
         { label: 'Customer Contact', value: project.customerContact },
       ],
     },
@@ -287,8 +288,8 @@ function OverviewTab({ project, phases }: { project: StatusProject; phases: Proj
 function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; updates: StatusUpdate[]; canEdit: boolean }) {
   const qc = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
-  const { register: regEdit, handleSubmit: handleEdit, reset: resetEdit } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
+  const { register, handleSubmit, reset, control } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
+  const { register: regEdit, handleSubmit: handleEdit, reset: resetEdit, control: controlEdit } = useForm<{ overallStatus: StatusProjectStatusType; summary: string }>();
 
   const addUpdate = useMutation({
     mutationFn: (data: any) => statusProjectsApi.createUpdate(projectId, data),
@@ -341,7 +342,14 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
               </div>
               <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label" htmlFor="summary">Summary *</label>
-                <textarea className="usa-textarea" id="summary" {...register('summary', { required: true })} rows={3} />
+                <Controller
+                  name="summary"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <RichTextEditor value={field.value || ''} onChange={field.onChange} minHeight={96} />
+                  )}
+                />
               </div>
             </div>
             <button type="submit" className="usa-button usa-button--success" disabled={addUpdate.isPending}>
@@ -384,7 +392,14 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
                     </div>
                     <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
                       <label className="usa-label">Summary *</label>
-                      <textarea className="usa-textarea" {...regEdit('summary', { required: true })} rows={3} />
+                      <Controller
+                        name="summary"
+                        control={controlEdit}
+                        rules={{ required: true }}
+                        render={({ field }) => (
+                          <RichTextEditor value={field.value || ''} onChange={field.onChange} minHeight={96} />
+                        )}
+                      />
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
@@ -415,7 +430,7 @@ function UpdatesTab({ projectId, updates, canEdit }: { projectId: string; update
                       )}
                     </div>
                   </div>
-                  <p style={{ margin: 0 }}>{u.summary}</p>
+                  <RichTextDisplay html={u.summary} />
                 </>
               )}
             </div>
@@ -476,7 +491,7 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
   const qc = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const { register, handleSubmit, reset } = useForm<{ text: string }>();
+  const { handleSubmit, reset, control } = useForm<{ text: string }>();
 
   const addAccomplishment = useMutation({
     mutationFn: (data: { text: string }) => statusProjectsApi.createAccomplishment(projectId, data),
@@ -510,13 +525,18 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
         <div className="detail-card" style={{ marginBottom: 'var(--space-3)' }}>
           <h3>Log Success</h3>
           <form onSubmit={handleSubmit((data) => addAccomplishment.mutate(data))}>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div className="usa-form-group" style={{ margin: 0, flex: 1, minWidth: 200 }}>
-                <label className="usa-label">Description *</label>
-                <input className="usa-input" placeholder="Describe the success..." {...register('text', { required: true })} />
-              </div>
-              <button type="submit" className="usa-button usa-button--success" disabled={addAccomplishment.isPending}>Add</button>
+            <div className="usa-form-group" style={{ margin: '0 0 var(--space-2)' }}>
+              <label className="usa-label">Description *</label>
+              <Controller
+                name="text"
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <RichTextEditor value={field.value || ''} onChange={field.onChange} placeholder="Describe the success..." minHeight={72} />
+                )}
+              />
             </div>
+            <button type="submit" className="usa-button usa-button--success" disabled={addAccomplishment.isPending}>Add</button>
           </form>
         </div>
       )}
@@ -542,27 +562,25 @@ function AccomplishmentsTab({ projectId, accomplishments, canEdit }: { projectId
               }}
             >
               {editingId === a.id ? (
-                <div style={{ display: 'flex', gap: 'var(--space-1)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <input
-                    className="usa-input"
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    style={{ flex: 1, minWidth: 200 }}
-                    autoFocus
-                  />
-                  <button
-                    className="usa-button usa-button--success"
-                    disabled={saveAccomplishment.isPending || !editText.trim()}
-                    onClick={() => saveAccomplishment.mutate({ id: a.id, text: editText })}
-                  >
-                    {saveAccomplishment.isPending ? 'Saving...' : 'Save'}
-                  </button>
-                  <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                <div>
+                  <div style={{ marginBottom: 'var(--space-1)' }}>
+                    <RichTextEditor value={editText} onChange={setEditText} minHeight={72} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                    <button
+                      className="usa-button usa-button--success"
+                      disabled={saveAccomplishment.isPending || !editText.replace(/<[^>]*>/g, '').trim()}
+                      onClick={() => saveAccomplishment.mutate({ id: a.id, text: editText })}
+                    >
+                      {saveAccomplishment.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                    <button className="usa-button usa-button--outline" onClick={() => setEditingId(null)}>Cancel</button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 4px' }}>{a.text}</p>
+                    <RichTextDisplay html={a.text} />
                     <span className="text-sm text-muted">{a.author?.displayName} · {new Date(a.createdAt).toLocaleDateString()}</span>
                   </div>
                   {canEdit && (

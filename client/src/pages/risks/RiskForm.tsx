@@ -198,7 +198,7 @@ export function RiskForm() {
           </div>
 
           <div>
-            <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+            <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Federal Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
             <input className="usa-input" value={selectedProgram?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
           </div>
 

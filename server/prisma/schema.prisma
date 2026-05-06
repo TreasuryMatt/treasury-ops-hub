@@ -67,7 +67,7 @@ enum IntakeDetermination {
 
 enum RiskProgress {
   open
-  accepted
+  assumed
   escalated_to_issue
   mitigated
 }
@@ -155,18 +155,128 @@ model FunctionalArea {
   @@map("functional_areas")
 }
 
-// ─── Products ───────────────────────────────────────────────────────────────
+// ─── Products (first-class content type) ────────────────────────────────────
+
+enum ProductType {
+  PLATFORM
+  APPLICATION
+  INTEGRATION
+  SERVICE
+  MOBILE_APP
+
+  @@map("product_type")
+}
+
+enum ProductStatus {
+  ACTIVE
+  EVALUATING
+  PLANNED
+  DEPRECATED
+  SUNSET
+
+  @@map("product_status_enum")
+}
+
+enum ProductCriticality {
+  LOW
+  MEDIUM
+  HIGH
+  MISSION_CRITICAL
+
+  @@map("product_criticality")
+}
+
+enum HostingModel {
+  SAAS
+  ON_PREM
+  HYBRID
+  GOVT_CLOUD
+  INTERNAL_HOSTED
+
+  @@map("hosting_model")
+}
+
+enum AtoStatus {
+  AUTHORIZED
+  PENDING
+  EXPIRED
+  NOT_REQUIRED
+
+  @@map("ato_status")
+}
+
+enum FedrampLevel {
+  LOW
+  MODERATE
+  HIGH
+  NOT_APPLICABLE
+
+  @@map("fedramp_level")
+}
+
+enum DataClassification {
+  PUBLIC
+  SENSITIVE
+  RESTRICTED
+
+  @@map("data_classification")
+}
 
 model Product {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String?
-  isActive    Boolean @default(true) @map("is_active")
+  id                 String              @id @default(uuid())
+  name               String              @unique
+  description        String?
+  productType        ProductType         @default(APPLICATION) @map("product_type")
+  vendor             String?
+  isInternal         Boolean             @default(false) @map("is_internal")
+  productStatus      ProductStatus       @default(ACTIVE) @map("product_status")
+  criticality        ProductCriticality  @default(MEDIUM)
+  hostingModel       HostingModel?       @map("hosting_model")
+  platformId         String?             @map("platform_id")
+  platform           Product?            @relation("ProductPlatform", fields: [platformId], references: [id])
+  childProducts      Product[]           @relation("ProductPlatform")
+  productOwner       String?             @map("product_owner")
+  technicalOwner     String?             @map("technical_owner")
+  primaryUrl         String?             @map("primary_url")
+  documentationUrl   String?             @map("documentation_url")
+  logoUrl            String?             @map("logo_url")
+  userCount          Int?                @map("user_count")
+  annualCost         Decimal?            @db.Decimal(15, 2) @map("annual_cost")
+  contractExpiry     DateTime?           @map("contract_expiry")
+  version            String?
+  atoStatus          AtoStatus?          @map("ato_status")
+  atoExpiry          DateTime?           @map("ato_expiry")
+  fedrampLevel       FedrampLevel?       @map("fedramp_level")
+  dataClassification DataClassification? @map("data_classification")
+  isActive           Boolean             @default(true) @map("is_active")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
 
-  projects             Project[]
-  statusProjectProducts StatusProjectProduct[]
+  programs       ProductProgram[]
+  statusProjects ProductStatusProject[]
+  projects       Project[]
 
   @@map("products")
+}
+
+model ProductProgram {
+  productId String  @map("product_id")
+  programId String  @map("program_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@id([productId, programId])
+  @@map("product_programs")
+}
+
+model ProductStatusProject {
+  productId       String        @map("product_id")
+  statusProjectId String        @map("status_project_id")
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  statusProject   StatusProject @relation(fields: [statusProjectId], references: [id], onDelete: Cascade)
+
+  @@id([productId, statusProjectId])
+  @@map("product_status_projects")
 }
 
 // ─── Resources (people) ─────────────────────────────────────────────────────
@@ -450,27 +560,11 @@ model Program {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  applications   Application[]
+  products       ProductProgram[]
   statusProjects StatusProject[]
   risks          Risk[]
 
   @@map("programs")
-}
-
-model Application {
-  id          String   @id @default(uuid())
-  programId   String   @map("program_id")
-  program     Program  @relation(fields: [programId], references: [id])
-  name        String
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  statusProjects StatusProject[]
-
-  @@unique([programId, name])
-  @@map("applications")
 }
 
 model StatusProject {
@@ -479,8 +573,6 @@ model StatusProject {
   description        String?
   programId          String              @map("program_id")
   program            Program             @relation(fields: [programId], references: [id])
-  applicationId      String?             @map("application_id")
-  application        Application?        @relation(fields: [applicationId], references: [id])
   staffingProjectId  String?             @unique @map("staffing_project_id")
   staffingProject    Project?            @relation(fields: [staffingProjectId], references: [id])
   federalProductOwner String?            @map("federal_product_owner")
@@ -513,22 +605,11 @@ model StatusProject {
   risks           Risk[]
   accomplishments Accomplishment[]
   documents       Document[]
-  products        StatusProjectProduct[]
+  products        ProductStatusProject[]
   notifications   Notification[]
   intakeSubmission IntakeSubmission?  @relation("IntakeLinkedProject")
 
   @@map("status_projects")
-}
-
-model StatusProjectProduct {
-  id              String        @id @default(uuid())
-  statusProjectId String        @map("status_project_id")
-  statusProject   StatusProject @relation(fields: [statusProjectId], references: [id], onDelete: Cascade)
-  productId       String        @map("product_id")
-  product         Product       @relation(fields: [productId], references: [id])
-
-  @@unique([statusProjectId, productId])
-  @@map("status_project_products")
 }
 
 model ProjectPhase {

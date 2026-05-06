@@ -72,6 +72,9 @@ export const adminApi = {
   deactivateUser: (id: string) =>
     api.delete(`/admin/users/${id}`).then((r) => r.data.data),
 
+  onboardStaff: (data: { user: any; resource: any }) =>
+    api.post('/admin/onboard-staff', data).then((r) => r.data.data),
+
   auditLog: (params?: Record<string, string>) =>
     api.get('/admin/audit-log', { params }).then((r) => r.data),
 };

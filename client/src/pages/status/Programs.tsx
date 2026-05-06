@@ -224,11 +224,11 @@ export function Programs() {
             </select>
 
             <select className="usa-select" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
-              <option value="">All Federal Owners</option>
+              <option value="">All Federal Program Owners</option>
               {federalOwners.map((owner) => (
                 <option key={owner} value={owner}>{owner}</option>
               ))}
-              <option value="__none__">No Federal Owner</option>
+              <option value="__none__">No Federal Program Owner</option>
             </select>
           </div>
 

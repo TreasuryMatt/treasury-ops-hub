@@ -146,13 +146,13 @@ export function StatusProjects() {
   // ── Visible rows (apply application filter on top of server filters) ────────
   const allApplications = useMemo(() => Array.from(
     new Map(
-      projects.map((p) => p.application).filter((a): a is NonNullable<typeof a> => a != null)
+      projects.map((p) => (p as any).products?.map((pp: any) => pp.product) ?? []).flat().filter((a: any) => a != null)
         .map((a) => [a.id, a])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name)), [projects]);
 
   const visibleProjects = filterApplicationId
-    ? projects.filter((p) => p.application?.id === filterApplicationId)
+    ? projects.filter((p) => (p as any).products?.some((pp: any) => pp.product.id === filterApplicationId))
     : projects;
 
   const maxProgramCount = stats.byProgram.length > 0 ? Math.max(...stats.byProgram.map((p) => p.count)) : 1;
@@ -348,7 +348,7 @@ export function StatusProjects() {
                 <th>Program</th>
                 <th>Phase</th>
                 <th>Application</th>
-                <th>Federal Product Owner</th>
+                <th>Federal Project Owner</th>
                 <th>Next Update Due</th>
               </tr>
             </thead>
@@ -360,7 +360,7 @@ export function StatusProjects() {
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.program?.name || '—'}</td>
                   <td>{sp.phase?.name || '—'}</td>
-                  <td>{sp.application?.name || '—'}</td>
+                  <td>{(sp as any).products?.map((pp: any) => pp.product.name).join(", ") || "—"}</td>
                   <td>{sp.federalProductOwner || '—'}</td>
                   <td>
                     {sp.nextUpdateDue ? (

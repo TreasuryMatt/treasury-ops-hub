@@ -26,7 +26,7 @@ function UtilizationBar({ label, value, count }: { label: string; value: number;
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 14 }}>
         <span style={{ fontWeight: 600 }}>{formatDivision(label)}</span>
-        <span>{pct}% avg ({count} resources)</span>
+        <span>{pct}% avg ({count} {count === 1 ? 'resource' : 'resources'})</span>
       </div>
       <div style={{ background: 'var(--usa-base-lightest)', borderRadius: 4, height: 12, overflow: 'hidden' }}>
         <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor, borderRadius: 4, transition: 'width .3s' }} />
@@ -283,7 +283,7 @@ export function Dashboard() {
                   <StatusProjectListItem
                     key={project.id}
                     project={project}
-                    subtitle={`${project.application?.name || 'No application'} · ${project.program?.name || 'No program'}`}
+                    subtitle={`${project.products?.[0]?.product?.name || 'No product'} · ${project.program?.name || 'No program'}`}
                     metric={days !== null ? `${days}d left` : formatShortDate(project.plannedEndDate)}
                     tone={tone}
                     onClick={() => navigate(`/status/projects/${project.id}`)}

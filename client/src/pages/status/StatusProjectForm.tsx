@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,15 +6,15 @@ import { statusProjectsApi } from '../../api/statusProjects';
 import { projectsApi } from '../../api/projects';
 import { programsApi } from '../../api/programs';
 import { statusAdminApi } from '../../api/statusAdmin';
-import { applicationsApi } from '../../api/applications';
-import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Application, Project, StatusPhase } from '../../types';
+import { productsApi } from '../../api/products';
+import { resourcesApi } from '../../api/resources';
+import { Program, Department, StatusPriority, ExecutionType, CustomerCategory, Product, Project, StatusPhase, Resource } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
   name: string;
   description: string;
   programId: string;
-  applicationId: string;
   staffingProjectId: string;
   federalProductOwner: string;
   customerContact: string;
@@ -39,10 +39,11 @@ export function StatusProjectForm() {
   const qc = useQueryClient();
   const isEdit = !!id;
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       programId: searchParams.get('programId') || '',
-      applicationId: searchParams.get('applicationId') || '',
       status: 'gray',
       updateCadence: 'monthly',
       funded: false,
@@ -65,21 +66,23 @@ export function StatusProjectForm() {
     queryKey: ['staffing-projects'],
     queryFn: () => projectsApi.list().then((r) => r.data),
   });
-  const selectedProgramId = watch('programId');
-  const selectedApplicationId = watch('applicationId');
-  const { data: applications = [] } = useQuery<Application[]>({
-    queryKey: ['applications', selectedProgramId],
-    queryFn: () => applicationsApi.list({ programId: selectedProgramId }),
-    enabled: !!selectedProgramId,
+  const { data: allProducts = [] } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: () => productsApi.list(),
   });
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   useEffect(() => {
     if (project) {
+      setSelectedProductIds((project.products ?? []).map((pp) => pp.product.id));
       reset({
         name: project.name,
         description: project.description || '',
         programId: project.programId,
-        applicationId: project.applicationId || '',
         staffingProjectId: project.staffingProjectId || '',
         federalProductOwner: project.federalProductOwner || '',
         customerContact: project.customerContact || '',
@@ -99,19 +102,12 @@ export function StatusProjectForm() {
     }
   }, [project, reset]);
 
-  useEffect(() => {
-    if (!selectedApplicationId) return;
-    if (!applications.some((application) => application.id === selectedApplicationId)) {
-      setValue('applicationId', '');
-    }
-  }, [applications, selectedApplicationId, setValue]);
-
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
       const payload = {
         ...data,
         staffingProjectId: data.staffingProjectId || null,
-        applicationId: data.applicationId || null,
+        productIds: selectedProductIds,
         federalProductOwner: data.federalProductOwner || null,
         customerContact: data.customerContact || null,
         departmentId: data.departmentId || null,
@@ -172,20 +168,33 @@ export function StatusProjectForm() {
             {errors.programId && <span className="usa-error-message">{errors.programId.message}</span>}
           </div>
 
-          <div className="usa-form-group">
-            <label className="usa-label" htmlFor="applicationId">Application *</label>
-            <select
-              className="usa-select"
-              id="applicationId"
-              {...register('applicationId', { required: 'Application is required' })}
-              disabled={!selectedProgramId}
-            >
-              <option value="">{selectedProgramId ? '— Select —' : 'Select a program first'}</option>
-              {applications.map((application) => (
-                <option key={application.id} value={application.id}>{application.name}</option>
-              ))}
-            </select>
-            {errors.applicationId && <span className="usa-error-message">{errors.applicationId.message}</span>}
+          <div className="usa-form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="usa-label">Products</label>
+            {allProducts.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--usa-base-dark)', margin: 0 }}>No products defined yet. <a href="/status/products/new">Create a product first.</a></p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                {allProducts.map((p) => {
+                  const selected = selectedProductIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedProductIds((prev) => selected ? prev.filter((x) => x !== p.id) : [...prev, p.id])}
+                      style={{
+                        padding: '4px 12px', borderRadius: 20,
+                        border: `2px solid ${selected ? 'var(--usa-primary)' : 'var(--usa-base-lighter)'}`,
+                        background: selected ? 'var(--usa-primary-lighter)' : '#fff',
+                        color: selected ? 'var(--usa-primary-dark)' : 'var(--usa-base-dark)',
+                        fontWeight: selected ? 700 : 400, cursor: 'pointer', fontSize: 13,
+                      }}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="usa-form-group">
@@ -208,8 +217,13 @@ export function StatusProjectForm() {
           </div>
 
           <div className="usa-form-group">
-            <label className="usa-label" htmlFor="federalProductOwner">Federal Product Owner</label>
-            <input className="usa-input" id="federalProductOwner" {...register('federalProductOwner')} />
+            <label className="usa-label" htmlFor="federalProductOwner">Federal Project Owner</label>
+            <select className="usa-select" id="federalProductOwner" {...register('federalProductOwner')}>
+              <option value="">— Select —</option>
+              {resources.map((r) => (
+                <option key={r.id} value={`${r.firstName} ${r.lastName}`}>{r.firstName} {r.lastName}</option>
+              ))}
+            </select>
           </div>
 
           <div className="usa-form-group">

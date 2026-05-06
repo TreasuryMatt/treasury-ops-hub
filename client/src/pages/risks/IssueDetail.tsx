@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RichTextEditor, RichTextDisplay } from '../../components/RichTextEditor';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { issuesApi } from '../../api/issues';
@@ -446,7 +447,7 @@ export function IssueDetail() {
               </div>
 
               <div>
-                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Federal Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
                 <input className="usa-input" value={selectedProgram?.federalOwner || issue.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
               </div>
 
@@ -481,20 +482,17 @@ export function IssueDetail() {
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Statement *</label>
-                <textarea className="usa-textarea" rows={5} value={draft.statement}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, statement: e.target.value }))} />
+                <RichTextEditor value={draft.statement} onChange={(v) => setDraft((p) => p && ({ ...p, statement: v }))} minHeight={120} />
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Impact</label>
-                <textarea className="usa-textarea" rows={4} value={draft.impact}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, impact: e.target.value }))} />
+                <RichTextEditor value={draft.impact || ''} onChange={(v) => setDraft((p) => p && ({ ...p, impact: v }))} minHeight={96} />
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>
                 <label className="usa-label">Closure Criteria</label>
-                <textarea className="usa-textarea" rows={4} value={draft.closureCriteria}
-                  onChange={(e) => setDraft((p) => p && ({ ...p, closureCriteria: e.target.value }))} />
+                <RichTextEditor value={draft.closureCriteria || ''} onChange={(v) => setDraft((p) => p && ({ ...p, closureCriteria: v }))} minHeight={96} />
               </div>
 
             </div>
@@ -516,11 +514,11 @@ export function IssueDetail() {
             <h2 style={{ marginTop: 0 }}>Issue Summary</h2>
             <dl style={{ margin: 0 }}>
               <dt style={DT_STYLE}>Statement</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.statement}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}><RichTextDisplay html={issue.statement} /></dd>
               <dt style={DT_STYLE}>Impact</dt>
-              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.impact || '—'}</dd>
+              <dd style={{ ...DD_STYLE, marginBottom: 16 }}>{issue.impact ? <RichTextDisplay html={issue.impact} /> : '—'}</dd>
               <dt style={DT_STYLE}>Closure Criteria</dt>
-              <dd style={DD_STYLE}>{issue.closureCriteria || '—'}</dd>
+              <dd style={DD_STYLE}>{issue.closureCriteria ? <RichTextDisplay html={issue.closureCriteria} /> : '—'}</dd>
             </dl>
           </div>
 
@@ -528,7 +526,7 @@ export function IssueDetail() {
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
               <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{issue.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Program Owner</dt><dd style={DD_STYLE}>{issue.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Federal Program Owner</dt><dd style={DD_STYLE}>{issue.program?.federalOwner || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{issue.riskOwner ? `${issue.riskOwner.firstName} ${issue.riskOwner.lastName}` : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{issue.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{issue.dateIdentified ? new Date(issue.dateIdentified).toLocaleDateString() : '—'}</dd></div>

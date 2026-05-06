@@ -164,6 +164,9 @@ resourcesRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: 
     await logAction(req.user!.id, 'create', 'resource', resource.id, data, req.ip);
     res.status(201).json({ data: resource });
   } catch (err: any) {
+    if (err.code === 'P2002') {
+      return next(new AppError(`A resource with this ${err.meta?.target?.join(', ') || 'value'} already exists.`, 409));
+    }
     next(new AppError(err.message, 400));
   }
 });

@@ -3,9 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { programsApi } from '../../api/programs';
 import { useAuth } from '../../context/AuthContext';
-import { Program } from '../../types';
+import { Program, ProductType } from '../../types';
 import { Icon } from '../../components/Icon';
 import { RagBadge } from '../../components/RagBadge';
+
+const TYPE_LABELS: Record<ProductType, string> = {
+  PLATFORM: 'Platform', APPLICATION: 'Application', INTEGRATION: 'Integration',
+  SERVICE: 'Service', MOBILE_APP: 'Mobile App',
+};
 
 export function ProgramDetail() {
   const { id } = useParams<{ id: string }>();
@@ -46,7 +51,7 @@ export function ProgramDetail() {
             <p className="usa-page-subtitle">Portfolio: {program.portfolio.name}</p>
           )}
           {program.federalOwner && (
-            <p className="usa-page-subtitle">Federal Owner: {program.federalOwner}</p>
+            <p className="usa-page-subtitle">Federal Program Owner: {program.federalOwner}</p>
           )}
           {program.description && !program.portfolio && (
             <p className="usa-page-subtitle">{program.description}</p>
@@ -57,12 +62,6 @@ export function ProgramDetail() {
             <button className="usa-button usa-button--outline" onClick={() => navigate(`/status/programs/${id}/edit`)}>
               <Icon name="edit" size={16} /> Edit
             </button>
-            <button className="usa-button usa-button--outline" onClick={() => navigate(`/status/applications/new?programId=${id}`)}>
-              <Icon name="add" size={16} /> New Application
-            </button>
-            <button className="usa-button" onClick={() => navigate('/status/projects/new?programId=' + id)}>
-              <Icon name="add" size={16} /> New Project
-            </button>
           </div>
         )}
       </div>
@@ -71,43 +70,46 @@ export function ProgramDetail() {
         <p style={{ marginBottom: 'var(--space-3)', color: 'var(--usa-base-dark)' }}>{program.description}</p>
       )}
 
-      <div className="section-header">
-        <h2 className="section-title">Applications ({program.applications?.length ?? 0})</h2>
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="section-title">Products ({program.products?.length ?? 0})</h2>
+        {canEdit && (
+          <button className="usa-button usa-button--outline usa-button--sm" onClick={() => navigate('/status/products/new')}>
+            + New Product
+          </button>
+        )}
       </div>
 
-      {!program.applications?.length ? (
+      {!program.products?.length ? (
         <div className="empty-state" style={{ marginBottom: 'var(--space-3)' }}>
-          <div className="empty-state__icon"><Icon name="apps" size={48} /></div>
-          <h3>No applications yet</h3>
-          <p>Add an application before creating projects in this program.</p>
+          <div className="empty-state__icon"><Icon name="inventory_2" size={48} /></div>
+          <h3>No products linked</h3>
+          <p>Link products to this program via the Products catalog.</p>
         </div>
       ) : (
         <div className="table-wrap" style={{ marginBottom: 'var(--space-3)' }}>
           <table className="usa-table">
             <thead>
               <tr>
-                <th>Application</th>
-                <th>Description</th>
+                <th>Product</th>
+                <th>Type</th>
                 <th>Projects</th>
                 {canEdit && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
-              {program.applications.map((application) => (
-                <tr key={application.id}>
-                  <td style={{ fontWeight: 600 }}>{application.name}</td>
-                  <td>{application.description || '—'}</td>
-                  <td>{application._count?.statusProjects ?? 0}</td>
+              {program.products.map(({ product }) => (
+                <tr key={product.id} onClick={() => navigate(`/status/products/${product.id}`)} style={{ cursor: 'pointer' }}>
+                  <td style={{ fontWeight: 600 }}>{product.name}</td>
+                  <td>{TYPE_LABELS[product.productType as ProductType] ?? product.productType}</td>
+                  <td>{product._count?.statusProjects ?? 0}</td>
                   {canEdit && (
                     <td>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="usa-button usa-button--unstyled" onClick={() => navigate(`/status/applications/${application.id}/edit`)}>
-                          Edit
-                        </button>
-                        <button className="usa-button usa-button--unstyled" onClick={() => navigate(`/status/projects/new?programId=${program.id}&applicationId=${application.id}`)}>
-                          New Project
-                        </button>
-                      </div>
+                      <button
+                        className="usa-button usa-button--unstyled"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/status/products/${product.id}/edit`); }}
+                      >
+                        Edit
+                      </button>
                     </td>
                   )}
                 </tr>
@@ -135,7 +137,7 @@ export function ProgramDetail() {
                 <th>Status</th>
                 <th>Project</th>
                 <th>Phase</th>
-                <th>Application</th>
+                <th>Products</th>
                 <th>Owner</th>
                 <th>Next Update Due</th>
               </tr>
@@ -146,7 +148,7 @@ export function ProgramDetail() {
                   <td><RagBadge status={sp.status} /></td>
                   <td style={{ fontWeight: 600 }}>{sp.name}</td>
                   <td>{sp.phase?.name || '—'}</td>
-                  <td>{sp.application?.name || '—'}</td>
+                  <td>{(sp as any).products?.map((pp: any) => pp.product.name).join(', ') || '—'}</td>
                   <td>{sp.owner?.displayName || '—'}</td>
                   <td>
                     {sp.nextUpdateDue ? (

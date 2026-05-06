@@ -15,6 +15,7 @@ import { ResourceRequestForm } from './pages/ResourceRequestForm';
 import { Import } from './pages/admin/Import';
 import { ReferenceData } from './pages/admin/ReferenceData';
 import { Users } from './pages/admin/Users';
+import { OnboardStaff } from './pages/admin/OnboardStaff';
 import { AuditLog } from './pages/admin/AuditLog';
 import { StatusDashboard } from './pages/status/StatusDashboard';
 import { StatusProjects } from './pages/status/StatusProjects';
@@ -24,10 +25,11 @@ import { Portfolios } from './pages/status/Portfolios';
 import { PortfolioDetail } from './pages/status/PortfolioDetail';
 import { PortfolioForm } from './pages/status/PortfolioForm';
 import { Programs } from './pages/status/Programs';
-import { Applications } from './pages/status/Applications';
+import { Products } from './pages/status/Products';
+import { ProductDetail } from './pages/status/ProductDetail';
+import { ProductForm } from './pages/status/ProductForm';
 import { ProgramDetail } from './pages/status/ProgramDetail';
 import { ProgramForm } from './pages/status/ProgramForm';
-import { ApplicationForm } from './pages/status/ApplicationForm';
 import { Roadmap } from './pages/status/Roadmap';
 import { Reports } from './pages/status/Reports';
 import { ExecutiveRollup } from './pages/status/ExecutiveRollup';
@@ -85,8 +87,9 @@ export default function App() {
               <Route path="status/portfolios" element={<Portfolios />} />
               <Route path="status/portfolios/:id" element={<PortfolioDetail />} />
               <Route path="status/programs" element={<Programs />} />
-              <Route path="status/applications" element={<Applications />} />
               <Route path="status/programs/:id" element={<ProgramDetail />} />
+              <Route path="status/products" element={<Products />} />
+              <Route path="status/products/:id" element={<ProductDetail />} />
               <Route path="status/roadmap" element={<Roadmap />} />
               <Route path="status/reports" element={<Reports />} />
               <Route path="risks/risks" element={<Risks />} />
@@ -119,8 +122,8 @@ export default function App() {
                 <Route path="status/portfolios/:id/edit" element={<PortfolioForm />} />
                 <Route path="status/programs/new" element={<ProgramForm />} />
                 <Route path="status/programs/:id/edit" element={<ProgramForm />} />
-                <Route path="status/applications/new" element={<ApplicationForm />} />
-                <Route path="status/applications/:id/edit" element={<ApplicationForm />} />
+                <Route path="status/products/new" element={<ProductForm />} />
+                <Route path="status/products/:id/edit" element={<ProductForm />} />
               </Route>
 
               {/* Admin only */}
@@ -128,6 +131,7 @@ export default function App() {
                 <Route path="admin/import" element={<Import />} />
                 <Route path="admin/reference-data" element={<ReferenceData />} />
                 <Route path="admin/users" element={<Users />} />
+                <Route path="admin/onboard-staff" element={<OnboardStaff />} />
                 <Route path="admin/audit-log" element={<AuditLog />} />
               </Route>
             </Route>

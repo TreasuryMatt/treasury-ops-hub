@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { portfoliosApi } from '../../api/portfolios';
+import { resourcesApi } from '../../api/resources';
+import { Resource } from '../../types';
 import { Icon } from '../../components/Icon';
 
 interface FormData {
@@ -25,6 +27,12 @@ export function PortfolioForm() {
     queryFn: () => portfoliosApi.get(id!),
     enabled: isEdit,
   });
+
+  const { data: resourcesPage } = useQuery({
+    queryKey: ['resources-list-all'],
+    queryFn: () => resourcesApi.list({ limit: '1000', isActive: 'true' }),
+  });
+  const resources: Resource[] = resourcesPage?.data ?? [];
 
   useEffect(() => {
     if (portfolio) {
@@ -88,13 +96,13 @@ export function PortfolioForm() {
         </div>
 
         <div className="usa-form-group">
-          <label className="usa-label" htmlFor="owner">Portfolio Manager</label>
-          <input
-            className="usa-input"
-            id="owner"
-            placeholder="e.g. Jane Smith"
-            {...register('owner')}
-          />
+          <label className="usa-label" htmlFor="owner">Federal Portfolio Owner</label>
+          <select className="usa-select" id="owner" {...register('owner')}>
+            <option value="">— Select —</option>
+            {resources.map((r) => (
+              <option key={r.id} value={`${r.firstName} ${r.lastName}`}>{r.firstName} {r.lastName}</option>
+            ))}
+          </select>
         </div>
 
         <div className="usa-form-group">

@@ -28,21 +28,21 @@ export function Sidebar() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/status/portfolios">
-                <Icon name="work" color={COLOR_MAIN} />
-                Portfolios
-              </NavLink>
-            </li>
-            <li>
               <NavLink to="/status/programs">
                 <Icon name="folder" color={COLOR_MAIN} />
                 Programs
               </NavLink>
             </li>
             <li>
-              <NavLink to="/status/applications">
-                <Icon name="tune" color={COLOR_MAIN} />
-                Applications
+              <NavLink to="/status/portfolios">
+                <Icon name="work" color={COLOR_MAIN} />
+                Portfolios
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/status/products">
+                <Icon name="build" color={COLOR_MAIN} />
+                Products
               </NavLink>
             </li>
             <li>
@@ -144,6 +144,12 @@ export function Sidebar() {
                 <NavLink to="/admin/users">
                   <Icon name="group_add" color={COLOR_ADMIN} />
                   Users
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/admin/onboard-staff">
+                  <Icon name="person_add" color={COLOR_ADMIN} />
+                  Onboard Staff
                 </NavLink>
               </li>
               <li>

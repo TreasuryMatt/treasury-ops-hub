@@ -481,7 +481,7 @@ export function RiskDetail() {
               </div>
 
               <div>
-                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
+                <label className="usa-label" style={{ color: 'var(--usa-base-dark)' }}>Federal Program Owner <span style={{ fontWeight: 400, fontStyle: 'italic' }}>(auto-filled)</span></label>
                 <input className="usa-input" value={selectedProgram?.federalOwner || risk.program?.federalOwner || ''} readOnly placeholder="Auto-filled from selected program" style={{ background: 'var(--usa-base-lightest)', color: 'var(--usa-base-dark)', cursor: 'default' }} />
               </div>
 
@@ -592,7 +592,7 @@ export function RiskDetail() {
             <h2 style={{ marginTop: 0 }}>Details</h2>
             <dl style={{ margin: 0, display: 'grid', gap: 12 }}>
               <div><dt style={DT_STYLE}>Category</dt><dd style={DD_STYLE}>{risk.category?.name || '—'}</dd></div>
-              <div><dt style={DT_STYLE}>Program Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
+              <div><dt style={DT_STYLE}>Federal Program Owner</dt><dd style={DD_STYLE}>{risk.program?.federalOwner || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Risk Owner</dt><dd style={DD_STYLE}>{risk.riskOwner ? `${risk.riskOwner.firstName} ${risk.riskOwner.lastName}` : '—'}</dd></div>
               <div><dt style={DT_STYLE}>Submitter</dt><dd style={DD_STYLE}>{risk.submitter?.displayName || '—'}</dd></div>
               <div><dt style={DT_STYLE}>Date Identified</dt><dd style={DD_STYLE}>{risk.dateIdentified ? new Date(risk.dateIdentified).toLocaleDateString() : '—'}</dd></div>

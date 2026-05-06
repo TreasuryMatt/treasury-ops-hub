@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { resourcesApi } from '../api/resources';
 import { assignmentsApi } from '../api/assignments';
@@ -119,15 +119,15 @@ export function ResourceDetail() {
             {resource.resourceType === 'contractor' && (<><dt>POP Start</dt><dd>{resource.popStartDate ? new Date(resource.popStartDate).toLocaleDateString() : '-'}</dd></>)}
             {resource.resourceType === 'contractor' && (<><dt>POP End</dt><dd>{resource.popEndDate ? new Date(resource.popEndDate).toLocaleDateString() : '-'}</dd></>)}
             <dt>Secondary Role</dt><dd>{resource.secondaryRole?.name || '-'}</dd>
-            <dt>Supervisor</dt><dd>{resource.supervisor ? `${resource.supervisor.lastName}, ${resource.supervisor.firstName}` : '-'}</dd>
-            <dt>2nd Line Supervisor</dt><dd>{resource.secondLineSupervisor ? `${resource.secondLineSupervisor.lastName}, ${resource.secondLineSupervisor.firstName}` : '-'}</dd>
+            <dt>Supervisor</dt><dd>{resource.supervisor ? <Link to={`/staffing/resources/${resource.supervisor.id}`}>{resource.supervisor.lastName}, {resource.supervisor.firstName}</Link> : '-'}</dd>
+            <dt>2nd Line Supervisor</dt><dd>{resource.secondLineSupervisor ? <Link to={`/staffing/resources/${resource.secondLineSupervisor.id}`}>{resource.secondLineSupervisor.lastName}, {resource.secondLineSupervisor.firstName}</Link> : '-'}</dd>
             <dt>Ops/Eng Lead</dt><dd>{resource.opsEngLead || '-'}</dd>
           </dl>
         </div>
 
         <div className="detail-card">
           <h3>Capacity</h3>
-          <div style={{ fontSize: 36, fontWeight: 700, color: utilizationPct > 100 ? 'var(--usa-error)' : 'var(--usa-primary)' }}>
+          <div style={{ fontSize: 36, fontWeight: 700, color: utilizationPct > 100 ? 'var(--usa-error)' : 'var(--usa-success)' }}>
             {utilizationPct}%
           </div>
           <div style={{ fontSize: 14, color: 'var(--usa-base)' }}>Total Utilization</div>

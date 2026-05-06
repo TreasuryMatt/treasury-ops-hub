@@ -39,7 +39,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma generate && npx prisma db push && npm run prisma:seed && npx nodemon --watch src --watch prisma/schema.prisma --ext ts,prisma --exec 'npx prisma generate && ts-node src/index.ts'"
+      sh -c "npx prisma generate && npx prisma migrate deploy && npm run prisma:seed && npx nodemon --watch src --watch prisma/schema.prisma --ext ts,prisma --exec 'npx prisma generate && ts-node src/index.ts'"
 
   client:
     build:

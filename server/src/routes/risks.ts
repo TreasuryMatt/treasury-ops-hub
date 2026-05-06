@@ -185,7 +185,7 @@ risksRouter.get('/dashboard', async (_req: AuthenticatedRequest, res: Response) 
       withoutMitigationPlan,
       byProgress: {
         open: byProgress['open'] ?? 0,
-        accepted: byProgress['accepted'] ?? 0,
+        assumed: byProgress['assumed'] ?? 0,
         escalated_to_issue: byProgress['escalated_to_issue'] ?? 0,
         mitigated: byProgress['mitigated'] ?? 0,
       },

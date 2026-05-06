@@ -146,10 +146,10 @@ export function Risks() {
             </button>
             <button
               className="dashboard-quick-stat"
-              onClick={() => setFilters((f) => ({ ...f, progress: 'accepted' }))}
+              onClick={() => setFilters((f) => ({ ...f, progress: 'assumed' }))}
             >
-              <div className="dashboard-quick-stat__label">Accepted</div>
-              <div className="dashboard-quick-stat__value">{stats.byProgress.accepted}</div>
+              <div className="dashboard-quick-stat__label">Assumed</div>
+              <div className="dashboard-quick-stat__value">{stats.byProgress.assumed}</div>
             </button>
             <button
               className="dashboard-quick-stat"

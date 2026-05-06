@@ -68,7 +68,7 @@ export function PortfolioDetail() {
           </h1>
           {portfolio.owner && (
             <p className="usa-page-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="person" size={14} color="var(--usa-base)" /> Manager: {portfolio.owner}
+              <Icon name="person" size={14} color="var(--usa-base)" /> Federal Portfolio Owner: {portfolio.owner}
             </p>
           )}
           {portfolio.budget !== null && portfolio.budget !== undefined && (
@@ -133,7 +133,7 @@ export function PortfolioDetail() {
             <thead>
               <tr>
                 <th>Program</th>
-                <th>Manager / Owner</th>
+                <th>Federal Program Owner</th>
                 <th>Projects</th>
                 <th>Health</th>
                 {canEdit && <th>Actions</th>}

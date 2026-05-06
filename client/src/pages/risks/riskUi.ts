@@ -2,14 +2,14 @@ import { RiskActionStatus, RiskCriticality, RiskProgress, RiskStatus } from '../
 
 export const RISK_PROGRESS_LABELS: Record<RiskProgress, string> = {
   open: 'Open',
-  accepted: 'Accepted',
+  assumed: 'Assumed',
   escalated_to_issue: 'Converted to Issue',
   mitigated: 'Mitigated',
 };
 
 export const RISK_PROGRESS_STYLES: Record<RiskProgress, { bg: string; color: string }> = {
   open: { bg: 'var(--usa-primary)', color: '#fff' },
-  accepted: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
+  assumed: { bg: 'var(--usa-base-light)', color: 'var(--usa-base-darkest)' },
   escalated_to_issue: { bg: 'var(--usa-error)', color: '#fff' },
   mitigated: { bg: 'var(--usa-success)', color: '#fff' },
 };

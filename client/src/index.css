@@ -1845,3 +1845,72 @@ code {
 [data-theme="dark"] .notif-item__time {
   color: var(--usa-base);
 }
+
+/* Rich Text Editor */
+.rte-wrapper {
+  border: 2px solid var(--usa-base);
+  border-radius: var(--radius);
+  background: var(--usa-white);
+  transition: border-color .15s, box-shadow .15s;
+}
+.rte-wrapper:focus-within {
+  border-color: var(--usa-primary-vivid);
+  box-shadow: 0 0 0 3px rgba(0, 80, 216, .25);
+}
+.rte-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--usa-base-lighter);
+  background: var(--usa-cool-gray-5, #f0f0f0);
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
+}
+.rte-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--usa-ink);
+  transition: background .1s, border-color .1s;
+}
+.rte-btn:hover {
+  background: var(--usa-base-lighter);
+  border-color: var(--usa-base-light);
+}
+.rte-btn--active {
+  background: var(--usa-primary-lighter, #d9e8ff);
+  border-color: var(--usa-primary-light, #73b3e7);
+  color: var(--usa-primary);
+}
+.rte-content {
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--usa-ink);
+  outline: none;
+  min-height: inherit;
+}
+.rte-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--usa-base);
+  pointer-events: none;
+}
+.rte-content p { margin: 0 0 4px; }
+.rte-content p:last-child { margin-bottom: 0; }
+.rte-content ul { margin: 0 0 4px; padding-left: 20px; }
+.rte-content a { color: var(--usa-primary); }
+.rte-display p { margin: 0 0 4px; }
+.rte-display p:last-child { margin-bottom: 0; }
+.rte-display ul { margin: 0 0 4px; padding-left: 20px; }
+.rte-display a { color: var(--usa-primary); }
+[data-theme="dark"] .rte-wrapper { background: var(--usa-white); border-color: var(--usa-base); }
+[data-theme="dark"] .rte-toolbar { background: var(--usa-base-lightest, #e6e6e6); }
+[data-theme="dark"] .rte-btn { color: var(--usa-ink); }

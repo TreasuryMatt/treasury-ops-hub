@@ -29,7 +29,9 @@ statusProjectsRouter.use(requireAuth);
 
 const PROJECT_INCLUDE = {
   program: { select: { id: true, name: true } },
-  application: { select: { id: true, name: true, programId: true } },
+  products: {
+    include: { product: { select: { id: true, name: true, productType: true, logoUrl: true } } },
+  },
   department: { select: { id: true, name: true } },
   priority: { select: { id: true, name: true, sortOrder: true } },
   executionType: { select: { id: true, name: true } },
@@ -37,25 +39,6 @@ const PROJECT_INCLUDE = {
   phase: { select: { id: true, name: true } },
   staffingProject: { select: { id: true, name: true } },
 };
-
-async function validateApplication(programId: string, applicationId?: string | null) {
-  if (!applicationId) return null;
-
-  const application = await prisma.application.findFirst({
-    where: {
-      id: applicationId,
-      programId,
-      isActive: true,
-    },
-    select: { id: true },
-  });
-
-  if (!application) {
-    throw new AppError('Application must belong to the selected program', 400);
-  }
-
-  return application;
-}
 
 // GET /api/status-projects
 statusProjectsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
@@ -99,15 +82,17 @@ statusProjectsRouter.get('/:id', async (req: AuthenticatedRequest, res: Response
 statusProjectsRouter.post('/', requireEditor, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const b = req.body;
-    await validateApplication(b.programId, b.applicationId);
+    const productIds: string[] = b.productIds || [];
 
     const project = await prisma.statusProject.create({
       data: ({
         name: b.name,
         description: b.description || null,
         programId: b.programId,
-        applicationId: b.applicationId || null,
         staffingProject: b.staffingProjectId ? { connect: { id: b.staffingProjectId } } : undefined,
+        products: productIds.length
+          ? { create: productIds.map((pid: string) => ({ productId: pid })) }
+          : undefined,
         federalProductOwner: b.federalProductOwner || null,
         customerContact: b.customerContact || null,
         departmentId: b.departmentId || null,
@@ -144,22 +129,27 @@ statusProjectsRouter.put('/:id', requireEditor, async (req: AuthenticatedRequest
       where: { id: req.params.id as string },
       select: { status: true, name: true },
     });
-    const nextProgramId = b.programId ?? (await prisma.statusProject.findUnique({
-      where: { id: req.params.id as string },
-      select: { programId: true },
-    }))?.programId;
-    if (!nextProgramId) throw new AppError('Program is required', 400);
-    await validateApplication(nextProgramId, b.applicationId);
+    const projectId = req.params.id as string;
+    const productIds: string[] | undefined = Array.isArray(b.productIds) ? b.productIds : undefined;
+
+    // Replace product associations if provided
+    if (productIds !== undefined) {
+      await prisma.$transaction([
+        prisma.productStatusProject.deleteMany({ where: { statusProjectId: projectId } }),
+        ...(productIds.length
+          ? [prisma.productStatusProject.createMany({
+              data: productIds.map((pid: string) => ({ statusProjectId: projectId, productId: pid })),
+            })]
+          : []),
+      ]);
+    }
 
     const project = await prisma.statusProject.update({
-      where: { id: req.params.id as string },
+      where: { id: projectId },
       data: {
         name: b.name,
         description: b.description ?? undefined,
         program: b.programId ? { connect: { id: b.programId } } : undefined,
-        application: b.applicationId !== undefined
-          ? b.applicationId ? { connect: { id: b.applicationId } } : { disconnect: true }
-          : undefined,
         staffingProject: b.staffingProjectId !== undefined
           ? b.staffingProjectId
             ? { connect: { id: b.staffingProjectId } }
